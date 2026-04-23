@@ -2,5 +2,5 @@
   <Configurations>
     <Platform Name="x64" />
   </Configurations>
-  <Project Path="EarthView/EarthView.vcxproj" />
+  <Project Path="EarthView/EarthView.vcxproj" Id="e684bbd2-367a-4677-b533-79df8cd662c0" />
 </Solution>
