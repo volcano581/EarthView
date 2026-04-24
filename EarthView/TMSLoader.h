@@ -29,6 +29,7 @@ public:
     struct TileInfo {
         GLuint textureId;
         QRectF mercatorBounds;
+        QString textureCacheKey;
         QImage image;
         bool isLoading;
     };

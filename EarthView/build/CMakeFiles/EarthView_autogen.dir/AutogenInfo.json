@@ -473,6 +473,12 @@
 			null
 		],
 		[
+			"G:/Projects/EarthView/EarthView/GridRenderer.h",
+			"MU",
+			"EWIEGA46WW/moc_GridRenderer.cpp",
+			null
+		],
+		[
 			"G:/Projects/EarthView/EarthView/MainWindow.h",
 			"MU",
 			"EWIEGA46WW/moc_MainWindow.cpp",
@@ -506,6 +512,12 @@
 			"G:/Projects/EarthView/EarthView/TileRenderer.h",
 			"MU",
 			"EWIEGA46WW/moc_TileRenderer.cpp",
+			null
+		],
+		[
+			"G:/Projects/EarthView/EarthView/fpsCounter.h",
+			"MU",
+			"EWIEGA46WW/moc_fpsCounter.cpp",
 			null
 		]
 	],
@@ -588,6 +600,7 @@
 	[
 		[ "G:/Projects/EarthView/EarthView/BorderRenderer.cpp", "MU", null ],
 		[ "G:/Projects/EarthView/EarthView/Camera.cpp", "MU", null ],
+		[ "G:/Projects/EarthView/EarthView/GridRenderer.cpp", "MU", null ],
 		[ "G:/Projects/EarthView/EarthView/MainWindow.cpp", "MU", null ],
 		[ "G:/Projects/EarthView/EarthView/MapWidget.cpp", "MU", null ],
 		[ "G:/Projects/EarthView/EarthView/MercatorProjection.cpp", "MU", null ],

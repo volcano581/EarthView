@@ -5,6 +5,7 @@
 #include <QObject>
 #include <QOpenGLFunctions>
 #include <QOpenGLExtraFunctions>
+#include <QString>
 #include <QVector>
 
 class Camera;
@@ -24,7 +25,9 @@ public:
     explicit BorderRenderer(Camera* camera, QObject* parent = nullptr);
     ~BorderRenderer();
 
-    void loadWorldBorders();
+    bool loadShapefile(const QString& filePath, QString* errorMessage = nullptr);
+    void clearBorders();
+    int borderCount() const { return m_borders.size(); }
     void render();
 
 private:

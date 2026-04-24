@@ -8,6 +8,18 @@
 #include <QImage>
 #include <QtMath>
 
+namespace {
+QString renderTileKey(int z, int x, int y)
+{
+    return QString("%1_%2_%3").arg(z).arg(x).arg(y);
+}
+
+QString textureTileKey(int z, int x, int y)
+{
+    return renderTileKey(z, MercatorProjection::wrapTileX(x, z), y);
+}
+}
+
 TmsLoader::TmsLoader(Camera* camera, QObject* parent)
     : QObject(parent)
     , m_camera(camera)
@@ -35,13 +47,27 @@ void TmsLoader::updateVisibleTiles()
     QRect tileRange = m_camera->getTileRange(zoomLevel);
 
     QSet<QString> visibleKeys;
+    QSet<QString> visibleTextureKeys;
 
     for (int x = tileRange.x(); x < tileRange.x() + tileRange.width(); ++x) {
         for (int y = tileRange.y(); y < tileRange.y() + tileRange.height(); ++y) {
-            QString key = QString("%1_%2_%3").arg(zoomLevel).arg(x).arg(y);
+            QString key = renderTileKey(zoomLevel, x, y);
+            QString cacheKey = textureTileKey(zoomLevel, x, y);
             visibleKeys.insert(key);
+            visibleTextureKeys.insert(cacheKey);
 
-            if (!m_activeTiles.contains(key) && !m_pendingRequests.contains(key)) {
+            if (m_activeTiles.contains(key))
+                continue;
+
+            TileInfo tile;
+            tile.textureId = m_textureManager->getTexture(cacheKey);
+            tile.mercatorBounds = tileToMercatorBounds(zoomLevel, x, y);
+            tile.textureCacheKey = cacheKey;
+            tile.image = QImage();
+            tile.isLoading = tile.textureId == 0;
+            m_activeTiles[key] = tile;
+
+            if (tile.textureId == 0 && !m_pendingRequests.contains(cacheKey)) {
                 fetchTile(zoomLevel, x, y);
             }
         }
@@ -49,15 +75,22 @@ void TmsLoader::updateVisibleTiles()
 
     // Remove invisible tiles
     QList<QString> toRemove;
+    QSet<QString> textureKeysToRemove;
     for (auto it = m_activeTiles.begin(); it != m_activeTiles.end(); ++it) {
         if (!visibleKeys.contains(it.key())) {
-            m_textureManager->deleteTexture(it.key());
+            textureKeysToRemove.insert(it.value().textureCacheKey);
             toRemove.append(it.key());
         }
     }
 
     for (const QString& key : toRemove) {
         m_activeTiles.remove(key);
+    }
+
+    for (const QString& cacheKey : textureKeysToRemove) {
+        if (!visibleTextureKeys.contains(cacheKey)) {
+            m_textureManager->deleteTexture(cacheKey);
+        }
     }
 }
 
@@ -70,16 +103,10 @@ void TmsLoader::clearCache()
 
 void TmsLoader::fetchTile(int z, int x, int y)
 {
-    QString key = QString("%1_%2_%3").arg(z).arg(x).arg(y);
+    QString key = textureTileKey(z, x, y);
 
     // Check cache
     if (m_textureManager->hasTexture(key)) {
-        TileInfo tile;
-        tile.textureId = m_textureManager->getTexture(key);
-        tile.mercatorBounds = tileToMercatorBounds(z, x, y);
-        tile.image = QImage();
-        tile.isLoading = false;
-        m_activeTiles[key] = tile;
         return;
     }
 
@@ -98,23 +125,38 @@ void TmsLoader::fetchTile(int z, int x, int y)
 
 void TmsLoader::onTileDownloaded(QNetworkReply* reply, int z, int x, int y)
 {
-    QString key = QString("%1_%2_%3").arg(z).arg(x).arg(y);
+    QString key = textureTileKey(z, x, y);
     m_pendingRequests.remove(key);
+    bool loaded = false;
 
     if (reply->error() == QNetworkReply::NoError) {
         QImage image;
         if (image.loadFromData(reply->readAll())) {
-            TileInfo tile;
-            tile.textureId = 0;
-            tile.mercatorBounds = tileToMercatorBounds(z, x, y);
-            tile.image = image;
-            tile.isLoading = false;
-            m_activeTiles[key] = tile;
+            loaded = true;
+            for (auto it = m_activeTiles.begin(); it != m_activeTiles.end(); ++it) {
+                TileInfo& tile = it.value();
+                if (tile.textureCacheKey != key)
+                    continue;
+
+                tile.textureId = 0;
+                tile.image = image;
+                tile.isLoading = false;
+            }
 
             emit tileLoaded(key);
         }
     }
-    else {
+
+    if (!loaded) {
+        QList<QString> failedKeys;
+        for (auto it = m_activeTiles.begin(); it != m_activeTiles.end(); ++it) {
+            if (it.value().textureCacheKey == key) {
+                failedKeys.append(it.key());
+            }
+        }
+        for (const QString& failedKey : failedKeys) {
+            m_activeTiles.remove(failedKey);
+        }
         emit tileFailed(key);
     }
 
@@ -125,7 +167,7 @@ QString TmsLoader::tileToUrl(int z, int x, int y) const
 {
     QString url = m_urlTemplate;
     url.replace("{z}", QString::number(z));
-    url.replace("{x}", QString::number(x));
+    url.replace("{x}", QString::number(MercatorProjection::wrapTileX(x, z)));
     url.replace("{y}", QString::number(y));
     return url;
 }

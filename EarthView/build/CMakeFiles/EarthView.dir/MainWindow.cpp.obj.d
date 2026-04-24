@@ -998,8 +998,12 @@ CMakeFiles/EarthView.dir/MainWindow.cpp.obj: \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/qguiapplication_platform.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/QWheelEvent \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/QKeyEvent \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QString \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QTimer \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qtimer.h \
+  G:/Projects/EarthView/EarthView/fpsCounter.h \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QElapsedTimer \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qelapsedtimer.h \
   G:/Projects/EarthView/EarthView/Camera.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QPointF \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QRectF \
@@ -1009,6 +1013,45 @@ CMakeFiles/EarthView.dir/MainWindow.cpp.obj: \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/qvector4d.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/qgenericmatrix.h \
   G:/Projects/EarthView/EarthView/MercatorProjection.h \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/QAction \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QDir \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qdir.h \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qdirlisting.h \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qfiledevice.h \
+  C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/filesystem \
+  C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/__filesystem/copy_options.h \
+  C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/__filesystem/directory_entry.h \
+  C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/__filesystem/file_status.h \
+  C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/__filesystem/file_type.h \
+  C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/__filesystem/perms.h \
+  C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/__filesystem/file_time_type.h \
+  C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/__filesystem/filesystem_error.h \
+  C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/__filesystem/path.h \
+  C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/iomanip \
+  C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/istream \
+  C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/ostream \
+  C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/bitset \
+  C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/__filesystem/operations.h \
+  C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/__filesystem/perm_options.h \
+  C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/__filesystem/space_info.h \
+  C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/__filesystem/directory_iterator.h \
+  C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/__filesystem/directory_options.h \
+  C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/__filesystem/path_iterator.h \
+  C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/__filesystem/recursive_directory_iterator.h \
+  C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/__filesystem/u8path.h \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qdatetime.h \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qcalendar.h \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qfile.h \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qfileinfo.h \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qtimezone.h \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtWidgets/QFileDialog \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtWidgets/qfiledialog.h \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtWidgets/qdialog.h \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QFileInfo \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtWidgets/QMenu \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtWidgets/qmenu.h \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtWidgets/QMenuBar \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtWidgets/qmenubar.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtWidgets/QToolBar \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtWidgets/qtoolbar.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtWidgets/QStatusBar \

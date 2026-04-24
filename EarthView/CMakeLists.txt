@@ -17,6 +17,7 @@ set(SOURCES
     main.cpp
     BorderRenderer.cpp
     Camera.cpp
+    GridRenderer.cpp
     MainWindow.cpp
     MapWidget.cpp
     MercatorProjection.cpp
@@ -28,6 +29,7 @@ set(SOURCES
 set(HEADERS
     BorderRenderer.h
     Camera.h
+    GridRenderer.h
     MainWindow.h
     MapWidget.h
     Constants.h
@@ -35,6 +37,7 @@ set(HEADERS
     TextureManager.h
     TileRenderer.h
     TMSLoader.h
+    fpsCounter.h
 )
 
 add_executable(${PROJECT_NAME}

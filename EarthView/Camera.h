@@ -22,6 +22,11 @@ class Camera : public QObject
     Q_OBJECT
 
 public:
+    enum class ProjectionMode {
+        Mercator,
+        Orthographic
+    };
+
     explicit Camera(QObject* parent = nullptr);
 
     // Viewport management
@@ -32,16 +37,23 @@ public:
     void pan(const QPointF& delta);
     void setCenter(const QPointF& mercatorCenter);
     void setZoomLevel(double zoom);
+    void setHorizontalWrapEnabled(bool enabled);
+    void setProjectionMode(ProjectionMode mode);
 
     // Getters
     QPointF getCenterMercator() const { return m_centerMercator; }
     double getZoomLevel() const { return m_zoomLevel; }
     int getViewportWidth() const { return m_viewportWidth; }
     int getViewportHeight() const { return m_viewportHeight; }
+    bool isHorizontalWrapEnabled() const { return m_horizontalWrapEnabled; }
+    ProjectionMode projectionMode() const { return m_projectionMode; }
+    bool isOrthographic() const { return m_projectionMode == ProjectionMode::Orthographic; }
 
     // Coordinate conversion
     QPointF screenToMercator(const QPointF& screenPos) const;
     QPointF mercatorToScreen(const QPointF& mercatorPos) const;
+    bool projectMercatorToScreen(const QPointF& mercatorPos, QPointF* screenPos) const;
+    double getOrthographicRadius() const;
 
     // Tile management
     QRectF getVisibleMercatorExtent() const;
@@ -58,6 +70,8 @@ public:
 
 signals:
     void cameraChanged();
+    void horizontalWrapChanged(bool enabled);
+    void projectionModeChanged(Camera::ProjectionMode mode);
 
 private:
     void updateMatrices();
@@ -69,6 +83,8 @@ private:
     double m_zoomLevel;
     int m_viewportWidth;
     int m_viewportHeight;
+    bool m_horizontalWrapEnabled;
+    ProjectionMode m_projectionMode;
     mutable double m_cachedResolution;
     mutable bool m_cacheValid;
 

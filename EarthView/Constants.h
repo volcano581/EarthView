@@ -22,6 +22,7 @@ namespace GIS {
     constexpr double MAX_ZOOM = 18.0;
     
     // Tile settings
+    constexpr int TILE_SIZE = 256;
     constexpr int MAX_TILE_ZOOM = 18;
     constexpr int TEXTURE_CACHE_SIZE_MB = 200;
 }

@@ -1,10 +1,12 @@
 G:/Projects/EarthView/EarthView/build/EarthView_autogen/EWIEGA46WW/moc_MapWidget.cpp: G:/Projects/EarthView/EarthView/MapWidget.h \
   G:/Projects/EarthView/EarthView/build/EarthView_autogen/moc_predefs.h \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QElapsedTimer \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QList \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QObject \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QRect \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QSize \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QSizeF \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QString \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QTimer \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/q17memory.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/q20bit.h \
@@ -51,6 +53,7 @@ G:/Projects/EarthView/EarthView/build/EarthView_autogen/EWIEGA46WW/moc_MapWidget
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qdatastream.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qdeadlinetimer.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qdebug.h \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qelapsedtimer.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qendian.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qeventloop.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qexceptionhandling.h \
@@ -966,4 +969,5 @@ G:/Projects/EarthView/EarthView/build/EarthView_autogen/EWIEGA46WW/moc_MapWidget
   C:/Qt/Tools/llvm-mingw1706_64/include/sys/timeb.h \
   C:/Qt/Tools/llvm-mingw1706_64/include/time.h \
   C:/Qt/Tools/llvm-mingw1706_64/lib/clang/17/include/stdarg.h \
-  C:/Qt/Tools/llvm-mingw1706_64/lib/clang/17/include/vadefs.h
+  C:/Qt/Tools/llvm-mingw1706_64/lib/clang/17/include/vadefs.h \
+  G:/Projects/EarthView/EarthView/fpsCounter.h

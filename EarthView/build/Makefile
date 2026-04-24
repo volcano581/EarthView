@@ -226,6 +226,30 @@ EarthView_autogen/mocs_compilation.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\EarthView.dir\build.make CMakeFiles/EarthView.dir/EarthView_autogen/mocs_compilation.cpp.s
 .PHONY : EarthView_autogen/mocs_compilation.cpp.s
 
+GridRenderer.obj: GridRenderer.cpp.obj
+.PHONY : GridRenderer.obj
+
+# target to build an object file
+GridRenderer.cpp.obj:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\EarthView.dir\build.make CMakeFiles/EarthView.dir/GridRenderer.cpp.obj
+.PHONY : GridRenderer.cpp.obj
+
+GridRenderer.i: GridRenderer.cpp.i
+.PHONY : GridRenderer.i
+
+# target to preprocess a source file
+GridRenderer.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\EarthView.dir\build.make CMakeFiles/EarthView.dir/GridRenderer.cpp.i
+.PHONY : GridRenderer.cpp.i
+
+GridRenderer.s: GridRenderer.cpp.s
+.PHONY : GridRenderer.s
+
+# target to generate assembly for a file
+GridRenderer.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\EarthView.dir\build.make CMakeFiles/EarthView.dir/GridRenderer.cpp.s
+.PHONY : GridRenderer.cpp.s
+
 MainWindow.obj: MainWindow.cpp.obj
 .PHONY : MainWindow.obj
 
@@ -414,6 +438,9 @@ help:
 	@echo ... EarthView_autogen/mocs_compilation.obj
 	@echo ... EarthView_autogen/mocs_compilation.i
 	@echo ... EarthView_autogen/mocs_compilation.s
+	@echo ... GridRenderer.obj
+	@echo ... GridRenderer.i
+	@echo ... GridRenderer.s
 	@echo ... MainWindow.obj
 	@echo ... MainWindow.i
 	@echo ... MainWindow.s

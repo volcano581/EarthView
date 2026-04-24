@@ -5,6 +5,8 @@ file(REMOVE_RECURSE
   "CMakeFiles/EarthView.dir/Camera.cpp.obj.d"
   "CMakeFiles/EarthView.dir/EarthView_autogen/mocs_compilation.cpp.obj"
   "CMakeFiles/EarthView.dir/EarthView_autogen/mocs_compilation.cpp.obj.d"
+  "CMakeFiles/EarthView.dir/GridRenderer.cpp.obj"
+  "CMakeFiles/EarthView.dir/GridRenderer.cpp.obj.d"
   "CMakeFiles/EarthView.dir/MainWindow.cpp.obj"
   "CMakeFiles/EarthView.dir/MainWindow.cpp.obj.d"
   "CMakeFiles/EarthView.dir/MapWidget.cpp.obj"

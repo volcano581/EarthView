@@ -926,6 +926,7 @@ CMakeFiles/EarthView.dir/BorderRenderer.cpp.obj: \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/qwindowdefs_win.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/QOpenGLExtraFunctions \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/qopenglextrafunctions.h \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QString \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QVector \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qvector.h \
   G:/Projects/EarthView/EarthView/Camera.h \
@@ -943,4 +944,39 @@ CMakeFiles/EarthView.dir/BorderRenderer.cpp.obj: \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/qvectornd.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/qvector4d.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/qgenericmatrix.h \
-  G:/Projects/EarthView/EarthView/MercatorProjection.h
+  G:/Projects/EarthView/EarthView/MercatorProjection.h \
+  G:/Projects/EarthView/EarthView/Constants.h \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QFile \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qfile.h \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qfiledevice.h \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qiodevice.h \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qspan.h \
+  C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/cassert \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/q20iterator.h \
+  C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/filesystem \
+  C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/__filesystem/copy_options.h \
+  C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/__filesystem/directory_entry.h \
+  C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/__filesystem/file_status.h \
+  C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/__filesystem/file_type.h \
+  C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/__filesystem/perms.h \
+  C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/__filesystem/file_time_type.h \
+  C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/__filesystem/filesystem_error.h \
+  C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/__filesystem/path.h \
+  C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/iomanip \
+  C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/istream \
+  C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/ostream \
+  C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/bitset \
+  C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/__filesystem/operations.h \
+  C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/__filesystem/perm_options.h \
+  C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/__filesystem/space_info.h \
+  C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/__filesystem/directory_iterator.h \
+  C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/__filesystem/directory_options.h \
+  C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/__filesystem/path_iterator.h \
+  C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/__filesystem/recursive_directory_iterator.h \
+  C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/__filesystem/u8path.h \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QFileInfo \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qfileinfo.h \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qdatetime.h \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qcalendar.h \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qlocale.h \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qtimezone.h

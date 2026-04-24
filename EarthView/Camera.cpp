@@ -11,6 +11,8 @@ Camera::Camera(QObject* parent)
     , m_zoomLevel(2.0)
     , m_viewportWidth(800)
     , m_viewportHeight(600)
+    , m_horizontalWrapEnabled(false)
+    , m_projectionMode(ProjectionMode::Mercator)
     , m_cachedResolution(0.0)
     , m_cacheValid(false)
 {
@@ -56,6 +58,22 @@ void Camera::zoom(float delta, const QPointF& screenCenter)
 
 void Camera::pan(const QPointF& delta)
 {
+    if (isOrthographic()) {
+        const double radius = getOrthographicRadius();
+        if (radius > 0.0) {
+            QPointF latLon = MercatorProjection::mercatorToLatLon(m_centerMercator.x(), m_centerMercator.y());
+            double lat = qBound(-85.0, latLon.x() + delta.y() / radius * 180.0 / M_PI, 85.0);
+            double lon = latLon.y() - delta.x() / radius * 180.0 / M_PI;
+            m_centerMercator = MercatorProjection::latLonToMercator(lat, lon);
+        }
+
+        clampCenter();
+        m_cacheValid = false;
+        updateMatrices();
+        emit cameraChanged();
+        return;
+    }
+
     double resolution = getResolution();
 
     // Convert screen pixels to Mercator units
@@ -90,32 +108,171 @@ void Camera::setZoomLevel(double zoom)
     emit cameraChanged();
 }
 
+void Camera::setHorizontalWrapEnabled(bool enabled)
+{
+    if (m_horizontalWrapEnabled == enabled)
+        return;
+
+    m_horizontalWrapEnabled = enabled;
+    clampCenter();
+    updateMatrices();
+    emit horizontalWrapChanged(enabled);
+    emit cameraChanged();
+}
+
+void Camera::setProjectionMode(ProjectionMode mode)
+{
+    if (m_projectionMode == mode)
+        return;
+
+    m_projectionMode = mode;
+    clampCenter();
+    updateMatrices();
+    emit projectionModeChanged(mode);
+    emit cameraChanged();
+}
+
 QPointF Camera::screenToMercator(const QPointF& screenPos) const
 {
-    double resolution = getResolution();
-    double xOffset = (screenPos.x() - m_viewportWidth / 2.0) * resolution;
-    double yOffset = (m_viewportHeight / 2.0 - screenPos.y()) * resolution;
+    if (isOrthographic()) {
+        QPointF mercatorPos;
+        if (MercatorProjection::orthographicScreenToMercator(
+            screenPos,
+            m_centerMercator,
+            m_viewportWidth,
+            m_viewportHeight,
+            getOrthographicRadius(),
+            &mercatorPos)) {
+            return mercatorPos;
+        }
+        return m_centerMercator;
+    }
 
-    double mercatorX = m_centerMercator.x() + (xOffset / GIS::EARTH_RADIUS);
-    double mercatorY = m_centerMercator.y() + (yOffset / GIS::EARTH_RADIUS);
-
-    return QPointF(mercatorX, mercatorY);
+    return MercatorProjection::screenToMercator(
+        screenPos,
+        m_centerMercator,
+        m_viewportWidth,
+        m_viewportHeight,
+        getResolution());
 }
 
 QPointF Camera::mercatorToScreen(const QPointF& mercatorPos) const
 {
-    double resolution = getResolution();
-    double dx = (mercatorPos.x() - m_centerMercator.x()) * GIS::EARTH_RADIUS;
-    double dy = (mercatorPos.y() - m_centerMercator.y()) * GIS::EARTH_RADIUS;
+    if (isOrthographic()) {
+        QPointF screenPos;
+        MercatorProjection::orthographicMercatorToScreen(
+            mercatorPos,
+            m_centerMercator,
+            m_viewportWidth,
+            m_viewportHeight,
+            getOrthographicRadius(),
+            &screenPos);
+        return screenPos;
+    }
 
-    double screenX = m_viewportWidth / 2.0 + dx / resolution;
-    double screenY = m_viewportHeight / 2.0 - dy / resolution;
+    return MercatorProjection::mercatorToScreen(
+        mercatorPos,
+        m_centerMercator,
+        m_viewportWidth,
+        m_viewportHeight,
+        getResolution());
+}
 
-    return QPointF(screenX, screenY);
+bool Camera::projectMercatorToScreen(const QPointF& mercatorPos, QPointF* screenPos) const
+{
+    if (!screenPos)
+        return false;
+
+    if (isOrthographic()) {
+        return MercatorProjection::orthographicMercatorToScreen(
+            mercatorPos,
+            m_centerMercator,
+            m_viewportWidth,
+            m_viewportHeight,
+            getOrthographicRadius(),
+            screenPos);
+    }
+
+    *screenPos = mercatorToScreen(mercatorPos);
+    return true;
+}
+
+double Camera::getOrthographicRadius() const
+{
+    return GIS::TILE_SIZE * std::pow(2.0, m_zoomLevel) / 2.0;
 }
 
 QRectF Camera::getVisibleMercatorExtent() const
 {
+    if (isOrthographic()) {
+        const int samplesPerAxis = 16;
+        const int perimeterSamples = 128;
+        const double screenMargin = GIS::TILE_SIZE;
+        bool hasSample = false;
+        double minX = 0.0;
+        double maxX = 0.0;
+        double minY = 0.0;
+        double maxY = 0.0;
+        const double centerLon = m_centerMercator.x();
+        const double radius = getOrthographicRadius();
+        const QPointF screenCenter(m_viewportWidth / 2.0, m_viewportHeight / 2.0);
+
+        auto includeScreenSample = [&](const QPointF& screenPos) {
+            QPointF mercatorPos;
+            if (!MercatorProjection::orthographicScreenToMercator(
+                screenPos,
+                m_centerMercator,
+                m_viewportWidth,
+                m_viewportHeight,
+                radius,
+                &mercatorPos)) {
+                return;
+            }
+
+            double x = mercatorPos.x();
+            while (x - centerLon > M_PI) {
+                x -= 2.0 * M_PI;
+            }
+            while (x - centerLon < -M_PI) {
+                x += 2.0 * M_PI;
+            }
+
+            if (!hasSample) {
+                minX = maxX = x;
+                minY = maxY = mercatorPos.y();
+                hasSample = true;
+            }
+            else {
+                minX = qMin(minX, x);
+                maxX = qMax(maxX, x);
+                minY = qMin(minY, mercatorPos.y());
+                maxY = qMax(maxY, mercatorPos.y());
+            }
+        };
+
+        for (int ix = 0; ix <= samplesPerAxis; ++ix) {
+            for (int iy = 0; iy <= samplesPerAxis; ++iy) {
+                includeScreenSample(QPointF(
+                    -screenMargin + (m_viewportWidth + 2.0 * screenMargin) * ix / samplesPerAxis,
+                    -screenMargin + (m_viewportHeight + 2.0 * screenMargin) * iy / samplesPerAxis));
+            }
+        }
+
+        const double perimeterRadius = radius * 0.999;
+        for (int i = 0; i < perimeterSamples; ++i) {
+            const double angle = 2.0 * M_PI * i / perimeterSamples;
+            includeScreenSample(QPointF(
+                screenCenter.x() + std::cos(angle) * perimeterRadius,
+                screenCenter.y() + std::sin(angle) * perimeterRadius));
+        }
+
+        includeScreenSample(screenCenter);
+
+        if (hasSample) {
+            return QRectF(QPointF(minX, maxY), QPointF(maxX, minY));
+        }
+    }
+
     QPointF topLeft = screenToMercator(QPointF(0, 0));
     QPointF bottomRight = screenToMercator(QPointF(m_viewportWidth, m_viewportHeight));
     return QRectF(topLeft, bottomRight);
@@ -123,13 +280,21 @@ QRectF Camera::getVisibleMercatorExtent() const
 
 int Camera::getTileZoomLevel() const
 {
-    return qBound(0, qRound(m_zoomLevel), GIS::MAX_TILE_ZOOM);
+    return qBound(0, static_cast<int>(std::ceil(m_zoomLevel)), GIS::MAX_TILE_ZOOM);
 }
 
 QRect Camera::getTileRange(int zoomLevel) const
 {
     QRectF extent = getVisibleMercatorExtent();
-    return MercatorProjection::getTileRange(extent, zoomLevel);
+    QRect tileRange = MercatorProjection::getTileRange(extent, zoomLevel, m_horizontalWrapEnabled || isOrthographic());
+    if (isOrthographic()) {
+        const int preloadMargin = 2;
+        const int maxTile = (1 << zoomLevel) - 1;
+        tileRange.adjust(-preloadMargin, -preloadMargin, preloadMargin, preloadMargin);
+        tileRange.setTop(qBound(0, tileRange.top(), maxTile));
+        tileRange.setBottom(qBound(0, tileRange.bottom(), maxTile));
+    }
+    return tileRange;
 }
 
 void Camera::applyOpenGLTransform()
@@ -176,14 +341,22 @@ void Camera::clampCenter()
     double maxCenterY = GIS::MAX_MERCATOR_Y - halfHeightMercator;
 
    
-    if (minCenterX <= maxCenterX) {
+    if (m_horizontalWrapEnabled || isOrthographic()) {
+        m_centerMercator.rx() = MercatorProjection::wrapMercatorX(m_centerMercator.x());
+    }
+    else if (minCenterX <= maxCenterX) {
         m_centerMercator.rx() = qBound(minCenterX, m_centerMercator.x(), maxCenterX);
-    } else {
+    }
+    else {
         m_centerMercator.rx() = (GIS::MIN_MERCATOR_X + GIS::MAX_MERCATOR_X) / 2.0;
     }
 
    
-    if (minCenterY <= maxCenterY) {
+    if (isOrthographic()) {
+        QPointF latLon = MercatorProjection::mercatorToLatLon(m_centerMercator.x(), m_centerMercator.y());
+        m_centerMercator = MercatorProjection::latLonToMercator(qBound(-85.0, latLon.x(), 85.0), latLon.y());
+    }
+    else if (minCenterY <= maxCenterY) {
         m_centerMercator.ry() = qBound(minCenterY, m_centerMercator.y(), maxCenterY);
     } else {
         m_centerMercator.ry() = (GIS::MIN_MERCATOR_Y + GIS::MAX_MERCATOR_Y) / 2.0;
@@ -192,11 +365,8 @@ void Camera::clampCenter()
 
 double Camera::calculateResolution() const
 {
-    // Resolution = meters per pixel at current zoom level
-    double pixelsAtZoomZero = m_viewportWidth;
-
-    if (pixelsAtZoomZero <= 0)
+    if (GIS::TILE_SIZE <= 0)
         return GIS::EARTH_CIRCUMFERENCE;
 
-    return GIS::EARTH_CIRCUMFERENCE / (pixelsAtZoomZero * pow(2.0, m_zoomLevel));
+    return GIS::EARTH_CIRCUMFERENCE / (GIS::TILE_SIZE * pow(2.0, m_zoomLevel));
 }

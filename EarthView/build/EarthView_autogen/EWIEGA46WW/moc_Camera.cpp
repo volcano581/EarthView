@@ -40,12 +40,25 @@ template <> constexpr inline auto Camera::qt_create_metaobjectdata<qt_meta_tag_Z
     QtMocHelpers::StringRefStorage qt_stringData {
         "Camera",
         "cameraChanged",
-        ""
+        "",
+        "horizontalWrapChanged",
+        "enabled",
+        "projectionModeChanged",
+        "Camera::ProjectionMode",
+        "mode"
     };
 
     QtMocHelpers::UintData qt_methods {
         // Signal 'cameraChanged'
         QtMocHelpers::SignalData<void()>(1, 2, QMC::AccessPublic, QMetaType::Void),
+        // Signal 'horizontalWrapChanged'
+        QtMocHelpers::SignalData<void(bool)>(3, 2, QMC::AccessPublic, QMetaType::Void, {{
+            { QMetaType::Bool, 4 },
+        }}),
+        // Signal 'projectionModeChanged'
+        QtMocHelpers::SignalData<void(Camera::ProjectionMode)>(5, 2, QMC::AccessPublic, QMetaType::Void, {{
+            { 0x80000000 | 6, 7 },
+        }}),
     };
     QtMocHelpers::UintData qt_properties {
     };
@@ -70,11 +83,17 @@ void Camera::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, void
     if (_c == QMetaObject::InvokeMetaMethod) {
         switch (_id) {
         case 0: _t->cameraChanged(); break;
+        case 1: _t->horizontalWrapChanged((*reinterpret_cast<std::add_pointer_t<bool>>(_a[1]))); break;
+        case 2: _t->projectionModeChanged((*reinterpret_cast<std::add_pointer_t<Camera::ProjectionMode>>(_a[1]))); break;
         default: ;
         }
     }
     if (_c == QMetaObject::IndexOfMethod) {
         if (QtMocHelpers::indexOfMethod<void (Camera::*)()>(_a, &Camera::cameraChanged, 0))
+            return;
+        if (QtMocHelpers::indexOfMethod<void (Camera::*)(bool )>(_a, &Camera::horizontalWrapChanged, 1))
+            return;
+        if (QtMocHelpers::indexOfMethod<void (Camera::*)(Camera::ProjectionMode )>(_a, &Camera::projectionModeChanged, 2))
             return;
     }
 }
@@ -98,14 +117,14 @@ int Camera::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     if (_id < 0)
         return _id;
     if (_c == QMetaObject::InvokeMetaMethod) {
-        if (_id < 1)
+        if (_id < 3)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 1;
+        _id -= 3;
     }
     if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
-        if (_id < 1)
+        if (_id < 3)
             *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType();
-        _id -= 1;
+        _id -= 3;
     }
     return _id;
 }
@@ -114,5 +133,17 @@ int Camera::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
 void Camera::cameraChanged()
 {
     QMetaObject::activate(this, &staticMetaObject, 0, nullptr);
+}
+
+// SIGNAL 1
+void Camera::horizontalWrapChanged(bool _t1)
+{
+    QMetaObject::activate<void>(this, &staticMetaObject, 1, nullptr, _t1);
+}
+
+// SIGNAL 2
+void Camera::projectionModeChanged(Camera::ProjectionMode _t1)
+{
+    QMetaObject::activate<void>(this, &staticMetaObject, 2, nullptr, _t1);
 }
 QT_WARNING_POP

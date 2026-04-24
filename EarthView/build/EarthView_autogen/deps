@@ -108,6 +108,7 @@ EarthView_autogen/timestamp: \
 	C:/Program\ Files/CMake/share/cmake-4.3/Modules/Platform/Windows-windres.cmake \
 	C:/Program\ Files/CMake/share/cmake-4.3/Modules/Platform/Windows.cmake \
 	C:/Program\ Files/CMake/share/cmake-4.3/Modules/Platform/WindowsPaths.cmake \
+	C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QElapsedTimer \
 	C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QFlags \
 	C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QList \
 	C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QMap \
@@ -174,6 +175,7 @@ EarthView_autogen/timestamp: \
 	C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qdatetime.h \
 	C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qdeadlinetimer.h \
 	C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qdebug.h \
+	C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qelapsedtimer.h \
 	C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qendian.h \
 	C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qeventloop.h \
 	C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qexceptionhandling.h \
@@ -1374,6 +1376,8 @@ EarthView_autogen/timestamp: \
 	G:/Projects/EarthView/EarthView/Camera.cpp \
 	G:/Projects/EarthView/EarthView/Camera.h \
 	G:/Projects/EarthView/EarthView/Constants.h \
+	G:/Projects/EarthView/EarthView/GridRenderer.cpp \
+	G:/Projects/EarthView/EarthView/GridRenderer.h \
 	G:/Projects/EarthView/EarthView/MainWindow.cpp \
 	G:/Projects/EarthView/EarthView/MainWindow.h \
 	G:/Projects/EarthView/EarthView/MapWidget.cpp \
@@ -1390,5 +1394,6 @@ EarthView_autogen/timestamp: \
 	G:/Projects/EarthView/EarthView/build/CMakeFiles/4.3.0/CMakeRCCompiler.cmake \
 	G:/Projects/EarthView/EarthView/build/CMakeFiles/4.3.0/CMakeSystem.cmake \
 	G:/Projects/EarthView/EarthView/build/EarthView_autogen/moc_predefs.h \
+	G:/Projects/EarthView/EarthView/fpsCounter.h \
 	G:/Projects/EarthView/EarthView/main.cpp \
 	C:/Program\ Files/CMake/bin/cmake.exe

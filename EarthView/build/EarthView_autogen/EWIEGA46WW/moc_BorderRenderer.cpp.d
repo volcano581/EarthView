@@ -1,6 +1,7 @@
 G:/Projects/EarthView/EarthView/build/EarthView_autogen/EWIEGA46WW/moc_BorderRenderer.cpp: G:/Projects/EarthView/EarthView/BorderRenderer.h \
   G:/Projects/EarthView/EarthView/build/EarthView_autogen/moc_predefs.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QObject \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QString \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QVector \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/q17memory.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/q20bit.h \

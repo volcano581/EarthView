@@ -12,6 +12,7 @@ set(CMAKE_DEPENDS_DEPENDENCY_FILES
   "G:/Projects/EarthView/EarthView/BorderRenderer.cpp" "CMakeFiles/EarthView.dir/BorderRenderer.cpp.obj" "gcc" "CMakeFiles/EarthView.dir/BorderRenderer.cpp.obj.d"
   "G:/Projects/EarthView/EarthView/Camera.cpp" "CMakeFiles/EarthView.dir/Camera.cpp.obj" "gcc" "CMakeFiles/EarthView.dir/Camera.cpp.obj.d"
   "G:/Projects/EarthView/EarthView/build/EarthView_autogen/mocs_compilation.cpp" "CMakeFiles/EarthView.dir/EarthView_autogen/mocs_compilation.cpp.obj" "gcc" "CMakeFiles/EarthView.dir/EarthView_autogen/mocs_compilation.cpp.obj.d"
+  "G:/Projects/EarthView/EarthView/GridRenderer.cpp" "CMakeFiles/EarthView.dir/GridRenderer.cpp.obj" "gcc" "CMakeFiles/EarthView.dir/GridRenderer.cpp.obj.d"
   "G:/Projects/EarthView/EarthView/MainWindow.cpp" "CMakeFiles/EarthView.dir/MainWindow.cpp.obj" "gcc" "CMakeFiles/EarthView.dir/MainWindow.cpp.obj.d"
   "G:/Projects/EarthView/EarthView/MapWidget.cpp" "CMakeFiles/EarthView.dir/MapWidget.cpp.obj" "gcc" "CMakeFiles/EarthView.dir/MapWidget.cpp.obj.d"
   "G:/Projects/EarthView/EarthView/MercatorProjection.cpp" "CMakeFiles/EarthView.dir/MercatorProjection.cpp.obj" "gcc" "CMakeFiles/EarthView.dir/MercatorProjection.cpp.obj.d"

@@ -930,6 +930,7 @@ G:/Projects/EarthView/EarthView/MercatorProjection.cpp
 G:/Projects/EarthView/EarthView/BorderRenderer.h
  mmc:Q_OBJECT
  mdp:C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QObject
+ mdp:C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QString
  mdp:C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QVector
  mdp:C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/q17memory.h
  mdp:C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/q20bit.h
@@ -1831,6 +1832,7 @@ G:/Projects/EarthView/EarthView/BorderRenderer.h
  mdp:G:/Projects/EarthView/EarthView/BorderRenderer.h
  mdp:G:/Projects/EarthView/EarthView/build/EarthView_autogen/moc_predefs.h
 G:/Projects/EarthView/EarthView/Constants.h
+G:/Projects/EarthView/EarthView/GridRenderer.h
 G:/Projects/EarthView/EarthView/Camera.h
  mmc:Q_OBJECT
  mdp:C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QObject
@@ -2731,14 +2733,15 @@ G:/Projects/EarthView/EarthView/Camera.h
  mdp:C:/Qt/Tools/llvm-mingw1706_64/lib/clang/17/include/vadefs.h
  mdp:G:/Projects/EarthView/EarthView/Camera.h
  mdp:G:/Projects/EarthView/EarthView/build/EarthView_autogen/moc_predefs.h
-G:/Projects/EarthView/EarthView/TextureManager.h
 G:/Projects/EarthView/EarthView/MapWidget.h
  mmc:Q_OBJECT
+ mdp:C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QElapsedTimer
  mdp:C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QList
  mdp:C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QObject
  mdp:C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QRect
  mdp:C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QSize
  mdp:C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QSizeF
+ mdp:C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QString
  mdp:C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QTimer
  mdp:C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/q17memory.h
  mdp:C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/q20bit.h
@@ -2785,6 +2788,7 @@ G:/Projects/EarthView/EarthView/MapWidget.h
  mdp:C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qdatastream.h
  mdp:C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qdeadlinetimer.h
  mdp:C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qdebug.h
+ mdp:C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qelapsedtimer.h
  mdp:C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qendian.h
  mdp:C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qeventloop.h
  mdp:C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qexceptionhandling.h
@@ -3703,6 +3707,7 @@ G:/Projects/EarthView/EarthView/MapWidget.h
  mdp:C:/Qt/Tools/llvm-mingw1706_64/lib/clang/17/include/vadefs.h
  mdp:G:/Projects/EarthView/EarthView/MapWidget.h
  mdp:G:/Projects/EarthView/EarthView/build/EarthView_autogen/moc_predefs.h
+ mdp:G:/Projects/EarthView/EarthView/fpsCounter.h
 G:/Projects/EarthView/EarthView/MercatorProjection.h
 G:/Projects/EarthView/EarthView/TMSLoader.h
  mmc:Q_OBJECT
@@ -4658,6 +4663,7 @@ G:/Projects/EarthView/EarthView/TMSLoader.h
  mdp:G:/Projects/EarthView/EarthView/TMSLoader.h
  mdp:G:/Projects/EarthView/EarthView/TextureManager.h
  mdp:G:/Projects/EarthView/EarthView/build/EarthView_autogen/moc_predefs.h
+G:/Projects/EarthView/EarthView/TextureManager.h
 G:/Projects/EarthView/EarthView/TileRenderer.h
  mmc:Q_OBJECT
  mdp:C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QObject
@@ -5557,8 +5563,10 @@ G:/Projects/EarthView/EarthView/TileRenderer.h
  mdp:C:/Qt/Tools/llvm-mingw1706_64/lib/clang/17/include/vadefs.h
  mdp:G:/Projects/EarthView/EarthView/TileRenderer.h
  mdp:G:/Projects/EarthView/EarthView/build/EarthView_autogen/moc_predefs.h
+G:/Projects/EarthView/EarthView/fpsCounter.h
 G:/Projects/EarthView/EarthView/BorderRenderer.cpp
 G:/Projects/EarthView/EarthView/Camera.cpp
+G:/Projects/EarthView/EarthView/GridRenderer.cpp
 G:/Projects/EarthView/EarthView/MainWindow.cpp
 G:/Projects/EarthView/EarthView/MapWidget.cpp
 G:/Projects/EarthView/EarthView/TMSLoader.cpp

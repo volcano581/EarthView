@@ -3064,8 +3064,8 @@ events:
     checks:
       - "Detecting CXX compiler ABI info"
     directories:
-      source: "G:/Projects/EarthView/EarthView/build/CMakeFiles/CMakeScratch/TryCompile-viq97w"
-      binary: "G:/Projects/EarthView/EarthView/build/CMakeFiles/CMakeScratch/TryCompile-viq97w"
+      source: "G:/Projects/EarthView/EarthView/build/CMakeFiles/CMakeScratch/TryCompile-ak8dgp"
+      binary: "G:/Projects/EarthView/EarthView/build/CMakeFiles/CMakeScratch/TryCompile-ak8dgp"
     cmakeVariables:
       CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS: "CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS-NOTFOUND"
       CMAKE_CXX_FLAGS: ""
@@ -3077,19 +3077,19 @@ events:
       variable: "CMAKE_CXX_ABI_COMPILED"
       cached: true
       stdout: |
-        Change Dir: 'G:/Projects/EarthView/EarthView/build/CMakeFiles/CMakeScratch/TryCompile-viq97w'
+        Change Dir: 'G:/Projects/EarthView/EarthView/build/CMakeFiles/CMakeScratch/TryCompile-ak8dgp'
         
-        Run Build Command(s): "C:/Program Files/CMake/bin/cmake.exe" -E env VERBOSE=1 C:/Qt/Tools/llvm-mingw1706_64/bin/mingw32-make.exe -f Makefile cmTC_996e5/fast
-        C:/Qt/Tools/llvm-mingw1706_64/bin/mingw32-make.exe  -f CMakeFiles\\cmTC_996e5.dir\\build.make CMakeFiles/cmTC_996e5.dir/build
-        mingw32-make[1]: Entering directory 'G:/Projects/EarthView/EarthView/build/CMakeFiles/CMakeScratch/TryCompile-viq97w'
-        Building CXX object CMakeFiles/cmTC_996e5.dir/CMakeCXXCompilerABI.cpp.obj
-        C:\\Qt\\Tools\\llvm-mingw1706_64\\bin\\c++.exe   -v -MD -MT CMakeFiles/cmTC_996e5.dir/CMakeCXXCompilerABI.cpp.obj -MF CMakeFiles\\cmTC_996e5.dir\\CMakeCXXCompilerABI.cpp.obj.d -o CMakeFiles\\cmTC_996e5.dir\\CMakeCXXCompilerABI.cpp.obj -c "C:\\Program Files\\CMake\\share\\cmake-4.3\\Modules\\CMakeCXXCompilerABI.cpp"
+        Run Build Command(s): "C:/Program Files/CMake/bin/cmake.exe" -E env VERBOSE=1 C:/Qt/Tools/llvm-mingw1706_64/bin/mingw32-make.exe -f Makefile cmTC_58221/fast
+        C:/Qt/Tools/llvm-mingw1706_64/bin/mingw32-make.exe  -f CMakeFiles\\cmTC_58221.dir\\build.make CMakeFiles/cmTC_58221.dir/build
+        mingw32-make[1]: Entering directory 'G:/Projects/EarthView/EarthView/build/CMakeFiles/CMakeScratch/TryCompile-ak8dgp'
+        Building CXX object CMakeFiles/cmTC_58221.dir/CMakeCXXCompilerABI.cpp.obj
+        C:\\Qt\\Tools\\llvm-mingw1706_64\\bin\\c++.exe   -v -MD -MT CMakeFiles/cmTC_58221.dir/CMakeCXXCompilerABI.cpp.obj -MF CMakeFiles\\cmTC_58221.dir\\CMakeCXXCompilerABI.cpp.obj.d -o CMakeFiles\\cmTC_58221.dir\\CMakeCXXCompilerABI.cpp.obj -c "C:\\Program Files\\CMake\\share\\cmake-4.3\\Modules\\CMakeCXXCompilerABI.cpp"
         clang version 17.0.6 (https://github.com/llvm/llvm-project.git 6009708b4367171ccdbf4b5905cb6a803753fe18)
         Target: x86_64-w64-windows-gnu
         Thread model: posix
         InstalledDir: C:/Qt/Tools/llvm-mingw1706_64/bin
          (in-process)
-         "C:/Qt/Tools/llvm-mingw1706_64/bin/clang-17.exe" -cc1 -triple x86_64-w64-windows-gnu -emit-obj -mrelax-all -disable-free -clear-ast-before-backend -disable-llvm-verifier -discard-value-names -main-file-name CMakeCXXCompilerABI.cpp -mrelocation-model pic -pic-level 2 -mframe-pointer=none -fmath-errno -ffp-contract=on -fno-rounding-math -mconstructor-aliases -mms-bitfields -funwind-tables=2 -fno-use-init-array -target-cpu x86-64 -tune-cpu generic -debugger-tuning=gdb -v -fcoverage-compilation-dir=G:/Projects/EarthView/EarthView/build/CMakeFiles/CMakeScratch/TryCompile-viq97w -resource-dir C:/Qt/Tools/llvm-mingw1706_64/lib/clang/17 -dependency-file "CMakeFiles\\\\cmTC_996e5.dir\\\\CMakeCXXCompilerABI.cpp.obj.d" -MT CMakeFiles/cmTC_996e5.dir/CMakeCXXCompilerABI.cpp.obj -sys-header-deps -internal-isystem C:/Qt/Tools/llvm-mingw1706_64/x86_64-w64-mingw32/include/c++/v1 -internal-isystem C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1 -internal-isystem C:/Qt/Tools/llvm-mingw1706_64/lib/clang/17/include -internal-isystem C:/Qt/Tools/llvm-mingw1706_64/x86_64-w64-mingw32/include -internal-isystem C:/Qt/Tools/llvm-mingw1706_64/x86_64-w64-mingw32/usr/include -internal-isystem C:/Qt/Tools/llvm-mingw1706_64/include -fdeprecated-macro -fdebug-compilation-dir=G:/Projects/EarthView/EarthView/build/CMakeFiles/CMakeScratch/TryCompile-viq97w -ferror-limit 19 -fno-use-cxa-atexit -fgnuc-version=4.2.1 -fcxx-exceptions -fexceptions -exception-model=seh -faddrsig -o "CMakeFiles\\\\cmTC_996e5.dir\\\\CMakeCXXCompilerABI.cpp.obj" -x c++ "C:\\\\Program Files\\\\CMake\\\\share\\\\cmake-4.3\\\\Modules\\\\CMakeCXXCompilerABI.cpp"
+         "C:/Qt/Tools/llvm-mingw1706_64/bin/clang-17.exe" -cc1 -triple x86_64-w64-windows-gnu -emit-obj -mrelax-all -disable-free -clear-ast-before-backend -disable-llvm-verifier -discard-value-names -main-file-name CMakeCXXCompilerABI.cpp -mrelocation-model pic -pic-level 2 -mframe-pointer=none -fmath-errno -ffp-contract=on -fno-rounding-math -mconstructor-aliases -mms-bitfields -funwind-tables=2 -fno-use-init-array -target-cpu x86-64 -tune-cpu generic -debugger-tuning=gdb -v -fcoverage-compilation-dir=G:/Projects/EarthView/EarthView/build/CMakeFiles/CMakeScratch/TryCompile-ak8dgp -resource-dir C:/Qt/Tools/llvm-mingw1706_64/lib/clang/17 -dependency-file "CMakeFiles\\\\cmTC_58221.dir\\\\CMakeCXXCompilerABI.cpp.obj.d" -MT CMakeFiles/cmTC_58221.dir/CMakeCXXCompilerABI.cpp.obj -sys-header-deps -internal-isystem C:/Qt/Tools/llvm-mingw1706_64/x86_64-w64-mingw32/include/c++/v1 -internal-isystem C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1 -internal-isystem C:/Qt/Tools/llvm-mingw1706_64/lib/clang/17/include -internal-isystem C:/Qt/Tools/llvm-mingw1706_64/x86_64-w64-mingw32/include -internal-isystem C:/Qt/Tools/llvm-mingw1706_64/x86_64-w64-mingw32/usr/include -internal-isystem C:/Qt/Tools/llvm-mingw1706_64/include -fdeprecated-macro -fdebug-compilation-dir=G:/Projects/EarthView/EarthView/build/CMakeFiles/CMakeScratch/TryCompile-ak8dgp -ferror-limit 19 -fno-use-cxa-atexit -fgnuc-version=4.2.1 -fcxx-exceptions -fexceptions -exception-model=seh -faddrsig -o "CMakeFiles\\\\cmTC_58221.dir\\\\CMakeCXXCompilerABI.cpp.obj" -x c++ "C:\\\\Program Files\\\\CMake\\\\share\\\\cmake-4.3\\\\Modules\\\\CMakeCXXCompilerABI.cpp"
         clang -cc1 version 17.0.6 based upon LLVM 17.0.6 default target x86_64-w64-mingw32
         ignoring nonexistent directory "C:/Qt/Tools/llvm-mingw1706_64/x86_64-w64-mingw32/include/c++/v1"
         ignoring nonexistent directory "C:/Qt/Tools/llvm-mingw1706_64/x86_64-w64-mingw32/include"
@@ -3100,18 +3100,18 @@ events:
          C:/Qt/Tools/llvm-mingw1706_64/lib/clang/17/include
          C:/Qt/Tools/llvm-mingw1706_64/include
         End of search list.
-        Linking CXX executable cmTC_996e5.exe
-        "C:\\Program Files\\CMake\\bin\\cmake.exe" -E cmake_link_script CMakeFiles\\cmTC_996e5.dir\\link.txt --verbose=1
+        Linking CXX executable cmTC_58221.exe
+        "C:\\Program Files\\CMake\\bin\\cmake.exe" -E cmake_link_script CMakeFiles\\cmTC_58221.dir\\link.txt --verbose=1
         clang version 17.0.6 (https://github.com/llvm/llvm-project.git 6009708b4367171ccdbf4b5905cb6a803753fe18)
         Target: x86_64-w64-windows-gnu
         Thread model: posix
         InstalledDir: C:/Qt/Tools/llvm-mingw1706_64/bin
-         "C:/Qt/Tools/llvm-mingw1706_64/bin/ld.lld" -m i386pep -Bdynamic -o cmTC_996e5.exe C:/Qt/Tools/llvm-mingw1706_64/x86_64-w64-mingw32/lib/crt2.o C:/Qt/Tools/llvm-mingw1706_64/x86_64-w64-mingw32/lib/crtbegin.o -LC:/Qt/Tools/llvm-mingw1706_64/x86_64-w64-mingw32/lib -LC:/Qt/Tools/llvm-mingw1706_64/x86_64-w64-mingw32/mingw/lib -LC:/Qt/Tools/llvm-mingw1706_64/lib -LC:/Qt/Tools/llvm-mingw1706_64/lib/clang/17/lib/windows -v --whole-archive "CMakeFiles\\\\cmTC_996e5.dir/objects.a" --no-whole-archive --out-implib libcmTC_996e5.dll.a --major-image-version 0 --minor-image-version 0 -lc++ -lmingw32 C:/Qt/Tools/llvm-mingw1706_64/lib/clang/17/lib/windows/libclang_rt.builtins-x86_64.a -lunwind -lmoldname -lmingwex -lmsvcrt -ladvapi32 -lshell32 -luser32 -lkernel32 -lmingw32 C:/Qt/Tools/llvm-mingw1706_64/lib/clang/17/lib/windows/libclang_rt.builtins-x86_64.a -lunwind -lmoldname -lmingwex -lmsvcrt -lkernel32 C:/Qt/Tools/llvm-mingw1706_64/x86_64-w64-mingw32/lib/crtend.o
+         "C:/Qt/Tools/llvm-mingw1706_64/bin/ld.lld" -m i386pep -Bdynamic -o cmTC_58221.exe C:/Qt/Tools/llvm-mingw1706_64/x86_64-w64-mingw32/lib/crt2.o C:/Qt/Tools/llvm-mingw1706_64/x86_64-w64-mingw32/lib/crtbegin.o -LC:/Qt/Tools/llvm-mingw1706_64/x86_64-w64-mingw32/lib -LC:/Qt/Tools/llvm-mingw1706_64/x86_64-w64-mingw32/mingw/lib -LC:/Qt/Tools/llvm-mingw1706_64/lib -LC:/Qt/Tools/llvm-mingw1706_64/lib/clang/17/lib/windows -v --whole-archive "CMakeFiles\\\\cmTC_58221.dir/objects.a" --no-whole-archive --out-implib libcmTC_58221.dll.a --major-image-version 0 --minor-image-version 0 -lc++ -lmingw32 C:/Qt/Tools/llvm-mingw1706_64/lib/clang/17/lib/windows/libclang_rt.builtins-x86_64.a -lunwind -lmoldname -lmingwex -lmsvcrt -ladvapi32 -lshell32 -luser32 -lkernel32 -lmingw32 C:/Qt/Tools/llvm-mingw1706_64/lib/clang/17/lib/windows/libclang_rt.builtins-x86_64.a -lunwind -lmoldname -lmingwex -lmsvcrt -lkernel32 C:/Qt/Tools/llvm-mingw1706_64/x86_64-w64-mingw32/lib/crtend.o
         LLD 17.0.6 (compatible with GNU linkers)
-        "C:\\Program Files\\CMake\\bin\\cmake.exe" -E rm -f CMakeFiles\\cmTC_996e5.dir/objects.a
-        C:\\Qt\\Tools\\llvm-mingw1706_64\\bin\\llvm-ar.exe qc CMakeFiles\\cmTC_996e5.dir/objects.a @CMakeFiles\\cmTC_996e5.dir\\objects1.rsp
-        C:\\Qt\\Tools\\llvm-mingw1706_64\\bin\\c++.exe  -v -Wl,-v -Wl,--whole-archive CMakeFiles\\cmTC_996e5.dir/objects.a -Wl,--no-whole-archive -o cmTC_996e5.exe -Wl,--out-implib,libcmTC_996e5.dll.a -Wl,--major-image-version,0,--minor-image-version,0
-        mingw32-make[1]: Leaving directory 'G:/Projects/EarthView/EarthView/build/CMakeFiles/CMakeScratch/TryCompile-viq97w'
+        "C:\\Program Files\\CMake\\bin\\cmake.exe" -E rm -f CMakeFiles\\cmTC_58221.dir/objects.a
+        C:\\Qt\\Tools\\llvm-mingw1706_64\\bin\\llvm-ar.exe qc CMakeFiles\\cmTC_58221.dir/objects.a @CMakeFiles\\cmTC_58221.dir\\objects1.rsp
+        C:\\Qt\\Tools\\llvm-mingw1706_64\\bin\\c++.exe  -v -Wl,-v -Wl,--whole-archive CMakeFiles\\cmTC_58221.dir/objects.a -Wl,--no-whole-archive -o cmTC_58221.exe -Wl,--out-implib,libcmTC_58221.dll.a -Wl,--major-image-version,0,--minor-image-version,0
+        mingw32-make[1]: Leaving directory 'G:/Projects/EarthView/EarthView/build/CMakeFiles/CMakeScratch/TryCompile-ak8dgp'
         
       exitCode: 0
   -
@@ -3144,19 +3144,19 @@ events:
       Parsed CXX implicit link information:
         link line regex: [^( *|.*[/\\])(ld[0-9]*(|\\.[a-rt-z][a-z]*|\\.s[a-np-z][a-z]*|\\.so[a-z]+)|CMAKE_LINK_STARTFILE-NOTFOUND|([^/\\]+-)?ld|collect2)[^/\\]*( |$)]
         linker tool regex: [^[ 	]*(->|"|[0-9]+>[ 	-]*Build:[ 	0-9]+ ms[ 	]*)?[ 	]*(([^"]*[/\\])?(ld[0-9]*(|\\.[a-rt-z][a-z]*|\\.s[a-np-z][a-z]*|\\.so[a-z]+)))("|,| |$)]
-        ignore line: [Change Dir: 'G:/Projects/EarthView/EarthView/build/CMakeFiles/CMakeScratch/TryCompile-viq97w']
+        ignore line: [Change Dir: 'G:/Projects/EarthView/EarthView/build/CMakeFiles/CMakeScratch/TryCompile-ak8dgp']
         ignore line: []
-        ignore line: [Run Build Command(s): "C:/Program Files/CMake/bin/cmake.exe" -E env VERBOSE=1 C:/Qt/Tools/llvm-mingw1706_64/bin/mingw32-make.exe -f Makefile cmTC_996e5/fast]
-        ignore line: [C:/Qt/Tools/llvm-mingw1706_64/bin/mingw32-make.exe  -f CMakeFiles\\cmTC_996e5.dir\\build.make CMakeFiles/cmTC_996e5.dir/build]
-        ignore line: [mingw32-make[1]: Entering directory 'G:/Projects/EarthView/EarthView/build/CMakeFiles/CMakeScratch/TryCompile-viq97w']
-        ignore line: [Building CXX object CMakeFiles/cmTC_996e5.dir/CMakeCXXCompilerABI.cpp.obj]
-        ignore line: [C:\\Qt\\Tools\\llvm-mingw1706_64\\bin\\c++.exe   -v -MD -MT CMakeFiles/cmTC_996e5.dir/CMakeCXXCompilerABI.cpp.obj -MF CMakeFiles\\cmTC_996e5.dir\\CMakeCXXCompilerABI.cpp.obj.d -o CMakeFiles\\cmTC_996e5.dir\\CMakeCXXCompilerABI.cpp.obj -c "C:\\Program Files\\CMake\\share\\cmake-4.3\\Modules\\CMakeCXXCompilerABI.cpp"]
+        ignore line: [Run Build Command(s): "C:/Program Files/CMake/bin/cmake.exe" -E env VERBOSE=1 C:/Qt/Tools/llvm-mingw1706_64/bin/mingw32-make.exe -f Makefile cmTC_58221/fast]
+        ignore line: [C:/Qt/Tools/llvm-mingw1706_64/bin/mingw32-make.exe  -f CMakeFiles\\cmTC_58221.dir\\build.make CMakeFiles/cmTC_58221.dir/build]
+        ignore line: [mingw32-make[1]: Entering directory 'G:/Projects/EarthView/EarthView/build/CMakeFiles/CMakeScratch/TryCompile-ak8dgp']
+        ignore line: [Building CXX object CMakeFiles/cmTC_58221.dir/CMakeCXXCompilerABI.cpp.obj]
+        ignore line: [C:\\Qt\\Tools\\llvm-mingw1706_64\\bin\\c++.exe   -v -MD -MT CMakeFiles/cmTC_58221.dir/CMakeCXXCompilerABI.cpp.obj -MF CMakeFiles\\cmTC_58221.dir\\CMakeCXXCompilerABI.cpp.obj.d -o CMakeFiles\\cmTC_58221.dir\\CMakeCXXCompilerABI.cpp.obj -c "C:\\Program Files\\CMake\\share\\cmake-4.3\\Modules\\CMakeCXXCompilerABI.cpp"]
         ignore line: [clang version 17.0.6 (https://github.com/llvm/llvm-project.git 6009708b4367171ccdbf4b5905cb6a803753fe18)]
         ignore line: [Target: x86_64-w64-windows-gnu]
         ignore line: [Thread model: posix]
         ignore line: [InstalledDir: C:/Qt/Tools/llvm-mingw1706_64/bin]
         ignore line: [ (in-process)]
-        ignore line: [ "C:/Qt/Tools/llvm-mingw1706_64/bin/clang-17.exe" -cc1 -triple x86_64-w64-windows-gnu -emit-obj -mrelax-all -disable-free -clear-ast-before-backend -disable-llvm-verifier -discard-value-names -main-file-name CMakeCXXCompilerABI.cpp -mrelocation-model pic -pic-level 2 -mframe-pointer=none -fmath-errno -ffp-contract=on -fno-rounding-math -mconstructor-aliases -mms-bitfields -funwind-tables=2 -fno-use-init-array -target-cpu x86-64 -tune-cpu generic -debugger-tuning=gdb -v -fcoverage-compilation-dir=G:/Projects/EarthView/EarthView/build/CMakeFiles/CMakeScratch/TryCompile-viq97w -resource-dir C:/Qt/Tools/llvm-mingw1706_64/lib/clang/17 -dependency-file "CMakeFiles\\\\cmTC_996e5.dir\\\\CMakeCXXCompilerABI.cpp.obj.d" -MT CMakeFiles/cmTC_996e5.dir/CMakeCXXCompilerABI.cpp.obj -sys-header-deps -internal-isystem C:/Qt/Tools/llvm-mingw1706_64/x86_64-w64-mingw32/include/c++/v1 -internal-isystem C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1 -internal-isystem C:/Qt/Tools/llvm-mingw1706_64/lib/clang/17/include -internal-isystem C:/Qt/Tools/llvm-mingw1706_64/x86_64-w64-mingw32/include -internal-isystem C:/Qt/Tools/llvm-mingw1706_64/x86_64-w64-mingw32/usr/include -internal-isystem C:/Qt/Tools/llvm-mingw1706_64/include -fdeprecated-macro -fdebug-compilation-dir=G:/Projects/EarthView/EarthView/build/CMakeFiles/CMakeScratch/TryCompile-viq97w -ferror-limit 19 -fno-use-cxa-atexit -fgnuc-version=4.2.1 -fcxx-exceptions -fexceptions -exception-model=seh -faddrsig -o "CMakeFiles\\\\cmTC_996e5.dir\\\\CMakeCXXCompilerABI.cpp.obj" -x c++ "C:\\\\Program Files\\\\CMake\\\\share\\\\cmake-4.3\\\\Modules\\\\CMakeCXXCompilerABI.cpp"]
+        ignore line: [ "C:/Qt/Tools/llvm-mingw1706_64/bin/clang-17.exe" -cc1 -triple x86_64-w64-windows-gnu -emit-obj -mrelax-all -disable-free -clear-ast-before-backend -disable-llvm-verifier -discard-value-names -main-file-name CMakeCXXCompilerABI.cpp -mrelocation-model pic -pic-level 2 -mframe-pointer=none -fmath-errno -ffp-contract=on -fno-rounding-math -mconstructor-aliases -mms-bitfields -funwind-tables=2 -fno-use-init-array -target-cpu x86-64 -tune-cpu generic -debugger-tuning=gdb -v -fcoverage-compilation-dir=G:/Projects/EarthView/EarthView/build/CMakeFiles/CMakeScratch/TryCompile-ak8dgp -resource-dir C:/Qt/Tools/llvm-mingw1706_64/lib/clang/17 -dependency-file "CMakeFiles\\\\cmTC_58221.dir\\\\CMakeCXXCompilerABI.cpp.obj.d" -MT CMakeFiles/cmTC_58221.dir/CMakeCXXCompilerABI.cpp.obj -sys-header-deps -internal-isystem C:/Qt/Tools/llvm-mingw1706_64/x86_64-w64-mingw32/include/c++/v1 -internal-isystem C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1 -internal-isystem C:/Qt/Tools/llvm-mingw1706_64/lib/clang/17/include -internal-isystem C:/Qt/Tools/llvm-mingw1706_64/x86_64-w64-mingw32/include -internal-isystem C:/Qt/Tools/llvm-mingw1706_64/x86_64-w64-mingw32/usr/include -internal-isystem C:/Qt/Tools/llvm-mingw1706_64/include -fdeprecated-macro -fdebug-compilation-dir=G:/Projects/EarthView/EarthView/build/CMakeFiles/CMakeScratch/TryCompile-ak8dgp -ferror-limit 19 -fno-use-cxa-atexit -fgnuc-version=4.2.1 -fcxx-exceptions -fexceptions -exception-model=seh -faddrsig -o "CMakeFiles\\\\cmTC_58221.dir\\\\CMakeCXXCompilerABI.cpp.obj" -x c++ "C:\\\\Program Files\\\\CMake\\\\share\\\\cmake-4.3\\\\Modules\\\\CMakeCXXCompilerABI.cpp"]
         ignore line: [clang -cc1 version 17.0.6 based upon LLVM 17.0.6 default target x86_64-w64-mingw32]
         ignore line: [ignoring nonexistent directory "C:/Qt/Tools/llvm-mingw1706_64/x86_64-w64-mingw32/include/c++/v1"]
         ignore line: [ignoring nonexistent directory "C:/Qt/Tools/llvm-mingw1706_64/x86_64-w64-mingw32/include"]
@@ -3167,19 +3167,19 @@ events:
         ignore line: [ C:/Qt/Tools/llvm-mingw1706_64/lib/clang/17/include]
         ignore line: [ C:/Qt/Tools/llvm-mingw1706_64/include]
         ignore line: [End of search list.]
-        ignore line: [Linking CXX executable cmTC_996e5.exe]
-        ignore line: ["C:\\Program Files\\CMake\\bin\\cmake.exe" -E cmake_link_script CMakeFiles\\cmTC_996e5.dir\\link.txt --verbose=1]
+        ignore line: [Linking CXX executable cmTC_58221.exe]
+        ignore line: ["C:\\Program Files\\CMake\\bin\\cmake.exe" -E cmake_link_script CMakeFiles\\cmTC_58221.dir\\link.txt --verbose=1]
         ignore line: [clang version 17.0.6 (https://github.com/llvm/llvm-project.git 6009708b4367171ccdbf4b5905cb6a803753fe18)]
         ignore line: [Target: x86_64-w64-windows-gnu]
         ignore line: [Thread model: posix]
         ignore line: [InstalledDir: C:/Qt/Tools/llvm-mingw1706_64/bin]
-        link line: [ "C:/Qt/Tools/llvm-mingw1706_64/bin/ld.lld" -m i386pep -Bdynamic -o cmTC_996e5.exe C:/Qt/Tools/llvm-mingw1706_64/x86_64-w64-mingw32/lib/crt2.o C:/Qt/Tools/llvm-mingw1706_64/x86_64-w64-mingw32/lib/crtbegin.o -LC:/Qt/Tools/llvm-mingw1706_64/x86_64-w64-mingw32/lib -LC:/Qt/Tools/llvm-mingw1706_64/x86_64-w64-mingw32/mingw/lib -LC:/Qt/Tools/llvm-mingw1706_64/lib -LC:/Qt/Tools/llvm-mingw1706_64/lib/clang/17/lib/windows -v --whole-archive "CMakeFiles\\\\cmTC_996e5.dir/objects.a" --no-whole-archive --out-implib libcmTC_996e5.dll.a --major-image-version 0 --minor-image-version 0 -lc++ -lmingw32 C:/Qt/Tools/llvm-mingw1706_64/lib/clang/17/lib/windows/libclang_rt.builtins-x86_64.a -lunwind -lmoldname -lmingwex -lmsvcrt -ladvapi32 -lshell32 -luser32 -lkernel32 -lmingw32 C:/Qt/Tools/llvm-mingw1706_64/lib/clang/17/lib/windows/libclang_rt.builtins-x86_64.a -lunwind -lmoldname -lmingwex -lmsvcrt -lkernel32 C:/Qt/Tools/llvm-mingw1706_64/x86_64-w64-mingw32/lib/crtend.o]
+        link line: [ "C:/Qt/Tools/llvm-mingw1706_64/bin/ld.lld" -m i386pep -Bdynamic -o cmTC_58221.exe C:/Qt/Tools/llvm-mingw1706_64/x86_64-w64-mingw32/lib/crt2.o C:/Qt/Tools/llvm-mingw1706_64/x86_64-w64-mingw32/lib/crtbegin.o -LC:/Qt/Tools/llvm-mingw1706_64/x86_64-w64-mingw32/lib -LC:/Qt/Tools/llvm-mingw1706_64/x86_64-w64-mingw32/mingw/lib -LC:/Qt/Tools/llvm-mingw1706_64/lib -LC:/Qt/Tools/llvm-mingw1706_64/lib/clang/17/lib/windows -v --whole-archive "CMakeFiles\\\\cmTC_58221.dir/objects.a" --no-whole-archive --out-implib libcmTC_58221.dll.a --major-image-version 0 --minor-image-version 0 -lc++ -lmingw32 C:/Qt/Tools/llvm-mingw1706_64/lib/clang/17/lib/windows/libclang_rt.builtins-x86_64.a -lunwind -lmoldname -lmingwex -lmsvcrt -ladvapi32 -lshell32 -luser32 -lkernel32 -lmingw32 C:/Qt/Tools/llvm-mingw1706_64/lib/clang/17/lib/windows/libclang_rt.builtins-x86_64.a -lunwind -lmoldname -lmingwex -lmsvcrt -lkernel32 C:/Qt/Tools/llvm-mingw1706_64/x86_64-w64-mingw32/lib/crtend.o]
           arg [C:/Qt/Tools/llvm-mingw1706_64/bin/ld.lld] ==> ignore
           arg [-m] ==> ignore
           arg [i386pep] ==> ignore
           arg [-Bdynamic] ==> search dynamic
           arg [-o] ==> ignore
-          arg [cmTC_996e5.exe] ==> ignore
+          arg [cmTC_58221.exe] ==> ignore
           arg [C:/Qt/Tools/llvm-mingw1706_64/x86_64-w64-mingw32/lib/crt2.o] ==> obj [C:/Qt/Tools/llvm-mingw1706_64/x86_64-w64-mingw32/lib/crt2.o]
           arg [C:/Qt/Tools/llvm-mingw1706_64/x86_64-w64-mingw32/lib/crtbegin.o] ==> obj [C:/Qt/Tools/llvm-mingw1706_64/x86_64-w64-mingw32/lib/crtbegin.o]
           arg [-LC:/Qt/Tools/llvm-mingw1706_64/x86_64-w64-mingw32/lib] ==> dir [C:/Qt/Tools/llvm-mingw1706_64/x86_64-w64-mingw32/lib]
@@ -3188,10 +3188,10 @@ events:
           arg [-LC:/Qt/Tools/llvm-mingw1706_64/lib/clang/17/lib/windows] ==> dir [C:/Qt/Tools/llvm-mingw1706_64/lib/clang/17/lib/windows]
           arg [-v] ==> ignore
           arg [--whole-archive] ==> ignore
-          arg [CMakeFiles\\\\cmTC_996e5.dir/objects.a] ==> ignore
+          arg [CMakeFiles\\\\cmTC_58221.dir/objects.a] ==> ignore
           arg [--no-whole-archive] ==> ignore
           arg [--out-implib] ==> ignore
-          arg [libcmTC_996e5.dll.a] ==> ignore
+          arg [libcmTC_58221.dll.a] ==> ignore
           arg [--major-image-version] ==> ignore
           arg [0] ==> ignore
           arg [--minor-image-version] ==> ignore
@@ -3256,8 +3256,8 @@ events:
     checks:
       - "Performing Test CMAKE_HAVE_LIBC_PTHREAD"
     directories:
-      source: "G:/Projects/EarthView/EarthView/build/CMakeFiles/CMakeScratch/TryCompile-ys6z90"
-      binary: "G:/Projects/EarthView/EarthView/build/CMakeFiles/CMakeScratch/TryCompile-ys6z90"
+      source: "G:/Projects/EarthView/EarthView/build/CMakeFiles/CMakeScratch/TryCompile-d1ippm"
+      binary: "G:/Projects/EarthView/EarthView/build/CMakeFiles/CMakeScratch/TryCompile-d1ippm"
     cmakeVariables:
       CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS: "CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS-NOTFOUND"
       CMAKE_CXX_FLAGS: ""
@@ -3269,15 +3269,15 @@ events:
       variable: "CMAKE_HAVE_LIBC_PTHREAD"
       cached: true
       stdout: |
-        Change Dir: 'G:/Projects/EarthView/EarthView/build/CMakeFiles/CMakeScratch/TryCompile-ys6z90'
+        Change Dir: 'G:/Projects/EarthView/EarthView/build/CMakeFiles/CMakeScratch/TryCompile-d1ippm'
         
-        Run Build Command(s): "C:/Program Files/CMake/bin/cmake.exe" -E env VERBOSE=1 C:/Qt/Tools/llvm-mingw1706_64/bin/mingw32-make.exe -f Makefile cmTC_d11e6/fast
-        C:/Qt/Tools/llvm-mingw1706_64/bin/mingw32-make.exe  -f CMakeFiles\\cmTC_d11e6.dir\\build.make CMakeFiles/cmTC_d11e6.dir/build
-        mingw32-make[1]: Entering directory 'G:/Projects/EarthView/EarthView/build/CMakeFiles/CMakeScratch/TryCompile-ys6z90'
-        Building CXX object CMakeFiles/cmTC_d11e6.dir/src.cxx.obj
-        C:\\Qt\\Tools\\llvm-mingw1706_64\\bin\\c++.exe -DCMAKE_HAVE_LIBC_PTHREAD  -std=c++17 -MD -MT CMakeFiles/cmTC_d11e6.dir/src.cxx.obj -MF CMakeFiles\\cmTC_d11e6.dir\\src.cxx.obj.d -o CMakeFiles\\cmTC_d11e6.dir\\src.cxx.obj -c G:\\Projects\\EarthView\\EarthView\\build\\CMakeFiles\\CMakeScratch\\TryCompile-ys6z90\\src.cxx
-        Linking CXX executable cmTC_d11e6.exe
-        "C:\\Program Files\\CMake\\bin\\cmake.exe" -E cmake_link_script CMakeFiles\\cmTC_d11e6.dir\\link.txt --verbose=1
+        Run Build Command(s): "C:/Program Files/CMake/bin/cmake.exe" -E env VERBOSE=1 C:/Qt/Tools/llvm-mingw1706_64/bin/mingw32-make.exe -f Makefile cmTC_5efe4/fast
+        C:/Qt/Tools/llvm-mingw1706_64/bin/mingw32-make.exe  -f CMakeFiles\\cmTC_5efe4.dir\\build.make CMakeFiles/cmTC_5efe4.dir/build
+        mingw32-make[1]: Entering directory 'G:/Projects/EarthView/EarthView/build/CMakeFiles/CMakeScratch/TryCompile-d1ippm'
+        Building CXX object CMakeFiles/cmTC_5efe4.dir/src.cxx.obj
+        C:\\Qt\\Tools\\llvm-mingw1706_64\\bin\\c++.exe -DCMAKE_HAVE_LIBC_PTHREAD  -std=c++17 -MD -MT CMakeFiles/cmTC_5efe4.dir/src.cxx.obj -MF CMakeFiles\\cmTC_5efe4.dir\\src.cxx.obj.d -o CMakeFiles\\cmTC_5efe4.dir\\src.cxx.obj -c G:\\Projects\\EarthView\\EarthView\\build\\CMakeFiles\\CMakeScratch\\TryCompile-d1ippm\\src.cxx
+        Linking CXX executable cmTC_5efe4.exe
+        "C:\\Program Files\\CMake\\bin\\cmake.exe" -E cmake_link_script CMakeFiles\\cmTC_5efe4.dir\\link.txt --verbose=1
         ld.lld: error: undefined symbol: pthread_create
         >>> referenced by objects.a(src.cxx.obj):(main)
         
@@ -3293,12 +3293,12 @@ events:
         ld.lld: error: undefined symbol: pthread_exit
         >>> referenced by objects.a(src.cxx.obj):(main)
         clang-17: error: linker command failed with exit code 1 (use -v to see invocation)
-        "C:\\Program Files\\CMake\\bin\\cmake.exe" -E rm -f CMakeFiles\\cmTC_d11e6.dir/objects.a
-        C:\\Qt\\Tools\\llvm-mingw1706_64\\bin\\llvm-ar.exe qc CMakeFiles\\cmTC_d11e6.dir/objects.a @CMakeFiles\\cmTC_d11e6.dir\\objects1.rsp
-        C:\\Qt\\Tools\\llvm-mingw1706_64\\bin\\c++.exe -Wl,--whole-archive CMakeFiles\\cmTC_d11e6.dir/objects.a -Wl,--no-whole-archive -o cmTC_d11e6.exe -Wl,--out-implib,libcmTC_d11e6.dll.a -Wl,--major-image-version,0,--minor-image-version,0 @CMakeFiles\\cmTC_d11e6.dir\\linkLibs.rsp
-        mingw32-make[1]: *** [CMakeFiles\\cmTC_d11e6.dir\\build.make:104: cmTC_d11e6.exe] Error 1
-        mingw32-make[1]: Leaving directory 'G:/Projects/EarthView/EarthView/build/CMakeFiles/CMakeScratch/TryCompile-ys6z90'
-        mingw32-make: *** [Makefile:133: cmTC_d11e6/fast] Error 2
+        "C:\\Program Files\\CMake\\bin\\cmake.exe" -E rm -f CMakeFiles\\cmTC_5efe4.dir/objects.a
+        C:\\Qt\\Tools\\llvm-mingw1706_64\\bin\\llvm-ar.exe qc CMakeFiles\\cmTC_5efe4.dir/objects.a @CMakeFiles\\cmTC_5efe4.dir\\objects1.rsp
+        C:\\Qt\\Tools\\llvm-mingw1706_64\\bin\\c++.exe -Wl,--whole-archive CMakeFiles\\cmTC_5efe4.dir/objects.a -Wl,--no-whole-archive -o cmTC_5efe4.exe -Wl,--out-implib,libcmTC_5efe4.dll.a -Wl,--major-image-version,0,--minor-image-version,0 @CMakeFiles\\cmTC_5efe4.dir\\linkLibs.rsp
+        mingw32-make[1]: *** [CMakeFiles\\cmTC_5efe4.dir\\build.make:104: cmTC_5efe4.exe] Error 1
+        mingw32-make[1]: Leaving directory 'G:/Projects/EarthView/EarthView/build/CMakeFiles/CMakeScratch/TryCompile-d1ippm'
+        mingw32-make: *** [Makefile:133: cmTC_5efe4/fast] Error 2
         
       exitCode: 2
   -
@@ -3315,8 +3315,8 @@ events:
     checks:
       - "Check if compiler accepts -pthread"
     directories:
-      source: "G:/Projects/EarthView/EarthView/build/CMakeFiles/CMakeScratch/TryCompile-02m8wh"
-      binary: "G:/Projects/EarthView/EarthView/build/CMakeFiles/CMakeScratch/TryCompile-02m8wh"
+      source: "G:/Projects/EarthView/EarthView/build/CMakeFiles/CMakeScratch/TryCompile-0vrm47"
+      binary: "G:/Projects/EarthView/EarthView/build/CMakeFiles/CMakeScratch/TryCompile-0vrm47"
     cmakeVariables:
       CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS: "CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS-NOTFOUND"
       CMAKE_CXX_FLAGS: ""
@@ -3328,19 +3328,19 @@ events:
       variable: "THREADS_HAVE_PTHREAD_ARG"
       cached: true
       stdout: |
-        Change Dir: 'G:/Projects/EarthView/EarthView/build/CMakeFiles/CMakeScratch/TryCompile-02m8wh'
+        Change Dir: 'G:/Projects/EarthView/EarthView/build/CMakeFiles/CMakeScratch/TryCompile-0vrm47'
         
-        Run Build Command(s): "C:/Program Files/CMake/bin/cmake.exe" -E env VERBOSE=1 C:/Qt/Tools/llvm-mingw1706_64/bin/mingw32-make.exe -f Makefile cmTC_c903d/fast
-        C:/Qt/Tools/llvm-mingw1706_64/bin/mingw32-make.exe  -f CMakeFiles\\cmTC_c903d.dir\\build.make CMakeFiles/cmTC_c903d.dir/build
-        mingw32-make[1]: Entering directory 'G:/Projects/EarthView/EarthView/build/CMakeFiles/CMakeScratch/TryCompile-02m8wh'
-        Building CXX object CMakeFiles/cmTC_c903d.dir/CheckForPthreads.cxx.obj
-        C:\\Qt\\Tools\\llvm-mingw1706_64\\bin\\c++.exe   -std=c++17 -MD -MT CMakeFiles/cmTC_c903d.dir/CheckForPthreads.cxx.obj -MF CMakeFiles\\cmTC_c903d.dir\\CheckForPthreads.cxx.obj.d -o CMakeFiles\\cmTC_c903d.dir\\CheckForPthreads.cxx.obj -c G:\\Projects\\EarthView\\EarthView\\build\\CMakeFiles\\CMakeScratch\\TryCompile-02m8wh\\CheckForPthreads.cxx
-        Linking CXX executable cmTC_c903d.exe
-        "C:\\Program Files\\CMake\\bin\\cmake.exe" -E cmake_link_script CMakeFiles\\cmTC_c903d.dir\\link.txt --verbose=1
-        "C:\\Program Files\\CMake\\bin\\cmake.exe" -E rm -f CMakeFiles\\cmTC_c903d.dir/objects.a
-        C:\\Qt\\Tools\\llvm-mingw1706_64\\bin\\llvm-ar.exe qc CMakeFiles\\cmTC_c903d.dir/objects.a @CMakeFiles\\cmTC_c903d.dir\\objects1.rsp
-        C:\\Qt\\Tools\\llvm-mingw1706_64\\bin\\c++.exe -Wl,--whole-archive CMakeFiles\\cmTC_c903d.dir/objects.a -Wl,--no-whole-archive -o cmTC_c903d.exe -Wl,--out-implib,libcmTC_c903d.dll.a -Wl,--major-image-version,0,--minor-image-version,0 @CMakeFiles\\cmTC_c903d.dir\\linkLibs.rsp
-        mingw32-make[1]: Leaving directory 'G:/Projects/EarthView/EarthView/build/CMakeFiles/CMakeScratch/TryCompile-02m8wh'
+        Run Build Command(s): "C:/Program Files/CMake/bin/cmake.exe" -E env VERBOSE=1 C:/Qt/Tools/llvm-mingw1706_64/bin/mingw32-make.exe -f Makefile cmTC_2957b/fast
+        C:/Qt/Tools/llvm-mingw1706_64/bin/mingw32-make.exe  -f CMakeFiles\\cmTC_2957b.dir\\build.make CMakeFiles/cmTC_2957b.dir/build
+        mingw32-make[1]: Entering directory 'G:/Projects/EarthView/EarthView/build/CMakeFiles/CMakeScratch/TryCompile-0vrm47'
+        Building CXX object CMakeFiles/cmTC_2957b.dir/CheckForPthreads.cxx.obj
+        C:\\Qt\\Tools\\llvm-mingw1706_64\\bin\\c++.exe   -std=c++17 -MD -MT CMakeFiles/cmTC_2957b.dir/CheckForPthreads.cxx.obj -MF CMakeFiles\\cmTC_2957b.dir\\CheckForPthreads.cxx.obj.d -o CMakeFiles\\cmTC_2957b.dir\\CheckForPthreads.cxx.obj -c G:\\Projects\\EarthView\\EarthView\\build\\CMakeFiles\\CMakeScratch\\TryCompile-0vrm47\\CheckForPthreads.cxx
+        Linking CXX executable cmTC_2957b.exe
+        "C:\\Program Files\\CMake\\bin\\cmake.exe" -E cmake_link_script CMakeFiles\\cmTC_2957b.dir\\link.txt --verbose=1
+        "C:\\Program Files\\CMake\\bin\\cmake.exe" -E rm -f CMakeFiles\\cmTC_2957b.dir/objects.a
+        C:\\Qt\\Tools\\llvm-mingw1706_64\\bin\\llvm-ar.exe qc CMakeFiles\\cmTC_2957b.dir/objects.a @CMakeFiles\\cmTC_2957b.dir\\objects1.rsp
+        C:\\Qt\\Tools\\llvm-mingw1706_64\\bin\\c++.exe -Wl,--whole-archive CMakeFiles\\cmTC_2957b.dir/objects.a -Wl,--no-whole-archive -o cmTC_2957b.exe -Wl,--out-implib,libcmTC_2957b.dll.a -Wl,--major-image-version,0,--minor-image-version,0 @CMakeFiles\\cmTC_2957b.dir\\linkLibs.rsp
+        mingw32-make[1]: Leaving directory 'G:/Projects/EarthView/EarthView/build/CMakeFiles/CMakeScratch/TryCompile-0vrm47'
         
       exitCode: 0
   -
@@ -3359,8 +3359,8 @@ events:
     checks:
       - "Performing Test HAVE_STDATOMIC"
     directories:
-      source: "G:/Projects/EarthView/EarthView/build/CMakeFiles/CMakeScratch/TryCompile-7l3gqg"
-      binary: "G:/Projects/EarthView/EarthView/build/CMakeFiles/CMakeScratch/TryCompile-7l3gqg"
+      source: "G:/Projects/EarthView/EarthView/build/CMakeFiles/CMakeScratch/TryCompile-tbq03f"
+      binary: "G:/Projects/EarthView/EarthView/build/CMakeFiles/CMakeScratch/TryCompile-tbq03f"
     cmakeVariables:
       CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS: "CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS-NOTFOUND"
       CMAKE_CXX_FLAGS: ""
@@ -3372,19 +3372,19 @@ events:
       variable: "HAVE_STDATOMIC"
       cached: true
       stdout: |
-        Change Dir: 'G:/Projects/EarthView/EarthView/build/CMakeFiles/CMakeScratch/TryCompile-7l3gqg'
+        Change Dir: 'G:/Projects/EarthView/EarthView/build/CMakeFiles/CMakeScratch/TryCompile-tbq03f'
         
-        Run Build Command(s): "C:/Program Files/CMake/bin/cmake.exe" -E env VERBOSE=1 C:/Qt/Tools/llvm-mingw1706_64/bin/mingw32-make.exe -f Makefile cmTC_270d9/fast
-        C:/Qt/Tools/llvm-mingw1706_64/bin/mingw32-make.exe  -f CMakeFiles\\cmTC_270d9.dir\\build.make CMakeFiles/cmTC_270d9.dir/build
-        mingw32-make[1]: Entering directory 'G:/Projects/EarthView/EarthView/build/CMakeFiles/CMakeScratch/TryCompile-7l3gqg'
-        Building CXX object CMakeFiles/cmTC_270d9.dir/src.cxx.obj
-        C:\\Qt\\Tools\\llvm-mingw1706_64\\bin\\c++.exe -DHAVE_STDATOMIC  -std=c++17 -MD -MT CMakeFiles/cmTC_270d9.dir/src.cxx.obj -MF CMakeFiles\\cmTC_270d9.dir\\src.cxx.obj.d -o CMakeFiles\\cmTC_270d9.dir\\src.cxx.obj -c G:\\Projects\\EarthView\\EarthView\\build\\CMakeFiles\\CMakeScratch\\TryCompile-7l3gqg\\src.cxx
-        Linking CXX executable cmTC_270d9.exe
-        "C:\\Program Files\\CMake\\bin\\cmake.exe" -E cmake_link_script CMakeFiles\\cmTC_270d9.dir\\link.txt --verbose=1
-        "C:\\Program Files\\CMake\\bin\\cmake.exe" -E rm -f CMakeFiles\\cmTC_270d9.dir/objects.a
-        C:\\Qt\\Tools\\llvm-mingw1706_64\\bin\\llvm-ar.exe qc CMakeFiles\\cmTC_270d9.dir/objects.a @CMakeFiles\\cmTC_270d9.dir\\objects1.rsp
-        C:\\Qt\\Tools\\llvm-mingw1706_64\\bin\\c++.exe -Wl,--whole-archive CMakeFiles\\cmTC_270d9.dir/objects.a -Wl,--no-whole-archive -o cmTC_270d9.exe -Wl,--out-implib,libcmTC_270d9.dll.a -Wl,--major-image-version,0,--minor-image-version,0 @CMakeFiles\\cmTC_270d9.dir\\linkLibs.rsp
-        mingw32-make[1]: Leaving directory 'G:/Projects/EarthView/EarthView/build/CMakeFiles/CMakeScratch/TryCompile-7l3gqg'
+        Run Build Command(s): "C:/Program Files/CMake/bin/cmake.exe" -E env VERBOSE=1 C:/Qt/Tools/llvm-mingw1706_64/bin/mingw32-make.exe -f Makefile cmTC_a2982/fast
+        C:/Qt/Tools/llvm-mingw1706_64/bin/mingw32-make.exe  -f CMakeFiles\\cmTC_a2982.dir\\build.make CMakeFiles/cmTC_a2982.dir/build
+        mingw32-make[1]: Entering directory 'G:/Projects/EarthView/EarthView/build/CMakeFiles/CMakeScratch/TryCompile-tbq03f'
+        Building CXX object CMakeFiles/cmTC_a2982.dir/src.cxx.obj
+        C:\\Qt\\Tools\\llvm-mingw1706_64\\bin\\c++.exe -DHAVE_STDATOMIC  -std=c++17 -MD -MT CMakeFiles/cmTC_a2982.dir/src.cxx.obj -MF CMakeFiles\\cmTC_a2982.dir\\src.cxx.obj.d -o CMakeFiles\\cmTC_a2982.dir\\src.cxx.obj -c G:\\Projects\\EarthView\\EarthView\\build\\CMakeFiles\\CMakeScratch\\TryCompile-tbq03f\\src.cxx
+        Linking CXX executable cmTC_a2982.exe
+        "C:\\Program Files\\CMake\\bin\\cmake.exe" -E cmake_link_script CMakeFiles\\cmTC_a2982.dir\\link.txt --verbose=1
+        "C:\\Program Files\\CMake\\bin\\cmake.exe" -E rm -f CMakeFiles\\cmTC_a2982.dir/objects.a
+        C:\\Qt\\Tools\\llvm-mingw1706_64\\bin\\llvm-ar.exe qc CMakeFiles\\cmTC_a2982.dir/objects.a @CMakeFiles\\cmTC_a2982.dir\\objects1.rsp
+        C:\\Qt\\Tools\\llvm-mingw1706_64\\bin\\c++.exe -Wl,--whole-archive CMakeFiles\\cmTC_a2982.dir/objects.a -Wl,--no-whole-archive -o cmTC_a2982.exe -Wl,--out-implib,libcmTC_a2982.dll.a -Wl,--major-image-version,0,--minor-image-version,0 @CMakeFiles\\cmTC_a2982.dir\\linkLibs.rsp
+        mingw32-make[1]: Leaving directory 'G:/Projects/EarthView/EarthView/build/CMakeFiles/CMakeScratch/TryCompile-tbq03f'
         
       exitCode: 0
   -
