@@ -175,12 +175,16 @@ void Camera::clampCenter()
     double minCenterY = GIS::MIN_MERCATOR_Y + halfHeightMercator;
     double maxCenterY = GIS::MAX_MERCATOR_Y - halfHeightMercator;
 
-    if (minCenterX < maxCenterX) {
+    if (minCenterX <= maxCenterX) {
         m_centerMercator.rx() = qBound(minCenterX, m_centerMercator.x(), maxCenterX);
+    } else {
+        m_centerMercator.rx() = (GIS::MIN_MERCATOR_X + GIS::MAX_MERCATOR_X) / 2.0;
     }
 
-    if (minCenterY < maxCenterY) {
+    if (minCenterY <= maxCenterY) {
         m_centerMercator.ry() = qBound(minCenterY, m_centerMercator.y(), maxCenterY);
+    } else {
+        m_centerMercator.ry() = (GIS::MIN_MERCATOR_Y + GIS::MAX_MERCATOR_Y) / 2.0;
     }
 }
 
