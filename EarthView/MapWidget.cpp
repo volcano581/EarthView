@@ -10,7 +10,6 @@ MapWidget::MapWidget(QWidget* parent)
     , m_camera(new Camera(this))
     , m_tileLoader(new TmsLoader(m_camera, this))
     , m_tileRenderer(nullptr)
-    , m_borderRenderer(new BorderRenderer(m_camera, this))
     , m_isPanning(false)
 {
     setFocusPolicy(Qt::StrongFocus);
@@ -44,7 +43,7 @@ void MapWidget::setTileServerUrl(const QString& url)
 
 void MapWidget::loadWorldBorders()
 {
-    m_borderRenderer->loadWorldBorders();
+    
 }
 
 void MapWidget::initializeGL()
@@ -53,6 +52,8 @@ void MapWidget::initializeGL()
 
     // Create tile renderer after OpenGL context is ready
     m_tileRenderer = new TileRenderer(m_camera, m_tileLoader, this);
+    m_borderRenderer = new BorderRenderer(m_camera, this);
+    m_borderRenderer->loadWorldBorders();
 
     glClearColor(0.1f, 0.1f, 0.2f, 1.0f);
     glEnable(GL_DEPTH_TEST);
