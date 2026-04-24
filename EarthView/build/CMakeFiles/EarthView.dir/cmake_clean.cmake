@@ -1,0 +1,36 @@
+file(REMOVE_RECURSE
+  "CMakeFiles/EarthView.dir/BorderRenderer.cpp.obj"
+  "CMakeFiles/EarthView.dir/BorderRenderer.cpp.obj.d"
+  "CMakeFiles/EarthView.dir/Camera.cpp.obj"
+  "CMakeFiles/EarthView.dir/Camera.cpp.obj.d"
+  "CMakeFiles/EarthView.dir/EarthView_autogen/mocs_compilation.cpp.obj"
+  "CMakeFiles/EarthView.dir/EarthView_autogen/mocs_compilation.cpp.obj.d"
+  "CMakeFiles/EarthView.dir/MainWindow.cpp.obj"
+  "CMakeFiles/EarthView.dir/MainWindow.cpp.obj.d"
+  "CMakeFiles/EarthView.dir/MapWidget.cpp.obj"
+  "CMakeFiles/EarthView.dir/MapWidget.cpp.obj.d"
+  "CMakeFiles/EarthView.dir/MercatorProjection.cpp.obj"
+  "CMakeFiles/EarthView.dir/MercatorProjection.cpp.obj.d"
+  "CMakeFiles/EarthView.dir/TMSLoader.cpp.obj"
+  "CMakeFiles/EarthView.dir/TMSLoader.cpp.obj.d"
+  "CMakeFiles/EarthView.dir/TextureManager.cpp.obj"
+  "CMakeFiles/EarthView.dir/TextureManager.cpp.obj.d"
+  "CMakeFiles/EarthView.dir/TileRenderer.cpp.obj"
+  "CMakeFiles/EarthView.dir/TileRenderer.cpp.obj.d"
+  "CMakeFiles/EarthView.dir/main.cpp.obj"
+  "CMakeFiles/EarthView.dir/main.cpp.obj.d"
+  "EarthView.exe"
+  "EarthView.exe.manifest"
+  "EarthView.pdb"
+  "EarthView_autogen/mocs_compilation.cpp"
+  "EarthView_autogen/timestamp"
+  "CMakeFiles/EarthView_autogen.dir/AutogenUsed.txt"
+  "CMakeFiles/EarthView_autogen.dir/ParseCache.txt"
+  "EarthView_autogen"
+  "libEarthView.dll.a"
+)
+
+# Per-language clean rules from dependency scanning.
+foreach(lang CXX)
+  include(CMakeFiles/EarthView.dir/cmake_clean_${lang}.cmake OPTIONAL)
+endforeach()

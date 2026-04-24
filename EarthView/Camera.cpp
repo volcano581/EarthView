@@ -1,6 +1,6 @@
-#include "camera.h"
-#include "constants.h"
-#include "mercatorprojection.h"
+#include "Camera.h"
+#include "Constants.h"
+#include "MercatorProjection.h"
 #include <QtMath>
 #include <cmath>
 #include <QOpenGLFunctions>
@@ -62,9 +62,9 @@ void Camera::pan(const QPointF& delta)
     double mercatorDeltaX = delta.x() * resolution / GIS::EARTH_RADIUS;
     double mercatorDeltaY = delta.y() * resolution / GIS::EARTH_RADIUS;
 
-    // Pan: left/right affects X, up/down affects Y (inverted for screen coordinates)
+    // Dragging down should move the map down, which means the camera moves north.
     m_centerMercator.rx() -= mercatorDeltaX;
-    m_centerMercator.ry() -= mercatorDeltaY;
+    m_centerMercator.ry() += mercatorDeltaY;
 
     clampCenter();
     m_cacheValid = false;
@@ -152,11 +152,14 @@ double Camera::getResolution() const
 
 void Camera::updateMatrices()
 {
-    double halfWidth = m_viewportWidth / 2.0;
-    double halfHeight = m_viewportHeight / 2.0;
-
     m_projectionMatrix.setToIdentity();
-    m_projectionMatrix.ortho(-halfWidth, halfWidth, -halfHeight, halfHeight, -1.0, 1.0);
+    m_projectionMatrix.ortho(
+        0.0f,
+        static_cast<float>(m_viewportWidth),
+        static_cast<float>(m_viewportHeight),
+        0.0f,
+        -1.0f,
+        1.0f);
 
     m_viewMatrix.setToIdentity();
     m_mvpMatrix = m_projectionMatrix * m_viewMatrix;

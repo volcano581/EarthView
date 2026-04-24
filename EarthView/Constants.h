@@ -12,10 +12,10 @@ namespace GIS {
     constexpr double EARTH_CIRCUMFERENCE = 40075016.686;
     
     // Mercator projection bounds
-    constexpr double MIN_MERCATOR_X = M_PI;
+    constexpr double MIN_MERCATOR_X = -M_PI;
     constexpr double MAX_MERCATOR_X = M_PI;
-    constexpr double MIN_MERCATOR_Y = -M_PI;
-    constexpr double MAX_MERCATOR_Y = M_PI;
+    constexpr double MIN_MERCATOR_Y = -M_PI/2;
+    constexpr double MAX_MERCATOR_Y = M_PI/2;
     
     // Camera zoom bounds
     constexpr double MIN_ZOOM = 0.0;

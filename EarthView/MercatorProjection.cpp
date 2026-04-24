@@ -1,5 +1,5 @@
-#include "mercatorprojection.h"
-#include "constants.h"
+#include "MercatorProjection.h"
+#include "Constants.h"
 #include <QtMath>
 #include <cmath>
 
@@ -33,8 +33,8 @@ QRect MercatorProjection::getTileRange(const QRectF& extent, int zoomLevel)
 {
     int minTileX = static_cast<int>(floor((extent.left() + M_PI) / (2.0 * M_PI) * (1 << zoomLevel)));
     int maxTileX = static_cast<int>(ceil((extent.right() + M_PI) / (2.0 * M_PI) * (1 << zoomLevel))) - 1;
-    int minTileY = static_cast<int>(floor((M_PI - extent.bottom()) / (2.0 * M_PI) * (1 << zoomLevel)));
-    int maxTileY = static_cast<int>(ceil((M_PI - extent.top()) / (2.0 * M_PI) * (1 << zoomLevel))) - 1;
+    int minTileY = static_cast<int>(floor((M_PI - extent.top()) / (2.0 * M_PI) * (1 << zoomLevel)));
+    int maxTileY = static_cast<int>(ceil((M_PI - extent.bottom()) / (2.0 * M_PI) * (1 << zoomLevel))) - 1;
 
     int maxTile = (1 << zoomLevel) - 1;
     minTileX = qBound(0, minTileX, maxTile);

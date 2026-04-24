@@ -1,6 +1,6 @@
-#include "borderrenderer.h"
-#include "camera.h"
-#include "mercatorprojection.h"
+#include "BorderRenderer.h"
+#include "Camera.h"
+#include "MercatorProjection.h"
 #include <QOpenGLExtraFunctions>
 
 BorderRenderer::BorderRenderer(Camera* camera, QObject* parent)

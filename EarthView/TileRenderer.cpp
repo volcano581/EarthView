@@ -1,6 +1,6 @@
-#include "tilerenderer.h"
-#include "camera.h"
-#include "tmsloader.h"
+#include "TileRenderer.h"
+#include "Camera.h"
+#include "TMSLoader.h"
 
 TileRenderer::TileRenderer(Camera* camera, TmsLoader* tileLoader, QObject* parent)
     : QObject(parent)
@@ -17,9 +17,18 @@ void TileRenderer::render()
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 
-    const auto& tiles = m_tileLoader->getActiveTiles();
-    for (const auto& tile : tiles) {
-        if (tile.textureId == 0 || tile.isLoading)
+    auto& tiles = m_tileLoader->getActiveTiles();
+    for (auto it = tiles.begin(); it != tiles.end(); ++it) {
+        auto& tile = it.value();
+        if (tile.isLoading)
+            continue;
+
+        if (tile.textureId == 0 && !tile.image.isNull()) {
+            tile.textureId = m_tileLoader->getTextureManager()->createTexture(tile.image, it.key());
+            tile.image = QImage();
+        }
+
+        if (tile.textureId == 0)
             continue;
 
         QPointF topLeft = m_camera->mercatorToScreen(tile.mercatorBounds.topLeft());

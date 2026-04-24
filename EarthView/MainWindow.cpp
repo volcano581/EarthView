@@ -1,7 +1,7 @@
-#include "mainwindow.h"
-#include "mapwidget.h"
-#include "camera.h"
-#include "mercatorprojection.h"
+#include "MainWindow.h"
+#include "MapWidget.h"
+#include "Camera.h"
+#include "MercatorProjection.h"
 #include <QToolBar>
 #include <QStatusBar>
 #include <QLabel>
@@ -42,9 +42,10 @@ void MainWindow::setupUI()
     connect(m_mapWidget->camera(), &Camera::cameraChanged, [this]() {
         QPointF center = m_mapWidget->camera()->getCenterMercator();
         QPointF latLon = MercatorProjection::mercatorToLatLon(center.x(), center.y());
-        m_coordLabel->setText(QString("Center: %1°N, %2°E")
+        m_coordLabel->setText(QString("Center: %1%3N, %2%3E")
             .arg(latLon.x(), 0, 'f', 2)
-            .arg(latLon.y(), 0, 'f', 2));
+            .arg(latLon.y(), 0, 'f', 2)
+            .arg(QChar(0x00B0)));
         m_zoomLabel->setText(QString("Zoom: %1")
             .arg(m_mapWidget->camera()->getZoomLevel(), 0, 'f', 1));
         });
@@ -53,7 +54,7 @@ void MainWindow::setupUI()
 void MainWindow::createStatusBar()
 {
     statusBar()->show();
-    m_coordLabel = new QLabel("Center: 0.00°N, 0.00°E", this);
+    m_coordLabel = new QLabel(QString("Center: 0.00%1N, 0.00%1E").arg(QChar(0x00B0)), this);
     m_zoomLabel = new QLabel("Zoom: 2.0", this);
 
     statusBar()->addWidget(m_coordLabel);

@@ -1,8 +1,8 @@
-#include "tmsloader.h"
-#include "texturemanager.h"
-#include "camera.h"
-#include "mercatorprojection.h"
-#include "constants.h"
+#include "TMSLoader.h"
+#include "TextureManager.h"
+#include "Camera.h"
+#include "MercatorProjection.h"
+#include "Constants.h"
 #include <QNetworkRequest>
 #include <QNetworkReply>
 #include <QImage>
@@ -77,6 +77,7 @@ void TmsLoader::fetchTile(int z, int x, int y)
         TileInfo tile;
         tile.textureId = m_textureManager->getTexture(key);
         tile.mercatorBounds = tileToMercatorBounds(z, x, y);
+        tile.image = QImage();
         tile.isLoading = false;
         m_activeTiles[key] = tile;
         return;
@@ -103,12 +104,10 @@ void TmsLoader::onTileDownloaded(QNetworkReply* reply, int z, int x, int y)
     if (reply->error() == QNetworkReply::NoError) {
         QImage image;
         if (image.loadFromData(reply->readAll())) {
-            // Create texture and cache it
-            GLuint textureId = m_textureManager->createTexture(image, key);
-
             TileInfo tile;
-            tile.textureId = textureId;
+            tile.textureId = 0;
             tile.mercatorBounds = tileToMercatorBounds(z, x, y);
+            tile.image = image;
             tile.isLoading = false;
             m_activeTiles[key] = tile;
 

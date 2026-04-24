@@ -1,8 +1,8 @@
-#include "mapwidget.h"
-#include "camera.h"
-#include "tmsloader.h"
-#include "tilerenderer.h"
-#include "borderrenderer.h"
+#include "MapWidget.h"
+#include "Camera.h"
+#include "TMSLoader.h"
+#include "TileRenderer.h"
+#include "BorderRenderer.h"
 #include <QOpenGLExtraFunctions>
 
 MapWidget::MapWidget(QWidget* parent)
@@ -10,6 +10,7 @@ MapWidget::MapWidget(QWidget* parent)
     , m_camera(new Camera(this))
     , m_tileLoader(new TmsLoader(m_camera, this))
     , m_tileRenderer(nullptr)
+    , m_borderRenderer(nullptr)
     , m_isPanning(false)
 {
     setFocusPolicy(Qt::StrongFocus);
@@ -25,6 +26,8 @@ MapWidget::MapWidget(QWidget* parent)
     m_updateTimer->start();
 
     connect(m_camera, &Camera::cameraChanged, this, &MapWidget::onCameraChanged);
+    connect(m_tileLoader, &TmsLoader::tileLoaded, this, QOverload<>::of(&MapWidget::update));
+    connect(m_tileLoader, &TmsLoader::tileFailed, this, QOverload<>::of(&MapWidget::update));
 }
 
 MapWidget::~MapWidget()
@@ -54,6 +57,7 @@ void MapWidget::initializeGL()
     m_tileRenderer = new TileRenderer(m_camera, m_tileLoader, this);
     m_borderRenderer = new BorderRenderer(m_camera, this);
     m_borderRenderer->loadWorldBorders();
+    m_tileLoader->updateVisibleTiles();
 
     glClearColor(0.1f, 0.1f, 0.2f, 1.0f);
     glEnable(GL_DEPTH_TEST);
@@ -79,7 +83,9 @@ void MapWidget::paintGL()
     }
 
     // Render world borders on top
-    m_borderRenderer->render();
+    if (m_borderRenderer) {
+        m_borderRenderer->render();
+    }
 }
 
 void MapWidget::mousePressEvent(QMouseEvent* event)

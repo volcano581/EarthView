@@ -7,7 +7,8 @@
 #include <QNetworkAccessManager>
 #include <QMap>
 #include <QSet>
-#include "texturemanager.h"
+#include <QImage>
+#include "TextureManager.h"
 
 class Camera;
 
@@ -28,6 +29,7 @@ public:
     struct TileInfo {
         GLuint textureId;
         QRectF mercatorBounds;
+        QImage image;
         bool isLoading;
     };
 
@@ -42,6 +44,7 @@ public:
     void clearCache();
 
     // Accessors
+    QMap<QString, TileInfo>& getActiveTiles() { return m_activeTiles; }
     const QMap<QString, TileInfo>& getActiveTiles() const { return m_activeTiles; }
     TextureManager* getTextureManager() { return m_textureManager; }
 
