@@ -62,9 +62,9 @@ void Camera::pan(const QPointF& delta)
     double mercatorDeltaX = delta.x() * resolution / GIS::EARTH_RADIUS;
     double mercatorDeltaY = delta.y() * resolution / GIS::EARTH_RADIUS;
 
-    // Dragging down should move the map down, which means the camera moves north.
+    // Pan: left/right affects X, up/down affects Y (inverted for screen coordinates)
     m_centerMercator.rx() -= mercatorDeltaX;
-    m_centerMercator.ry() += mercatorDeltaY;
+    m_centerMercator.ry() -= mercatorDeltaY;
 
     clampCenter();
     m_cacheValid = false;
@@ -175,16 +175,12 @@ void Camera::clampCenter()
     double minCenterY = GIS::MIN_MERCATOR_Y + halfHeightMercator;
     double maxCenterY = GIS::MAX_MERCATOR_Y - halfHeightMercator;
 
-    if (minCenterX <= maxCenterX) {
+    if (minCenterX < maxCenterX) {
         m_centerMercator.rx() = qBound(minCenterX, m_centerMercator.x(), maxCenterX);
-    } else {
-        m_centerMercator.rx() = (GIS::MIN_MERCATOR_X + GIS::MAX_MERCATOR_X) / 2.0;
     }
 
-    if (minCenterY <= maxCenterY) {
+    if (minCenterY < maxCenterY) {
         m_centerMercator.ry() = qBound(minCenterY, m_centerMercator.y(), maxCenterY);
-    } else {
-        m_centerMercator.ry() = (GIS::MIN_MERCATOR_Y + GIS::MAX_MERCATOR_Y) / 2.0;
     }
 }
 
