@@ -926,26 +926,33 @@ CMakeFiles/EarthView.dir/BorderRenderer.cpp.obj: \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qwindowdefs_win.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/QOpenGLExtraFunctions \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qopenglextrafunctions.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtOpenGL/QOpenGLShaderProgram \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtOpenGL/qopenglshaderprogram.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtOpenGL/qtopenglglobal.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtOpenGL/qtopenglexports.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qvector2d.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qvectornd.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qpoint.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qcheckedint_impl.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qrect.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qmargins.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qsize.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qvector3d.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qvector4d.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qmatrix4x4.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qgenericmatrix.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/QString \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/QVector \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qvector.h \
   D:/Source/EarthView/EarthView/Camera.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/QPointF \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qpoint.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qcheckedint_impl.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/QRectF \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qrect.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qmargins.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qsize.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/QRect \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/QMatrix4x4 \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qmatrix4x4.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qvector3d.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qvectornd.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qvector4d.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qgenericmatrix.h \
   D:/Source/EarthView/EarthView/MercatorProjection.h \
   D:/Source/EarthView/EarthView/Constants.h \
+  D:/Source/EarthView/EarthView/ShaderUtils.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/QDebug \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/QFile \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qfile.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qfiledevice.h \
@@ -979,4 +986,7 @@ CMakeFiles/EarthView.dir/BorderRenderer.cpp.obj: \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qdatetime.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qcalendar.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qlocale.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qtimezone.h
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qtimezone.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/QOpenGLContext \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/QVector2D \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/QVector4D

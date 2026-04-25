@@ -23,6 +23,7 @@ set(SOURCES
     MainWindow.cpp
     MapWidget.cpp
     MercatorProjection.cpp
+    ShaderUtils.cpp
     TextureManager.cpp
     TileRenderer.cpp
     TMSLoader.cpp
@@ -38,15 +39,26 @@ set(HEADERS
     MapWidget.h
     Constants.h
     MercatorProjection.h
+    ShaderUtils.h
     TextureManager.h
     TileRenderer.h
     TMSLoader.h
     fpsCounter.h
 )
 
+set(SHADERS
+    shaders/textured_quad.vert
+    shaders/textured_quad.frag
+    shaders/solid_2d.vert
+    shaders/solid_2d.frag
+    shaders/point_marker.vert
+    shaders/point_marker.frag
+)
+
 add_executable(${PROJECT_NAME}
     ${SOURCES}
     ${HEADERS}
+    ${SHADERS}
 )
 
 target_link_libraries(${PROJECT_NAME}
@@ -55,6 +67,12 @@ target_link_libraries(${PROJECT_NAME}
         Qt6::Widgets
         Qt6::Network
         Qt6::OpenGLWidgets
+)
+
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${CMAKE_CURRENT_SOURCE_DIR}/shaders"
+        "$<TARGET_FILE_DIR:${PROJECT_NAME}>/shaders"
 )
 
 if(WIN32)

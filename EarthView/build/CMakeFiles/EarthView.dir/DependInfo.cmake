@@ -18,6 +18,7 @@ set(CMAKE_DEPENDS_DEPENDENCY_FILES
   "D:/Source/EarthView/EarthView/MainWindow.cpp" "CMakeFiles/EarthView.dir/MainWindow.cpp.obj" "gcc" "CMakeFiles/EarthView.dir/MainWindow.cpp.obj.d"
   "D:/Source/EarthView/EarthView/MapWidget.cpp" "CMakeFiles/EarthView.dir/MapWidget.cpp.obj" "gcc" "CMakeFiles/EarthView.dir/MapWidget.cpp.obj.d"
   "D:/Source/EarthView/EarthView/MercatorProjection.cpp" "CMakeFiles/EarthView.dir/MercatorProjection.cpp.obj" "gcc" "CMakeFiles/EarthView.dir/MercatorProjection.cpp.obj.d"
+  "D:/Source/EarthView/EarthView/ShaderUtils.cpp" "CMakeFiles/EarthView.dir/ShaderUtils.cpp.obj" "gcc" "CMakeFiles/EarthView.dir/ShaderUtils.cpp.obj.d"
   "D:/Source/EarthView/EarthView/TMSLoader.cpp" "CMakeFiles/EarthView.dir/TMSLoader.cpp.obj" "gcc" "CMakeFiles/EarthView.dir/TMSLoader.cpp.obj.d"
   "D:/Source/EarthView/EarthView/TextureManager.cpp" "CMakeFiles/EarthView.dir/TextureManager.cpp.obj" "gcc" "CMakeFiles/EarthView.dir/TextureManager.cpp.obj.d"
   "D:/Source/EarthView/EarthView/TileRenderer.cpp" "CMakeFiles/EarthView.dir/TileRenderer.cpp.obj" "gcc" "CMakeFiles/EarthView.dir/TileRenderer.cpp.obj.d"

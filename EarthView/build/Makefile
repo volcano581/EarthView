@@ -370,6 +370,30 @@ MercatorProjection.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\EarthView.dir\build.make CMakeFiles/EarthView.dir/MercatorProjection.cpp.s
 .PHONY : MercatorProjection.cpp.s
 
+ShaderUtils.obj: ShaderUtils.cpp.obj
+.PHONY : ShaderUtils.obj
+
+# target to build an object file
+ShaderUtils.cpp.obj:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\EarthView.dir\build.make CMakeFiles/EarthView.dir/ShaderUtils.cpp.obj
+.PHONY : ShaderUtils.cpp.obj
+
+ShaderUtils.i: ShaderUtils.cpp.i
+.PHONY : ShaderUtils.i
+
+# target to preprocess a source file
+ShaderUtils.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\EarthView.dir\build.make CMakeFiles/EarthView.dir/ShaderUtils.cpp.i
+.PHONY : ShaderUtils.cpp.i
+
+ShaderUtils.s: ShaderUtils.cpp.s
+.PHONY : ShaderUtils.s
+
+# target to generate assembly for a file
+ShaderUtils.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\EarthView.dir\build.make CMakeFiles/EarthView.dir/ShaderUtils.cpp.s
+.PHONY : ShaderUtils.cpp.s
+
 TMSLoader.obj: TMSLoader.cpp.obj
 .PHONY : TMSLoader.obj
 
@@ -504,6 +528,9 @@ help:
 	@echo ... MercatorProjection.obj
 	@echo ... MercatorProjection.i
 	@echo ... MercatorProjection.s
+	@echo ... ShaderUtils.obj
+	@echo ... ShaderUtils.i
+	@echo ... ShaderUtils.s
 	@echo ... TMSLoader.obj
 	@echo ... TMSLoader.i
 	@echo ... TMSLoader.s

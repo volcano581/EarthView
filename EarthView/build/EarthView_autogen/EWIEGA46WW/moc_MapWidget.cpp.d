@@ -180,6 +180,7 @@ D:/Source/EarthView/EarthView/build/EarthView_autogen/EWIEGA46WW/moc_MapWidget.c
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qfontinfo.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qfontmetrics.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qfontvariableaxis.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qgenericmatrix.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qguiapplication.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qguiapplication_platform.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qicon.h \
@@ -187,6 +188,7 @@ D:/Source/EarthView/EarthView/build/EarthView_autogen/EWIEGA46WW/moc_MapWidget.c
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qinputdevice.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qinputmethod.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qkeysequence.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qmatrix4x4.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qopengl.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qopenglcontext.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qopenglcontext_platform.h \
@@ -209,6 +211,8 @@ D:/Source/EarthView/EarthView/build/EarthView_autogen/EWIEGA46WW/moc_MapWidget.c
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qtguiglobal.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qtransform.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qvector2d.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qvector3d.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qvector4d.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qvectornd.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qwindowdefs.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qwindowdefs_win.h \
@@ -230,6 +234,10 @@ D:/Source/EarthView/EarthView/build/EarthView_autogen/EWIEGA46WW/moc_MapWidget.c
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtNetwork/qtnetwork-config.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtNetwork/qtnetworkexports.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtNetwork/qtnetworkglobal.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtOpenGL/QOpenGLShaderProgram \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtOpenGL/qopenglshaderprogram.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtOpenGL/qtopenglexports.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtOpenGL/qtopenglglobal.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtOpenGLWidgets/QOpenGLWidget \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtOpenGLWidgets/qopenglwidget.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtOpenGLWidgets/qtopenglwidgetsexports.h \

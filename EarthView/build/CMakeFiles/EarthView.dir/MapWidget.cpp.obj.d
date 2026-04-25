@@ -994,6 +994,14 @@ CMakeFiles/EarthView.dir/MapWidget.cpp.obj: \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qguiapplication_platform.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/QWheelEvent \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/QKeyEvent \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtOpenGL/QOpenGLShaderProgram \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtOpenGL/qopenglshaderprogram.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtOpenGL/qtopenglglobal.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtOpenGL/qtopenglexports.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qvector3d.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qvector4d.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qmatrix4x4.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qgenericmatrix.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/QString \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/QTimer \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qtimer.h \
@@ -1039,10 +1047,6 @@ CMakeFiles/EarthView.dir/MapWidget.cpp.obj: \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/QPointF \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/QRectF \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/QMatrix4x4 \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qmatrix4x4.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qvector3d.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qvector4d.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qgenericmatrix.h \
   D:/Source/EarthView/EarthView/TileRenderer.h \
   D:/Source/EarthView/EarthView/BorderRenderer.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/QOpenGLExtraFunctions \
@@ -1054,7 +1058,9 @@ CMakeFiles/EarthView.dir/MapWidget.cpp.obj: \
   D:/Source/EarthView/EarthView/CityLoader.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/QStringList \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/QColor \
+  D:/Source/EarthView/EarthView/ShaderUtils.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/QCoreApplication \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/QDebug \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/QDir \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qdir.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qdirlisting.h \
@@ -1084,9 +1090,12 @@ CMakeFiles/EarthView.dir/MapWidget.cpp.obj: \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qfileinfo.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qtimezone.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/QFileInfo \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/QOpenGLContext \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/QPainter \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qpainter.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qtextoption.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qpen.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/QFont \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/QFontMetrics
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/QFontMetrics \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/QVector2D \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/QVector4D

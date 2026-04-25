@@ -6,17 +6,33 @@
 #include "GridRenderer.h"
 #include "CityRenderer.h"
 #include "Constants.h"
+#include "ShaderUtils.h"
 #include <QCoreApplication>
+#include <QDebug>
 #include <QDir>
 #include <QFileInfo>
+#include <QOpenGLContext>
 #include <QOpenGLExtraFunctions>
 #include <QStringList>
 #include <QPainter>
 #include <QFont>
 #include <QFontMetrics>
+#include <QSurfaceFormat>
+#include <QVector2D>
+#include <QVector4D>
 #include <cmath>
+#include <cstddef>
 
 namespace {
+struct ScreenVertex {
+    float position[2];
+};
+
+ScreenVertex screenVertex(double x, double y)
+{
+    return { { static_cast<float>(x), static_cast<float>(y) } };
+}
+
 QString defaultBorderShapefilePath()
 {
     const QString relativePath = "Data/Borders/World_Countries_Generalized_Shapefile/World_Countries_Generalized.shp";
@@ -70,12 +86,24 @@ MapWidget::MapWidget(QWidget* parent)
     , m_bordersVisible(true)
     , m_gridVisible(true)
     , m_citiesVisible(true)
+    , m_solidProgram(nullptr)
+    , m_shapeVbo(0)
+    , m_shapeVao(0)
+    , m_shapeResourcesInitialized(false)
 {
+    QSurfaceFormat format = QSurfaceFormat::defaultFormat();
+    format.setVersion(4, 5);
+    format.setProfile(QSurfaceFormat::CoreProfile);
+    format.setDepthBufferSize(24);
+    format.setSwapInterval(0);
+    setFormat(format);
+
     setFocusPolicy(Qt::StrongFocus);
     setMouseTracking(true);
 
     m_updateTimer = new QTimer(this);
-    m_updateTimer->setInterval(16);
+    m_updateTimer->setTimerType(Qt::PreciseTimer);
+    m_updateTimer->setInterval(0);
     connect(m_updateTimer, &QTimer::timeout, this, [this]() {
         update();
         });
@@ -94,6 +122,19 @@ MapWidget::~MapWidget()
     delete m_gridRenderer;
     delete m_cityRenderer;
     delete m_tileLoader;
+    if (m_shapeResourcesInitialized) {
+        QOpenGLContext* current = QOpenGLContext::currentContext();
+        QOpenGLExtraFunctions* f = current ? current->extraFunctions() : nullptr;
+        if (f) {
+            if (m_shapeVbo) {
+                f->glDeleteBuffers(1, &m_shapeVbo);
+            }
+            if (m_shapeVao) {
+                f->glDeleteVertexArrays(1, &m_shapeVao);
+            }
+        }
+    }
+    delete m_solidProgram;
     doneCurrent();
 }
 
@@ -206,6 +247,44 @@ void MapWidget::setCitiesVisible(bool visible)
     update();
 }
 
+void MapWidget::initializeShapeResources()
+{
+    if (m_shapeResourcesInitialized)
+        return;
+
+    m_solidProgram = new QOpenGLShaderProgram();
+    QString errorMessage;
+    if (!ShaderUtils::loadProgram(
+            m_solidProgram,
+            QStringLiteral("solid_2d.vert"),
+            QStringLiteral("solid_2d.frag"),
+            &errorMessage)) {
+        qWarning() << errorMessage;
+        delete m_solidProgram;
+        m_solidProgram = nullptr;
+        return;
+    }
+
+    QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
+    f->initializeOpenGLFunctions();
+    f->glGenVertexArrays(1, &m_shapeVao);
+    f->glGenBuffers(1, &m_shapeVbo);
+    f->glBindVertexArray(m_shapeVao);
+    f->glBindBuffer(GL_ARRAY_BUFFER, m_shapeVbo);
+    f->glEnableVertexAttribArray(0);
+    f->glVertexAttribPointer(
+        0,
+        2,
+        GL_FLOAT,
+        GL_FALSE,
+        sizeof(ScreenVertex),
+        reinterpret_cast<void*>(offsetof(ScreenVertex, position)));
+    f->glBindBuffer(GL_ARRAY_BUFFER, 0);
+    f->glBindVertexArray(0);
+
+    m_shapeResourcesInitialized = true;
+}
+
 
 void MapWidget::initializeGL()
 {
@@ -247,7 +326,6 @@ void MapWidget::paintGL()
 {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    m_camera->applyOpenGLTransform();
     m_fpsCounter.frameRendered();
 
     if (m_camera->isOrthographic()) {
@@ -266,6 +344,10 @@ void MapWidget::paintGL()
 
     if (m_gridVisible && m_gridRenderer) {
         m_gridRenderer->render();
+    }
+
+    if (m_citiesVisible && m_cityRenderer) {
+        m_cityRenderer->renderMarkers();
     }
 
     glDisable(GL_DEPTH_TEST);
@@ -359,61 +441,104 @@ void MapWidget::onCameraChanged()
 void MapWidget::drawFpsOverlay()
 {
     QPainter painter(this);
-    painter.setRenderHint(QPainter::Antialiasing);
+   
 
-    const QString fpsText = QString("FPS: %1").arg(m_fpsCounter.fps(), 0, 'f', 1);
+    const double fps = m_fpsCounter.fps();
+    
+    const QString fpsText = QString("FPS: %1").arg(fps, 0, 'f', 0);
 
     QFont font = painter.font();
     font.setPointSize(11);
-    font.setBold(true);
+    font.setFamily("Arial"); 
+    
     painter.setFont(font);
 
-    QFontMetrics metrics(font);
-    QRect textRect = metrics.boundingRect(fpsText);
-    textRect.adjust(-8, -6, 8, 6);
-    textRect.moveTopLeft(QPoint(10, 10));
+    QFontMetrics fm(painter.font());
+
+    const int x = 10;
+    const int y = 10;
+    
+
+    const int textWidth = fm.horizontalAdvance(fpsText + "     ");
+    const int textHeight = fm.height();
+
+    QRect boxRect(
+        x,
+        y,
+        qMax(92, textWidth + 20),
+        qMax(28, textHeight + 20)
+    );
+
+    QRect textRect = boxRect.adjusted(
+        8,6,-8,-6
+    );
 
     painter.setPen(Qt::NoPen);
     painter.setBrush(QColor(0, 0, 0, 170));
-    painter.drawRoundedRect(textRect, 6, 6);
+    painter.drawRoundedRect(boxRect, 8, 6);
 
     painter.setPen(QColor(0, 255, 0));
-    painter.drawText(textRect, Qt::AlignCenter, fpsText);
+    painter.drawText(textRect, Qt::AlignLeft | Qt::AlignVCenter, fpsText);
 }
-
 void MapWidget::drawGlobeBackdrop()
 {
+    initializeShapeResources();
+    if (!m_shapeResourcesInitialized || !m_solidProgram || !m_solidProgram->isLinked())
+        return;
+
     const double radius = m_camera->getOrthographicRadius();
     const double centerX = width() / 2.0;
     const double centerY = height() / 2.0;
     const int segments = 96;
 
-    glDisable(GL_TEXTURE_2D);
+    QVector<ScreenVertex> fanVertices;
+    fanVertices.reserve(segments + 2);
+    fanVertices.append(screenVertex(centerX, centerY));
+    for (int i = 0; i <= segments; ++i) {
+        const double angle = 2.0 * M_PI * i / segments;
+        fanVertices.append(screenVertex(
+            centerX + std::cos(angle) * radius,
+            centerY + std::sin(angle) * radius));
+    }
+
+    QVector<ScreenVertex> outlineVertices;
+    outlineVertices.reserve(segments);
+    for (int i = 0; i < segments; ++i) {
+        const double angle = 2.0 * M_PI * i / segments;
+        outlineVertices.append(screenVertex(
+            centerX + std::cos(angle) * radius,
+            centerY + std::sin(angle) * radius));
+    }
+
+    QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
     glDisable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    glColor4f(0.03f, 0.08f, 0.13f, 1.0f);
-    glBegin(GL_TRIANGLE_FAN);
-    glVertex2f(centerX, centerY);
-    for (int i = 0; i <= segments; ++i) {
-        const double angle = 2.0 * M_PI * i / segments;
-        glVertex2f(
-            centerX + std::cos(angle) * radius,
-            centerY + std::sin(angle) * radius);
-    }
-    glEnd();
+    m_solidProgram->bind();
+    m_solidProgram->setUniformValue(
+        "u_viewportSize",
+        QVector2D(static_cast<float>(width()), static_cast<float>(height())));
+
+    f->glBindVertexArray(m_shapeVao);
+    f->glBindBuffer(GL_ARRAY_BUFFER, m_shapeVbo);
+    f->glBufferData(
+        GL_ARRAY_BUFFER,
+        fanVertices.size() * static_cast<qsizetype>(sizeof(ScreenVertex)),
+        fanVertices.constData(),
+        GL_STREAM_DRAW);
+    m_solidProgram->setUniformValue("u_color", QVector4D(0.03f, 0.08f, 0.13f, 1.0f));
+    f->glDrawArrays(GL_TRIANGLE_FAN, 0, fanVertices.size());
 
     glLineWidth(2.0f);
-    glColor4f(0.65f, 0.85f, 1.0f, 0.8f);
-    glBegin(GL_LINE_LOOP);
-    for (int i = 0; i < segments; ++i) {
-        const double angle = 2.0 * M_PI * i / segments;
-        glVertex2f(
-            centerX + std::cos(angle) * radius,
-            centerY + std::sin(angle) * radius);
-    }
-    glEnd();
+    f->glBufferData(
+        GL_ARRAY_BUFFER,
+        outlineVertices.size() * static_cast<qsizetype>(sizeof(ScreenVertex)),
+        outlineVertices.constData(),
+        GL_STREAM_DRAW);
+    m_solidProgram->setUniformValue("u_color", QVector4D(0.65f, 0.85f, 1.0f, 0.8f));
+    f->glDrawArrays(GL_LINE_LOOP, 0, outlineVertices.size());
 
-    glEnable(GL_DEPTH_TEST);
+    f->glBindVertexArray(0);
+    m_solidProgram->release();
 }

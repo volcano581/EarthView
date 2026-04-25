@@ -1,6 +1,29 @@
 #include "TextureManager.h"
 #include <QDebug>
+#include <QOpenGLContext>
+#include <QOpenGLExtraFunctions>
 #include <QOpenGLFunctions>
+#include <algorithm>
+#include <cmath>
+
+#ifndef GL_TEXTURE_MAX_ANISOTROPY_EXT
+#define GL_TEXTURE_MAX_ANISOTROPY_EXT 0x84FE
+#endif
+
+#ifndef GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT
+#define GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT 0x84FF
+#endif
+
+namespace {
+int mipLevelCount(int width, int height)
+{
+    const int maxDimension = std::max(width, height);
+    if (maxDimension <= 0)
+        return 1;
+
+    return static_cast<int>(std::floor(std::log2(maxDimension))) + 1;
+}
+}
 
 TextureManager::TextureManager(int maxCacheSizeMB)
     : m_maxCacheSize(maxCacheSizeMB * 1024 * 1024)
@@ -38,14 +61,47 @@ GLuint TextureManager::createTexture(const QImage& image, const QString& cacheKe
     glBindTexture(GL_TEXTURE_2D, textureId);
 
     // Set texture parameters
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
+    QOpenGLContext* context = QOpenGLContext::currentContext();
+    QOpenGLExtraFunctions* f = context ? context->extraFunctions() : nullptr;
+    if (context && context->hasExtension(QByteArrayLiteral("GL_EXT_texture_filter_anisotropic"))) {
+        GLfloat maxAnisotropy = 1.0f;
+        glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &maxAnisotropy);
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, std::min(8.0f, maxAnisotropy));
+    }
 
     // Upload texture data
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, textureImage.width(), textureImage.height(),
-        0, GL_RGBA, GL_UNSIGNED_BYTE, textureImage.bits());
+    if (f) {
+        f->glTexStorage2D(
+            GL_TEXTURE_2D,
+            mipLevelCount(textureImage.width(), textureImage.height()),
+            GL_RGBA8,
+            textureImage.width(),
+            textureImage.height());
+        f->glTexSubImage2D(
+            GL_TEXTURE_2D,
+            0,
+            0,
+            0,
+            textureImage.width(),
+            textureImage.height(),
+            GL_RGBA,
+            GL_UNSIGNED_BYTE,
+            textureImage.bits());
+        f->glGenerateMipmap(GL_TEXTURE_2D);
+    }
+    else {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, textureImage.width(), textureImage.height(),
+            0, GL_RGBA, GL_UNSIGNED_BYTE, textureImage.bits());
+        if (context && context->functions()) {
+            context->functions()->glGenerateMipmap(GL_TEXTURE_2D);
+        }
+    }
 
     // Cache the texture
     TextureEntry entry;

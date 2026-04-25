@@ -29,6 +29,7 @@ D:/Source/EarthView/EarthView/BorderRenderer.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qbytearraylist.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qbytearrayview.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qchar.h
+ mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qcheckedint_impl.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qcompare.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qcompare_impl.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qcomparehelpers.h
@@ -61,6 +62,7 @@ D:/Source/EarthView/EarthView/BorderRenderer.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qlogging.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qmalloc.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qmap.h
+ mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qmargins.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qmath.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qmetacontainer.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qmetatype.h
@@ -74,7 +76,9 @@ D:/Source/EarthView/EarthView/BorderRenderer.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qobjectdefs_impl.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qoverload.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qpair.h
+ mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qpoint.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qprocessordetection.h
+ mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qrect.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qrefcount.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qscopedpointer.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qscopeguard.h
@@ -83,6 +87,7 @@ D:/Source/EarthView/EarthView/BorderRenderer.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qshareddata_impl.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qsharedpointer.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qsharedpointer_impl.h
+ mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qsize.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qstdlibdetection.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qstring.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qstringalgorithms.h
@@ -129,6 +134,8 @@ D:/Source/EarthView/EarthView/BorderRenderer.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/QOpenGLExtraFunctions
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/QOpenGLFunctions
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/QSurfaceFormat
+ mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qgenericmatrix.h
+ mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qmatrix4x4.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qopengl.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qopenglcontext.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qopenglcontext_platform.h
@@ -139,8 +146,16 @@ D:/Source/EarthView/EarthView/BorderRenderer.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qtgui-config.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qtguiexports.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qtguiglobal.h
+ mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qvector2d.h
+ mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qvector3d.h
+ mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qvector4d.h
+ mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qvectornd.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qwindowdefs.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qwindowdefs_win.h
+ mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtOpenGL/QOpenGLShaderProgram
+ mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtOpenGL/qopenglshaderprogram.h
+ mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtOpenGL/qtopenglexports.h
+ mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtOpenGL/qtopenglglobal.h
  mdp:C:/Qtfull/Tools/llvm-mingw1706_64/include/GL/gl.h
  mdp:C:/Qtfull/Tools/llvm-mingw1706_64/include/_mingw.h
  mdp:C:/Qtfull/Tools/llvm-mingw1706_64/include/_mingw_mac.h
@@ -906,6 +921,7 @@ D:/Source/EarthView/EarthView/BorderRenderer.h
  mdp:D:/Source/EarthView/EarthView/build/EarthView_autogen/moc_predefs.h
 D:/Source/EarthView/EarthView/TextureManager.cpp
 D:/Source/EarthView/EarthView/GridRenderer.h
+D:/Source/EarthView/EarthView/ShaderUtils.cpp
 D:/Source/EarthView/EarthView/Camera.h
  mmc:Q_OBJECT
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/QObject
@@ -2920,6 +2936,7 @@ D:/Source/EarthView/EarthView/MapWidget.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qfontinfo.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qfontmetrics.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qfontvariableaxis.h
+ mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qgenericmatrix.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qguiapplication.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qguiapplication_platform.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qicon.h
@@ -2927,6 +2944,7 @@ D:/Source/EarthView/EarthView/MapWidget.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qinputdevice.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qinputmethod.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qkeysequence.h
+ mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qmatrix4x4.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qopengl.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qopenglcontext.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qopenglcontext_platform.h
@@ -2949,6 +2967,8 @@ D:/Source/EarthView/EarthView/MapWidget.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qtguiglobal.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qtransform.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qvector2d.h
+ mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qvector3d.h
+ mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qvector4d.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qvectornd.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qwindowdefs.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qwindowdefs_win.h
@@ -2970,6 +2990,10 @@ D:/Source/EarthView/EarthView/MapWidget.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtNetwork/qtnetwork-config.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtNetwork/qtnetworkexports.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtNetwork/qtnetworkglobal.h
+ mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtOpenGL/QOpenGLShaderProgram
+ mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtOpenGL/qopenglshaderprogram.h
+ mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtOpenGL/qtopenglexports.h
+ mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtOpenGL/qtopenglglobal.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtOpenGLWidgets/QOpenGLWidget
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtOpenGLWidgets/qopenglwidget.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtOpenGLWidgets/qtopenglwidgetsexports.h
@@ -3750,6 +3774,7 @@ D:/Source/EarthView/EarthView/MapWidget.h
  mdp:D:/Source/EarthView/EarthView/fpsCounter.h
 D:/Source/EarthView/EarthView/MainWindow.cpp
 D:/Source/EarthView/EarthView/MercatorProjection.h
+D:/Source/EarthView/EarthView/ShaderUtils.h
 D:/Source/EarthView/EarthView/TMSLoader.h
  mmc:Q_OBJECT
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/QFlags
@@ -4734,6 +4759,7 @@ D:/Source/EarthView/EarthView/TileRenderer.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qbytearraylist.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qbytearrayview.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qchar.h
+ mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qcheckedint_impl.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qcompare.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qcompare_impl.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qcomparehelpers.h
@@ -4766,6 +4792,7 @@ D:/Source/EarthView/EarthView/TileRenderer.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qlogging.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qmalloc.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qmap.h
+ mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qmargins.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qmath.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qmetacontainer.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qmetatype.h
@@ -4779,7 +4806,9 @@ D:/Source/EarthView/EarthView/TileRenderer.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qobjectdefs_impl.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qoverload.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qpair.h
+ mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qpoint.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qprocessordetection.h
+ mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qrect.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qrefcount.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qscopedpointer.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qscopeguard.h
@@ -4788,6 +4817,7 @@ D:/Source/EarthView/EarthView/TileRenderer.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qshareddata_impl.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qsharedpointer.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qsharedpointer_impl.h
+ mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qsize.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qstdlibdetection.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qstring.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qstringalgorithms.h
@@ -4832,6 +4862,8 @@ D:/Source/EarthView/EarthView/TileRenderer.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qyieldcpu.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/QOpenGLFunctions
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/QSurfaceFormat
+ mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qgenericmatrix.h
+ mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qmatrix4x4.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qopengl.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qopenglcontext.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qopenglcontext_platform.h
@@ -4841,8 +4873,16 @@ D:/Source/EarthView/EarthView/TileRenderer.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qtgui-config.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qtguiexports.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qtguiglobal.h
+ mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qvector2d.h
+ mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qvector3d.h
+ mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qvector4d.h
+ mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qvectornd.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qwindowdefs.h
  mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qwindowdefs_win.h
+ mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtOpenGL/QOpenGLShaderProgram
+ mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtOpenGL/qopenglshaderprogram.h
+ mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtOpenGL/qtopenglexports.h
+ mdp:C:/Qtfull/6.11.0/llvm-mingw_64/include/QtOpenGL/qtopenglglobal.h
  mdp:C:/Qtfull/Tools/llvm-mingw1706_64/include/GL/gl.h
  mdp:C:/Qtfull/Tools/llvm-mingw1706_64/include/_mingw.h
  mdp:C:/Qtfull/Tools/llvm-mingw1706_64/include/_mingw_mac.h

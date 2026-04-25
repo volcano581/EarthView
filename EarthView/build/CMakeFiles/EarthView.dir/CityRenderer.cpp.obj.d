@@ -910,18 +910,18 @@ CMakeFiles/EarthView.dir/CityRenderer.cpp.obj: \
   C:/Qtfull/Tools/llvm-mingw1706_64/include/c++/v1/__chrono/year_month_day.h \
   C:/Qtfull/Tools/llvm-mingw1706_64/include/c++/v1/__chrono/year_month_weekday.h \
   C:/Qtfull/Tools/llvm-mingw1706_64/include/c++/v1/__chrono/literals.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/QRectF \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qrect.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qmargins.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qsize.h \
-  D:/Source/EarthView/EarthView/Camera.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/QRect \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/QMatrix4x4 \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qmatrix4x4.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qvector3d.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qvectornd.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qvector4d.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qgenericmatrix.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/QOpenGLFunctions \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qopenglfunctions.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qopengl.h \
+  C:/Qtfull/Tools/llvm-mingw1706_64/include/GL/gl.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qopenglext.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qopenglcontext.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qset.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qhash.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qnativeinterface.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/QSurfaceFormat \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qsurfaceformat.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qvariant.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qdebug.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qtextstream.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qcontiguouscache.h \
@@ -932,19 +932,39 @@ CMakeFiles/EarthView.dir/CityRenderer.cpp.obj: \
   C:/Qtfull/Tools/llvm-mingw1706_64/include/c++/v1/unordered_set \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qmap.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qshareddata_impl.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qset.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qhash.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qvarlengtharray.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qalloc.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qopenglcontext_platform.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qwindowdefs.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qwindowdefs_win.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtOpenGL/QOpenGLShaderProgram \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtOpenGL/qopenglshaderprogram.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtOpenGL/qtopenglglobal.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtOpenGL/qtopenglexports.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qvector2d.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qvectornd.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qrect.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qmargins.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qsize.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qvector3d.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qvector4d.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qmatrix4x4.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qgenericmatrix.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/QRectF \
+  D:/Source/EarthView/EarthView/Camera.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/QRect \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/QMatrix4x4 \
   D:/Source/EarthView/EarthView/Constants.h \
+  D:/Source/EarthView/EarthView/ShaderUtils.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/QDebug \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/QFont \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qfont.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qendian.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qwindowdefs.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qwindowdefs_win.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/QFontMetrics \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qfontmetrics.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/QOpenGLContext \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/QOpenGLExtraFunctions \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qopenglextrafunctions.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/QPainter \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qpainter.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qpixmap.h \
@@ -963,4 +983,5 @@ CMakeFiles/EarthView.dir/CityRenderer.cpp.obj: \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qbrush.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qfontinfo.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qfontvariableaxis.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/QPen
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/QPen \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/QVector2D

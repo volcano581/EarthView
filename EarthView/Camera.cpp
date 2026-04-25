@@ -307,10 +307,7 @@ QRect Camera::getTileRange(int zoomLevel) const
 
 void Camera::applyOpenGLTransform()
 {
-    glMatrixMode(GL_PROJECTION);
-    glLoadMatrixf(m_projectionMatrix.constData());
-    glMatrixMode(GL_MODELVIEW);
-    glLoadMatrixf(m_viewMatrix.constData());
+    // Rendering paths use shader uniforms and screen-space vertices.
 }
 
 double Camera::getResolution() const

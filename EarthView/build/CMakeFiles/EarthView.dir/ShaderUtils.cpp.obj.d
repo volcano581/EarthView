@@ -1,10 +1,9 @@
-CMakeFiles/EarthView.dir/MainWindow.cpp.obj: \
-  D:/Source/EarthView/EarthView/MainWindow.cpp \
-  D:/Source/EarthView/EarthView/MainWindow.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtWidgets/QMainWindow \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtWidgets/qmainwindow.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtWidgets/qtwidgetsglobal.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qtguiglobal.h \
+CMakeFiles/EarthView.dir/ShaderUtils.cpp.obj: \
+  D:/Source/EarthView/EarthView/ShaderUtils.cpp \
+  D:/Source/EarthView/EarthView/ShaderUtils.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/QString \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qstring.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qchar.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qglobal.h \
   C:/Qtfull/Tools/llvm-mingw1706_64/include/c++/v1/type_traits \
   C:/Qtfull/Tools/llvm-mingw1706_64/include/c++/v1/__assert \
@@ -709,14 +708,6 @@ CMakeFiles/EarthView.dir/MainWindow.cpp.obj: \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qtresource.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qttranslation.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qversiontagging.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qtgui-config.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qtguiexports.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtWidgets/qtwidgets-config.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtWidgets/qtwidgetsexports.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtWidgets/qwidget.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qwindowdefs.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qobjectdefs.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qnamespace.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qcompare.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qstdlibdetection.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qcomparehelpers.h \
@@ -815,16 +806,11 @@ CMakeFiles/EarthView.dir/MainWindow.cpp.obj: \
   C:/Qtfull/Tools/llvm-mingw1706_64/include/c++/v1/__functional/pointer_to_binary_function.h \
   C:/Qtfull/Tools/llvm-mingw1706_64/include/c++/v1/__functional/pointer_to_unary_function.h \
   C:/Qtfull/Tools/llvm-mingw1706_64/include/c++/v1/__functional/unary_negate.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qtmetamacros.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qobjectdefs_impl.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qfunctionaltools_impl.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qwindowdefs_win.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qobject.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qstring.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qchar.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qstringview.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qbytearray.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qrefcount.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qnamespace.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qtmetamacros.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qarraydata.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qpair.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qarraydatapointer.h \
@@ -846,6 +832,15 @@ CMakeFiles/EarthView.dir/MainWindow.cpp.obj: \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qstringbuilder.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qstringconverter.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qstringconverter_base.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/QCoreApplication \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qcoreapplication.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qcoreevent.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qbasictimer.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qabstracteventdispatcher.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qobject.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qobjectdefs.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qobjectdefs_impl.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qfunctionaltools_impl.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qlist.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qhashfunctions.h \
   C:/Qtfull/Tools/llvm-mingw1706_64/include/c++/v1/numeric \
@@ -902,36 +897,16 @@ CMakeFiles/EarthView.dir/MainWindow.cpp.obj: \
   C:/Qtfull/Tools/llvm-mingw1706_64/include/c++/v1/__chrono/year_month_day.h \
   C:/Qtfull/Tools/llvm-mingw1706_64/include/c++/v1/__chrono/year_month_weekday.h \
   C:/Qtfull/Tools/llvm-mingw1706_64/include/c++/v1/__chrono/literals.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qmargins.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qcheckedint_impl.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/q23utility.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/q20utility.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qaction.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qkeysequence.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qicon.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qsize.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qpixmap.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qpaintdevice.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qrect.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qpoint.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qcolor.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qrgb.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qrgba64.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qshareddata.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qimage.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qpixelformat.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qtransform.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qpolygon.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qregion.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qspan.h \
-  C:/Qtfull/Tools/llvm-mingw1706_64/include/c++/v1/cassert \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/q20iterator.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qline.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qvariant.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qeventloop.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qdeadlinetimer.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qnativeinterface.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qcoreapplication_platform.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/QDebug \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qdebug.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qtextstream.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qcontiguouscache.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qsharedpointer.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qshareddata.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qsharedpointer_impl.h \
   C:/Qtfull/Tools/llvm-mingw1706_64/include/c++/v1/set \
   C:/Qtfull/Tools/llvm-mingw1706_64/include/c++/v1/unordered_set \
@@ -941,140 +916,14 @@ CMakeFiles/EarthView.dir/MainWindow.cpp.obj: \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qhash.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qvarlengtharray.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qalloc.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qpalette.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qbrush.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qfont.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qendian.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qfontmetrics.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qfontinfo.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qfontvariableaxis.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtWidgets/qsizepolicy.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qcursor.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qbitmap.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtWidgets/qtabwidget.h \
-  D:/Source/EarthView/EarthView/MapWidget.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtOpenGLWidgets/QOpenGLWidget \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtOpenGLWidgets/qopenglwidget.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtOpenGLWidgets/qtopenglwidgetsglobal.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtOpenGLWidgets/qtopenglwidgetsexports.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtWidgets/QWidget \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/QSurfaceFormat \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qsurfaceformat.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qopengl.h \
-  C:/Qtfull/Tools/llvm-mingw1706_64/include/GL/gl.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qopenglext.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/QOpenGLFunctions \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qopenglfunctions.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qopenglcontext.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qnativeinterface.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qopenglcontext_platform.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/QMouseEvent \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qevent.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qcoreevent.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qbasictimer.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qabstracteventdispatcher.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qeventloop.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qdeadlinetimer.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qiodevice.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qurl.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qeventpoint.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qvector2d.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qvectornd.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qpointingdevice.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qinputdevice.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qscreen.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/QList \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/QObject \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/QRect \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/QSize \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/QSizeF \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/QTransform \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qscreen_platform.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qguiapplication.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qcoreapplication.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qcoreapplication_platform.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qinputmethod.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qlocale.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qguiapplication_platform.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/QWheelEvent \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/QKeyEvent \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtOpenGL/QOpenGLShaderProgram \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtOpenGL/qopenglshaderprogram.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtOpenGL/qtopenglglobal.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtOpenGL/qtopenglexports.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qvector3d.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qvector4d.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qmatrix4x4.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qgenericmatrix.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/QString \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/QTimer \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qtimer.h \
-  D:/Source/EarthView/EarthView/TMSLoader.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtNetwork/QNetworkAccessManager \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtNetwork/qnetworkaccessmanager.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtNetwork/qtnetworkglobal.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtNetwork/qtnetwork-config.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtNetwork/qtnetworkexports.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtNetwork/qnetworkrequest.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtNetwork/qhttpheaders.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qdatetime.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qcalendar.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qmetaobject.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/QSharedDataPointer \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/QUrl \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/QVariant \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/q26numeric.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtNetwork/QSslConfiguration \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtNetwork/qsslconfiguration.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtNetwork/qsslsocket.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtNetwork/qtcpsocket.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtNetwork/qabstractsocket.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtNetwork/qhostaddress.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtNetwork/qsslerror.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtNetwork/qsslcertificate.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qcryptographichash.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtNetwork/qssl.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/QFlags \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtNetwork/QSslPreSharedKeyAuthenticator \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtNetwork/qsslpresharedkeyauthenticator.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/QMetaType \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/QHash \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/QMap \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/QSet \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/QImage \
-  D:/Source/EarthView/EarthView/Constants.h \
-  D:/Source/EarthView/EarthView/TextureManager.h \
-  D:/Source/EarthView/EarthView/fpsCounter.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/QElapsedTimer \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qelapsedtimer.h \
-  D:/Source/EarthView/EarthView/Camera.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/QPointF \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/QRectF \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/QMatrix4x4 \
-  D:/Source/EarthView/EarthView/MercatorProjection.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/QAction \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/QBuffer \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qbuffer.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtWidgets/QComboBox \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtWidgets/qcombobox.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtWidgets/qabstractitemdelegate.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtWidgets/qstyleoption.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtWidgets/qabstractspinbox.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qvalidator.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qregularexpression.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtWidgets/qslider.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtWidgets/qabstractslider.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtWidgets/qstyle.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtWidgets/qtabbar.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtWidgets/qrubberband.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtWidgets/qframe.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qabstractitemmodel.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/QCoreApplication \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/QEventLoop \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/QDir \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qdir.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qdirlisting.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qfiledevice.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qiodevice.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qspan.h \
+  C:/Qtfull/Tools/llvm-mingw1706_64/include/c++/v1/cassert \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/q20iterator.h \
   C:/Qtfull/Tools/llvm-mingw1706_64/include/c++/v1/filesystem \
   C:/Qtfull/Tools/llvm-mingw1706_64/include/c++/v1/__filesystem/copy_options.h \
   C:/Qtfull/Tools/llvm-mingw1706_64/include/c++/v1/__filesystem/directory_entry.h \
@@ -1096,35 +945,35 @@ CMakeFiles/EarthView.dir/MainWindow.cpp.obj: \
   C:/Qtfull/Tools/llvm-mingw1706_64/include/c++/v1/__filesystem/path_iterator.h \
   C:/Qtfull/Tools/llvm-mingw1706_64/include/c++/v1/__filesystem/recursive_directory_iterator.h \
   C:/Qtfull/Tools/llvm-mingw1706_64/include/c++/v1/__filesystem/u8path.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qdatetime.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qcalendar.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qlocale.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qvariant.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/q23utility.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/q20utility.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qfile.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qfileinfo.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qtimezone.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtWidgets/QFileDialog \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtWidgets/qfiledialog.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtWidgets/qdialog.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/QFileInfo \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/QFile \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtWidgets/QMenu \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtWidgets/qmenu.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtWidgets/QMenuBar \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtWidgets/qmenubar.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtNetwork/QNetworkReply \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtNetwork/qnetworkreply.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/QIODevice \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtNetwork/QNetworkRequest \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtWidgets/QToolBar \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtWidgets/qtoolbar.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtWidgets/QStatusBar \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtWidgets/qstatusbar.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtWidgets/QLabel \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtWidgets/qlabel.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qpicture.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qtextdocument.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/QStringList \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtWidgets/QVBoxLayout \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtWidgets/qboxlayout.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtWidgets/qlayout.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtWidgets/qlayoutitem.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtWidgets/qgridlayout.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/QXmlStreamReader \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qxmlstream.h
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtOpenGL/QOpenGLShaderProgram \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtOpenGL/qopenglshaderprogram.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtOpenGL/qtopenglglobal.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qtguiglobal.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qtgui-config.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qtguiexports.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtOpenGL/qtopenglexports.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qopengl.h \
+  C:/Qtfull/Tools/llvm-mingw1706_64/include/GL/gl.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qopenglext.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qvector2d.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qvectornd.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qpoint.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qcheckedint_impl.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qrect.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qmargins.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qsize.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qvector3d.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qvector4d.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qmatrix4x4.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qgenericmatrix.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/QStringList

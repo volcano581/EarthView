@@ -924,23 +924,29 @@ CMakeFiles/EarthView.dir/TileRenderer.cpp.obj: \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qopenglcontext_platform.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qwindowdefs.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qwindowdefs_win.h \
-  D:/Source/EarthView/EarthView/Camera.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/QPointF \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtOpenGL/QOpenGLShaderProgram \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtOpenGL/qopenglshaderprogram.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtOpenGL/qtopenglglobal.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtOpenGL/qtopenglexports.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qvector2d.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qvectornd.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qpoint.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qcheckedint_impl.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/QRectF \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qrect.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qmargins.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qsize.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qvector3d.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qvector4d.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qmatrix4x4.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qgenericmatrix.h \
+  D:/Source/EarthView/EarthView/Camera.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/QPointF \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/QRectF \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/QRect \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/QMatrix4x4 \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qmatrix4x4.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qvector3d.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qvectornd.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qvector4d.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qgenericmatrix.h \
-  D:/Source/EarthView/EarthView/TMSLoader.h \
+  D:/Source/EarthView/EarthView/ShaderUtils.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/QString \
+  D:/Source/EarthView/EarthView/TMSLoader.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtNetwork/QNetworkAccessManager \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtNetwork/qnetworkaccessmanager.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtNetwork/qtnetworkglobal.h \
@@ -991,4 +997,9 @@ CMakeFiles/EarthView.dir/TileRenderer.cpp.obj: \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qregion.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qline.h \
   D:/Source/EarthView/EarthView/Constants.h \
-  D:/Source/EarthView/EarthView/TextureManager.h
+  D:/Source/EarthView/EarthView/TextureManager.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/QDebug \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/QOpenGLContext \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/QOpenGLExtraFunctions \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qopenglextrafunctions.h \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/QVector2D

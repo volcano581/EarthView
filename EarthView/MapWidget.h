@@ -8,6 +8,7 @@
 #include <QWheelEvent>
 #include <QKeyEvent>
 #include <QList>
+#include <QOpenGLShaderProgram>
 #include <QString>
 #include <QTimer>
 #include "TMSLoader.h"
@@ -65,6 +66,7 @@ protected:
     void keyPressEvent(QKeyEvent* event) override;
     void drawFpsOverlay();
     void drawGlobeBackdrop();
+    void initializeShapeResources();
 
 private slots:
     void onCameraChanged();
@@ -87,6 +89,10 @@ private:
     QString m_pendingCitiesDirectoryPath;
     QTimer* m_updateTimer;
     FpsCounter m_fpsCounter;
+    QOpenGLShaderProgram* m_solidProgram;
+    GLuint m_shapeVbo;
+    GLuint m_shapeVao;
+    bool m_shapeResourcesInitialized;
 };
 
 #endif // MAPWIDGET_H

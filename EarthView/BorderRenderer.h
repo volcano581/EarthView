@@ -5,6 +5,7 @@
 #include <QObject>
 #include <QOpenGLFunctions>
 #include <QOpenGLExtraFunctions>
+#include <QOpenGLShaderProgram>
 #include <QString>
 #include <QVector>
 
@@ -42,8 +43,12 @@ private:
     };
 
 private:
+    void initializeGpuResources();
+
+private:
     Camera* m_camera;
     QVector<BorderPolygon> m_borders;
+    QOpenGLShaderProgram m_lineProgram;
     GLuint m_vbo;
     GLuint m_vao;
     bool m_initialized;

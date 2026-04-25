@@ -12,16 +12,14 @@
 #include <utility>
 
 namespace {
-QString renderTileKey(int z, int x, int y)
+QString renderTileKey(int z, int x, int y, int layerIndex)
 {
-    return QString("%1_%2_%3").arg(z).arg(x).arg(y);
+    return QString("%1_%2_%3_%4").arg(layerIndex).arg(z).arg(x).arg(y);
 }
 
 QString textureTileKey(int z, int x, int y, int layerIndex)
 {
-    return QString("%1_%2")
-        .arg(layerIndex)
-        .arg(renderTileKey(z, MercatorProjection::wrapTileX(x, z), y));
+    return renderTileKey(z, MercatorProjection::wrapTileX(x, z), y, layerIndex);
 }
 }
 
@@ -189,10 +187,10 @@ void TmsLoader::updateVisibleTiles()
 
     for (int x = tileRange.x(); x < tileRange.x() + tileRange.width(); ++x) {
         for (int y = tileRange.y(); y < tileRange.y() + tileRange.height(); ++y) {
-            QString key = textureTileKey(tileZoomLevel, x, y, primaryLayerIndex);
-            visibleKeys.insert(key);
+            const QString renderKey = renderTileKey(tileZoomLevel, x, y, primaryLayerIndex);
+            visibleKeys.insert(renderKey);
 
-            auto activeIt = m_activeTiles.find(key);
+            auto activeIt = m_activeTiles.find(renderKey);
             if (activeIt != m_activeTiles.end()) {
                 visibleTextureKeys.insert(activeIt.value().textureCacheKey);
                 continue;
@@ -209,7 +207,7 @@ void TmsLoader::updateVisibleTiles()
             tile.isLoading = tile.textureId == 0;
             tile.layerIndex = primaryLayerIndex;
             tile.fallbackLayerIndices = fallbackLayerIndices;
-            m_activeTiles[key] = tile;
+            m_activeTiles[renderKey] = tile;
 
             if (tile.textureId == 0 && !m_pendingRequests.contains(cacheKey)) {
                 fetchTile(tileZoomLevel, x, y, primaryLayerIndex);

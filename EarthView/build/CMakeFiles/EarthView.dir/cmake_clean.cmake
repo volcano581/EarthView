@@ -17,6 +17,8 @@ file(REMOVE_RECURSE
   "CMakeFiles/EarthView.dir/MapWidget.cpp.obj.d"
   "CMakeFiles/EarthView.dir/MercatorProjection.cpp.obj"
   "CMakeFiles/EarthView.dir/MercatorProjection.cpp.obj.d"
+  "CMakeFiles/EarthView.dir/ShaderUtils.cpp.obj"
+  "CMakeFiles/EarthView.dir/ShaderUtils.cpp.obj.d"
   "CMakeFiles/EarthView.dir/TMSLoader.cpp.obj"
   "CMakeFiles/EarthView.dir/TMSLoader.cpp.obj.d"
   "CMakeFiles/EarthView.dir/TextureManager.cpp.obj"

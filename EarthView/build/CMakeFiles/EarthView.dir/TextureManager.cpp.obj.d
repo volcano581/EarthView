@@ -944,4 +944,7 @@ CMakeFiles/EarthView.dir/TextureManager.cpp.obj: \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qvarlengtharray.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/qalloc.h \
   C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qopenglcontext_platform.h \
-  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/QDebug
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtCore/QDebug \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/QOpenGLContext \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/QOpenGLExtraFunctions \
+  C:/Qtfull/6.11.0/llvm-mingw_64/include/QtGui/qopenglextrafunctions.h
