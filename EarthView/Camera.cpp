@@ -216,6 +216,11 @@ QRectF Camera::getVisibleMercatorExtent() const
         const double centerLon = m_centerMercator.x();
         const double radius = getOrthographicRadius();
         const QPointF screenCenter(m_viewportWidth / 2.0, m_viewportHeight / 2.0);
+        const QRectF sampleBounds(
+            -screenMargin,
+            -screenMargin,
+            m_viewportWidth + 2.0 * screenMargin,
+            m_viewportHeight + 2.0 * screenMargin);
 
         auto includeScreenSample = [&](const QPointF& screenPos) {
             QPointF mercatorPos;
@@ -261,9 +266,12 @@ QRectF Camera::getVisibleMercatorExtent() const
         const double perimeterRadius = radius * 0.999;
         for (int i = 0; i < perimeterSamples; ++i) {
             const double angle = 2.0 * M_PI * i / perimeterSamples;
-            includeScreenSample(QPointF(
+            const QPointF perimeterPoint(
                 screenCenter.x() + std::cos(angle) * perimeterRadius,
-                screenCenter.y() + std::sin(angle) * perimeterRadius));
+                screenCenter.y() + std::sin(angle) * perimeterRadius);
+            if (sampleBounds.contains(perimeterPoint)) {
+                includeScreenSample(perimeterPoint);
+            }
         }
 
         includeScreenSample(screenCenter);

@@ -1,4 +1,3 @@
-#define ARCHITECTURE_ID "x86_64"
 #define QT_CORE_LIB 1
 #define QT_GUI_LIB 1
 #define QT_NETWORK_LIB 1

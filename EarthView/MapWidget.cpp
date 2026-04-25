@@ -4,6 +4,7 @@
 #include "TileRenderer.h"
 #include "BorderRenderer.h"
 #include "GridRenderer.h"
+#include "CityRenderer.h"
 #include "Constants.h"
 #include <QCoreApplication>
 #include <QDir>
@@ -18,7 +19,28 @@
 namespace {
 QString defaultBorderShapefilePath()
 {
-    const QString relativePath = "World_Countries/World_Countries_Generalized.shp";
+    const QString relativePath = "Data/Borders/World_Countries_Generalized_Shapefile/World_Countries_Generalized.shp";
+    const QStringList candidates = {
+        QDir::current().filePath("Data/Borders/World_Countries_Generalized.shp"),
+        QDir::current().filePath(relativePath),
+        QDir(QCoreApplication::applicationDirPath()).filePath("Data/Borders/World_Countries_Generalized.shp"),
+        QDir(QCoreApplication::applicationDirPath()).filePath(relativePath),
+        QDir(QCoreApplication::applicationDirPath()).filePath("../Data/Borders/World_Countries_Generalized.shp"),
+        QDir(QCoreApplication::applicationDirPath()).filePath(QString("../") + relativePath)
+    };
+
+    for (const QString& candidate : candidates) {
+        if (QFileInfo::exists(candidate)) {
+            return QFileInfo(candidate).absoluteFilePath();
+        }
+    }
+
+    return QDir::current().filePath(relativePath);
+}
+
+QString defaultCitiesDirectoryPath()
+{
+    const QString relativePath = "Data/Cities";
     const QStringList candidates = {
         QDir::current().filePath(relativePath),
         QDir(QCoreApplication::applicationDirPath()).filePath(relativePath),
@@ -26,7 +48,7 @@ QString defaultBorderShapefilePath()
     };
 
     for (const QString& candidate : candidates) {
-        if (QFileInfo::exists(candidate)) {
+        if (QFileInfo(candidate).isDir()) {
             return QFileInfo(candidate).absoluteFilePath();
         }
     }
@@ -42,10 +64,12 @@ MapWidget::MapWidget(QWidget* parent)
     , m_tileRenderer(nullptr)
     , m_borderRenderer(nullptr)
     , m_gridRenderer(nullptr)
+    , m_cityRenderer(nullptr)
     , m_isPanning(false)
     , m_texturesVisible(true)
     , m_bordersVisible(true)
     , m_gridVisible(true)
+    , m_citiesVisible(true)
 {
     setFocusPolicy(Qt::StrongFocus);
     setMouseTracking(true);
@@ -68,13 +92,32 @@ MapWidget::~MapWidget()
     delete m_tileRenderer;
     delete m_borderRenderer;
     delete m_gridRenderer;
+    delete m_cityRenderer;
     delete m_tileLoader;
     doneCurrent();
 }
 
 void MapWidget::setTileServerUrl(const QString& url)
 {
-    m_tileLoader->setTileUrl(url);
+    TmsLoader::TileSourceLayer layer;
+    layer.name = "Tile source";
+    layer.urlTemplate = url;
+    setTileSourceLayers({ layer });
+}
+
+void MapWidget::setTileSourceLayers(const QList<TmsLoader::TileSourceLayer>& layers)
+{
+    const bool hasContext = context() && isValid();
+    if (hasContext) {
+        makeCurrent();
+    }
+
+    m_tileLoader->setTileSourceLayers(layers);
+
+    if (hasContext) {
+        doneCurrent();
+    }
+    update();
 }
 
 bool MapWidget::loadWorldBorders()
@@ -99,12 +142,40 @@ bool MapWidget::loadBorderShapefile(const QString& filePath, QString* errorMessa
     return loaded;
 }
 
+bool MapWidget::loadCities(const QString& directoryPath, QString* errorMessage)
+{
+    const QString resolvedPath = directoryPath.isEmpty()
+        ? defaultCitiesDirectoryPath()
+        : directoryPath;
+
+    m_pendingCitiesDirectoryPath = resolvedPath;
+    if (!m_cityRenderer) {
+        return QFileInfo(resolvedPath).isDir();
+    }
+
+    const bool loaded = m_cityRenderer->loadDirectory(resolvedPath, errorMessage);
+    if (loaded) {
+        update();
+    }
+    return loaded;
+}
+
 void MapWidget::setTexturesVisible(bool visible)
 {
     if (m_texturesVisible == visible)
         return;
 
     m_texturesVisible = visible;
+    const bool hasContext = context() && isValid();
+    if (hasContext) {
+        makeCurrent();
+    }
+
+    m_tileLoader->setLoadingEnabled(visible);
+
+    if (hasContext) {
+        doneCurrent();
+    }
     update();
 }
 
@@ -126,20 +197,39 @@ void MapWidget::setGridVisible(bool visible)
     update();
 }
 
+void MapWidget::setCitiesVisible(bool visible)
+{
+    if (m_citiesVisible == visible)
+        return;
+
+    m_citiesVisible = visible;
+    update();
+}
+
+
 void MapWidget::initializeGL()
 {
     initializeOpenGLFunctions();
 
-    // Create tile renderer after OpenGL context is ready
+        // Create tile renderer after OpenGL context is ready
     m_tileRenderer = new TileRenderer(m_camera, m_tileLoader, this);
     m_borderRenderer = new BorderRenderer(m_camera, this);
     m_gridRenderer = new GridRenderer(m_camera, this);
+    m_cityRenderer = new CityRenderer(m_camera, this);
     if (m_pendingBorderFilePath.isEmpty()) {
         m_pendingBorderFilePath = defaultBorderShapefilePath();
     }
+    if (m_pendingCitiesDirectoryPath.isEmpty()) {
+        m_pendingCitiesDirectoryPath = defaultCitiesDirectoryPath();
+    }
     QString borderError;
     m_borderRenderer->loadShapefile(m_pendingBorderFilePath, &borderError);
-    m_tileLoader->updateVisibleTiles();
+    QString citiesError;
+    m_cityRenderer->loadDirectory(m_pendingCitiesDirectoryPath, &citiesError);
+    m_tileLoader->setLoadingEnabled(m_texturesVisible);
+    if (m_texturesVisible) {
+        m_tileLoader->updateVisibleTiles();
+    }
 
     glClearColor(0.1f, 0.1f, 0.2f, 1.0f);
     glEnable(GL_DEPTH_TEST);
@@ -180,9 +270,14 @@ void MapWidget::paintGL()
 
     glDisable(GL_DEPTH_TEST);
 
-    if (m_gridVisible && m_gridRenderer) {
+    if ((m_gridVisible && m_gridRenderer) || (m_citiesVisible && m_cityRenderer)) {
         QPainter painter(this);
-        m_gridRenderer->renderLabels(painter);
+        if (m_gridVisible && m_gridRenderer) {
+            m_gridRenderer->renderLabels(painter);
+        }
+        if (m_citiesVisible && m_cityRenderer) {
+            m_cityRenderer->renderLabels(painter);
+        }
     }
 
     drawFpsOverlay();

@@ -7,15 +7,17 @@
 #include <QMouseEvent>
 #include <QWheelEvent>
 #include <QKeyEvent>
+#include <QList>
 #include <QString>
 #include <QTimer>
+#include "TMSLoader.h"
 #include "fpsCounter.h"
 
 class Camera;
-class TmsLoader;
 class TileRenderer;
 class BorderRenderer;
 class GridRenderer;
+class CityRenderer;
 
 /**
  * @brief MapWidget is the main OpenGL rendering widget
@@ -35,17 +37,21 @@ public:
 
     // Configuration
     void setTileServerUrl(const QString& url);
+    void setTileSourceLayers(const QList<TmsLoader::TileSourceLayer>& layers);
     bool loadWorldBorders();
     bool loadBorderShapefile(const QString& filePath, QString* errorMessage = nullptr);
+    bool loadCities(const QString& directoryPath = QString(), QString* errorMessage = nullptr);
     void setTexturesVisible(bool visible);
     void setBordersVisible(bool visible);
     void setGridVisible(bool visible);
+    void setCitiesVisible(bool visible);
 
     // Accessors
     Camera* camera() const { return m_camera; }
     bool areTexturesVisible() const { return m_texturesVisible; }
     bool areBordersVisible() const { return m_bordersVisible; }
     bool isGridVisible() const { return m_gridVisible; }
+    bool areCitiesVisible() const { return m_citiesVisible; }
 
 protected:
     void initializeGL() override;
@@ -69,13 +75,16 @@ private:
     TileRenderer* m_tileRenderer;
     BorderRenderer* m_borderRenderer;
     GridRenderer* m_gridRenderer;
+    CityRenderer* m_cityRenderer;
 
     QPoint m_lastMousePos;
     bool m_isPanning;
     bool m_texturesVisible;
     bool m_bordersVisible;
     bool m_gridVisible;
+    bool m_citiesVisible;
     QString m_pendingBorderFilePath;
+    QString m_pendingCitiesDirectoryPath;
     QTimer* m_updateTimer;
     FpsCounter m_fpsCounter;
 };

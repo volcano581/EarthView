@@ -10,13 +10,15 @@ set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
-set(CMAKE_PREFIX_PATH "C:/Qt/6.11.0/llvm-mingw_64")
+set(CMAKE_PREFIX_PATH "C:/Qtfull/6.11.0/llvm-mingw_64")
 find_package(Qt6 REQUIRED COMPONENTS Core Widgets Network OpenGLWidgets)
 
 set(SOURCES
     main.cpp
     BorderRenderer.cpp
     Camera.cpp
+    CityLoader.cpp
+    CityRenderer.cpp
     GridRenderer.cpp
     MainWindow.cpp
     MapWidget.cpp
@@ -29,6 +31,8 @@ set(SOURCES
 set(HEADERS
     BorderRenderer.h
     Camera.h
+    CityLoader.h
+    CityRenderer.h
     GridRenderer.h
     MainWindow.h
     MapWidget.h
@@ -57,8 +61,8 @@ if(WIN32)
     target_link_libraries(${PROJECT_NAME} PRIVATE opengl32)
     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E env
-            "PATH=C:/Qt/6.11.0/llvm-mingw_64/bin;$ENV{PATH}"
-            "C:/Qt/6.11.0/llvm-mingw_64/bin/windeployqt.exe"
+            "PATH=C:/Qtfull/6.11.0/llvm-mingw_64/bin;$ENV{PATH}"
+            "C:/Qtfull/6.11.0/llvm-mingw_64/bin/windeployqt.exe"
             $<TARGET_FILE_DIR:${PROJECT_NAME}>
     )
 endif()

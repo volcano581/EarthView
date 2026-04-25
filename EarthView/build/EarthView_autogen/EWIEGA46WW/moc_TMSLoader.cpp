@@ -49,7 +49,8 @@ template <> constexpr inline auto TmsLoader::qt_create_metaobjectdata<qt_meta_ta
         "reply",
         "z",
         "x",
-        "y"
+        "y",
+        "layerIndex"
     };
 
     QtMocHelpers::UintData qt_methods {
@@ -62,8 +63,9 @@ template <> constexpr inline auto TmsLoader::qt_create_metaobjectdata<qt_meta_ta
             { QMetaType::QString, 3 },
         }}),
         // Slot 'onTileDownloaded'
-        QtMocHelpers::SlotData<void(QNetworkReply *, int, int, int)>(5, 2, QMC::AccessPrivate, QMetaType::Void, {{
+        QtMocHelpers::SlotData<void(QNetworkReply *, int, int, int, int)>(5, 2, QMC::AccessPrivate, QMetaType::Void, {{
             { 0x80000000 | 6, 7 }, { QMetaType::Int, 8 }, { QMetaType::Int, 9 }, { QMetaType::Int, 10 },
+            { QMetaType::Int, 11 },
         }}),
     };
     QtMocHelpers::UintData qt_properties {
@@ -90,7 +92,7 @@ void TmsLoader::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, v
         switch (_id) {
         case 0: _t->tileLoaded((*reinterpret_cast<std::add_pointer_t<QString>>(_a[1]))); break;
         case 1: _t->tileFailed((*reinterpret_cast<std::add_pointer_t<QString>>(_a[1]))); break;
-        case 2: _t->onTileDownloaded((*reinterpret_cast<std::add_pointer_t<QNetworkReply*>>(_a[1])),(*reinterpret_cast<std::add_pointer_t<int>>(_a[2])),(*reinterpret_cast<std::add_pointer_t<int>>(_a[3])),(*reinterpret_cast<std::add_pointer_t<int>>(_a[4]))); break;
+        case 2: _t->onTileDownloaded((*reinterpret_cast<std::add_pointer_t<QNetworkReply*>>(_a[1])),(*reinterpret_cast<std::add_pointer_t<int>>(_a[2])),(*reinterpret_cast<std::add_pointer_t<int>>(_a[3])),(*reinterpret_cast<std::add_pointer_t<int>>(_a[4])),(*reinterpret_cast<std::add_pointer_t<int>>(_a[5]))); break;
         default: ;
         }
     }
