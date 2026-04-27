@@ -285,12 +285,11 @@ void MapWidget::initializeShapeResources()
     m_shapeResourcesInitialized = true;
 }
 
-
 void MapWidget::initializeGL()
 {
     initializeOpenGLFunctions();
 
-        // Create tile renderer after OpenGL context is ready
+    // Create tile renderer after OpenGL context is ready
     m_tileRenderer = new TileRenderer(m_camera, m_tileLoader, this);
     m_borderRenderer = new BorderRenderer(m_camera, this);
     m_gridRenderer = new GridRenderer(m_camera, this);
@@ -441,23 +440,20 @@ void MapWidget::onCameraChanged()
 void MapWidget::drawFpsOverlay()
 {
     QPainter painter(this);
-   
+    painter.setRenderHint(QPainter::Antialiasing);
 
     const double fps = m_fpsCounter.fps();
-    
     const QString fpsText = QString("FPS: %1").arg(fps, 0, 'f', 0);
 
     QFont font = painter.font();
     font.setPointSize(11);
-    font.setFamily("Arial"); 
-    
+    font.setFamily("Arial");
     painter.setFont(font);
 
     QFontMetrics fm(painter.font());
 
     const int x = 10;
     const int y = 10;
-    
 
     const int textWidth = fm.horizontalAdvance(fpsText + "     ");
     const int textHeight = fm.height();
@@ -469,9 +465,7 @@ void MapWidget::drawFpsOverlay()
         qMax(28, textHeight + 20)
     );
 
-    QRect textRect = boxRect.adjusted(
-        8,6,-8,-6
-    );
+    QRect textRect = boxRect.adjusted(8, 6, -8, -6);
 
     painter.setPen(Qt::NoPen);
     painter.setBrush(QColor(0, 0, 0, 170));
@@ -480,6 +474,7 @@ void MapWidget::drawFpsOverlay()
     painter.setPen(QColor(0, 255, 0));
     painter.drawText(textRect, Qt::AlignLeft | Qt::AlignVCenter, fpsText);
 }
+
 void MapWidget::drawGlobeBackdrop()
 {
     initializeShapeResources();

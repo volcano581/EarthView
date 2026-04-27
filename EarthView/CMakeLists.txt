@@ -10,8 +10,16 @@ set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
-set(CMAKE_PREFIX_PATH "C:/Qtfull/6.11.0/llvm-mingw_64")
-find_package(Qt6 REQUIRED COMPONENTS Core Widgets Network OpenGLWidgets)
+set(EARTHVIEW_QT_PREFIX "" CACHE PATH "Qt installation prefix")
+if(EARTHVIEW_QT_PREFIX)
+    list(PREPEND CMAKE_PREFIX_PATH "${EARTHVIEW_QT_PREFIX}")
+elseif(EXISTS "C:/Qt/6.11.0/llvm-mingw_64")
+    list(PREPEND CMAKE_PREFIX_PATH "C:/Qt/6.11.0/llvm-mingw_64")
+elseif(EXISTS "C:/Qtfull/6.11.0/llvm-mingw_64")
+    list(PREPEND CMAKE_PREFIX_PATH "C:/Qtfull/6.11.0/llvm-mingw_64")
+endif()
+
+find_package(Qt6 REQUIRED COMPONENTS Core Widgets Network OpenGL OpenGLWidgets)
 
 set(SOURCES
     main.cpp
@@ -66,6 +74,7 @@ target_link_libraries(${PROJECT_NAME}
         Qt6::Core
         Qt6::Widgets
         Qt6::Network
+        Qt6::OpenGL
         Qt6::OpenGLWidgets
 )
 
@@ -77,10 +86,21 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
 
 if(WIN32)
     target_link_libraries(${PROJECT_NAME} PRIVATE opengl32)
-    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E env
-            "PATH=C:/Qtfull/6.11.0/llvm-mingw_64/bin;$ENV{PATH}"
-            "C:/Qtfull/6.11.0/llvm-mingw_64/bin/windeployqt.exe"
-            $<TARGET_FILE_DIR:${PROJECT_NAME}>
-    )
+    set(QT_BIN_DIR "")
+    if(TARGET Qt6::qmake)
+        get_target_property(QT_QMAKE_EXECUTABLE Qt6::qmake IMPORTED_LOCATION)
+        if(QT_QMAKE_EXECUTABLE)
+            get_filename_component(QT_BIN_DIR "${QT_QMAKE_EXECUTABLE}" DIRECTORY)
+        endif()
+    endif()
+
+    find_program(WINDEPLOYQT_EXECUTABLE windeployqt HINTS "${QT_BIN_DIR}")
+    if(WINDEPLOYQT_EXECUTABLE)
+        add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E env
+                "PATH=${QT_BIN_DIR};$ENV{PATH}"
+                "${WINDEPLOYQT_EXECUTABLE}"
+                $<TARGET_FILE_DIR:${PROJECT_NAME}>
+        )
+    endif()
 endif()
