@@ -3,6 +3,7 @@
 #define CITYRENDERER_H
 
 #include "CityLoader.h"
+#include "TextRenderer.h"
 #include <QColor>
 #include <QObject>
 #include <QOpenGLFunctions>
@@ -11,7 +12,6 @@
 #include <QString>
 
 class Camera;
-class QPainter;
 
 class CityRenderer : public QObject, protected QOpenGLFunctions
 {
@@ -21,7 +21,7 @@ public:
 
     bool loadDirectory(const QString& rootPath, QString* errorMessage = nullptr);
     void renderMarkers();
-    void renderLabels(QPainter& painter);
+    void appendLabels(QVector<TextRenderer::Label>& labels);
 
     bool hasData() const { return !m_loader.layers().isEmpty(); }
     int totalPointCount() const { return m_loader.totalPointCount(); }

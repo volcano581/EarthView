@@ -2,13 +2,14 @@
 #ifndef GRIDRENDERER_H
 #define GRIDRENDERER_H
 
+#include "LineBatchRenderer.h"
+#include "TextRenderer.h"
 #include <QObject>
 #include <QOpenGLFunctions>
 #include <QOpenGLShaderProgram>
 #include <QPointF>
 
 class Camera;
-class QPainter;
 
 class GridRenderer : public QObject, protected QOpenGLFunctions
 {
@@ -17,7 +18,9 @@ public:
     ~GridRenderer();
 
     void render();
-    void renderLabels(QPainter& painter);
+    void appendMercatorLines(QVector<LineBatchRenderer::LineVertex>& vertices) const;
+    void appendScreenLines(QVector<LineBatchRenderer::LineVertex>& vertices) const;
+    void appendLabels(QVector<TextRenderer::Label>& labels);
 
 private:
     void initializeGpuResources();

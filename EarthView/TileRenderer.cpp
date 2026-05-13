@@ -3,9 +3,11 @@
 #include "ShaderUtils.h"
 #include "TMSLoader.h"
 #include <QDebug>
+#include <QList>
 #include <QOpenGLContext>
 #include <QOpenGLExtraFunctions>
 #include <QVector2D>
+#include <algorithm>
 #include <cstddef>
 
 namespace {
@@ -139,12 +141,34 @@ void TileRenderer::render()
     m_tileProgram.setUniformValue("u_texture", 0);
 
     auto& tiles = m_tileLoader->getActiveTiles();
-    for (auto it = tiles.begin(); it != tiles.end(); ++it) {
+    QList<QString> renderKeys = tiles.keys();
+    const auto& sortedTiles = tiles;
+    std::sort(renderKeys.begin(), renderKeys.end(), [&sortedTiles](const QString& a, const QString& b) {
+        const auto tileAIt = sortedTiles.constFind(a);
+        const auto tileBIt = sortedTiles.constFind(b);
+        if (tileAIt == sortedTiles.cend() || tileBIt == sortedTiles.cend())
+            return a < b;
+
+        const auto& tileA = tileAIt.value();
+        const auto& tileB = tileBIt.value();
+        if (tileA.tileZoomLevel != tileB.tileZoomLevel)
+            return tileA.tileZoomLevel < tileB.tileZoomLevel;
+        if (tileA.layerIndex != tileB.layerIndex)
+            return tileA.layerIndex < tileB.layerIndex;
+
+        return a < b;
+    });
+
+    for (const QString& key : renderKeys) {
+        auto it = tiles.find(key);
+        if (it == tiles.end())
+            continue;
+
         auto& tile = it.value();
         if (tile.isLoading)
             continue;
 
-        const QString cacheKey = tile.textureCacheKey.isEmpty() ? it.key() : tile.textureCacheKey;
+        const QString cacheKey = tile.textureCacheKey.isEmpty() ? key : tile.textureCacheKey;
 
         if (tile.textureId == 0 && m_tileLoader->getTextureManager()->hasTexture(cacheKey)) {
             tile.textureId = m_tileLoader->getTextureManager()->getTexture(cacheKey);

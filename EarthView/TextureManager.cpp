@@ -1,7 +1,6 @@
 #include "TextureManager.h"
 #include <QDebug>
 #include <QOpenGLContext>
-#include <QOpenGLExtraFunctions>
 #include <QOpenGLFunctions>
 #include <algorithm>
 #include <cmath>
@@ -68,7 +67,6 @@ GLuint TextureManager::createTexture(const QImage& image, const QString& cacheKe
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
     QOpenGLContext* context = QOpenGLContext::currentContext();
-    QOpenGLExtraFunctions* f = context ? context->extraFunctions() : nullptr;
     if (context && context->hasExtension(QByteArrayLiteral("GL_EXT_texture_filter_anisotropic"))) {
         GLfloat maxAnisotropy = 1.0f;
         glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &maxAnisotropy);
@@ -76,31 +74,10 @@ GLuint TextureManager::createTexture(const QImage& image, const QString& cacheKe
     }
 
     // Upload texture data
-    if (f) {
-        f->glTexStorage2D(
-            GL_TEXTURE_2D,
-            mipLevelCount(textureImage.width(), textureImage.height()),
-            GL_RGBA8,
-            textureImage.width(),
-            textureImage.height());
-        f->glTexSubImage2D(
-            GL_TEXTURE_2D,
-            0,
-            0,
-            0,
-            textureImage.width(),
-            textureImage.height(),
-            GL_RGBA,
-            GL_UNSIGNED_BYTE,
-            textureImage.bits());
-        f->glGenerateMipmap(GL_TEXTURE_2D);
-    }
-    else {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, textureImage.width(), textureImage.height(),
-            0, GL_RGBA, GL_UNSIGNED_BYTE, textureImage.bits());
-        if (context && context->functions()) {
-            context->functions()->glGenerateMipmap(GL_TEXTURE_2D);
-        }
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, textureImage.width(), textureImage.height(),
+        0, GL_RGBA, GL_UNSIGNED_BYTE, textureImage.bits());
+    if (context && context->functions()) {
+        context->functions()->glGenerateMipmap(GL_TEXTURE_2D);
     }
 
     // Cache the texture

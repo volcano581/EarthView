@@ -102,28 +102,40 @@ bool isSupportedShapeType(int shapeType)
         || shapeType == 23 || shapeType == 25;
 }
 
-struct ScreenVertex {
+struct GpuVertex {
     float position[2];
 };
 
-ScreenVertex screenVertex(const QPointF& point)
+GpuVertex gpuVertex(const QPointF& point)
 {
     return { { static_cast<float>(point.x()), static_cast<float>(point.y()) } };
 }
 
-void appendSegment(QVector<ScreenVertex>& vertices, const QPointF& a, const QPointF& b)
+GpuVertex gpuVertex(double x, double y)
 {
-    vertices.append(screenVertex(a));
-    vertices.append(screenVertex(b));
+    return { { static_cast<float>(x), static_cast<float>(y) } };
+}
+
+void appendSegment(QVector<GpuVertex>& vertices, const QPointF& a, const QPointF& b)
+{
+    vertices.append(gpuVertex(a));
+    vertices.append(gpuVertex(b));
 }
 }
 
 BorderRenderer::BorderRenderer(Camera* camera, QObject* parent)
     : QObject(parent)
     , m_camera(camera)
-    , m_vbo(0)
-    , m_vao(0)
+    , m_staticVbo(0)
+    , m_staticVao(0)
+    , m_dynamicVbo(0)
+    , m_dynamicVao(0)
+    , m_staticVertexCount(0)
+    , m_dynamicVertexCount(0)
+    , m_cachedOrthographicZoom(0.0)
     , m_initialized(false)
+    , m_staticBufferDirty(true)
+    , m_orthographicCacheValid(false)
 {
     initializeOpenGLFunctions();
 }
@@ -133,10 +145,18 @@ BorderRenderer::~BorderRenderer()
     if (m_initialized) {
         QOpenGLContext* context = QOpenGLContext::currentContext();
         QOpenGLExtraFunctions* f = context ? context->extraFunctions() : nullptr;
-        if (m_vbo && f) f->glDeleteBuffers(1, &m_vbo);
-        if (m_vao) {
-            if (f) {
-                f->glDeleteVertexArrays(1, &m_vao);
+        if (f) {
+            if (m_staticVbo) {
+                f->glDeleteBuffers(1, &m_staticVbo);
+            }
+            if (m_dynamicVbo) {
+                f->glDeleteBuffers(1, &m_dynamicVbo);
+            }
+            if (m_staticVao) {
+                f->glDeleteVertexArrays(1, &m_staticVao);
+            }
+            if (m_dynamicVao) {
+                f->glDeleteVertexArrays(1, &m_dynamicVao);
             }
         }
     }
@@ -145,6 +165,10 @@ BorderRenderer::~BorderRenderer()
 void BorderRenderer::clearBorders()
 {
     m_borders.clear();
+    m_staticVertexCount = 0;
+    m_dynamicVertexCount = 0;
+    m_staticBufferDirty = true;
+    m_orthographicCacheValid = false;
 }
 
 bool BorderRenderer::loadShapefile(const QString& filePath, QString* errorMessage)
@@ -266,6 +290,8 @@ bool BorderRenderer::loadShapefile(const QString& filePath, QString* errorMessag
     }
 
     m_borders = loadedBorders;
+    m_staticBufferDirty = true;
+    m_orthographicCacheValid = false;
     if (errorMessage) {
         *errorMessage = QString("Loaded %1 border parts from %2.")
             .arg(m_borders.size())
@@ -281,7 +307,16 @@ void BorderRenderer::initializeGpuResources()
 
     QString errorMessage;
     if (!ShaderUtils::loadProgram(
-            &m_lineProgram,
+            &m_mercatorLineProgram,
+            QStringLiteral("mercator_line.vert"),
+            QStringLiteral("solid_2d.frag"),
+            &errorMessage)) {
+        qWarning() << errorMessage;
+        return;
+    }
+
+    if (!ShaderUtils::loadProgram(
+            &m_screenLineProgram,
             QStringLiteral("solid_2d.vert"),
             QStringLiteral("solid_2d.frag"),
             &errorMessage)) {
@@ -291,22 +326,32 @@ void BorderRenderer::initializeGpuResources()
 
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
     f->initializeOpenGLFunctions();
-    f->glGenVertexArrays(1, &m_vao);
-    f->glGenBuffers(1, &m_vbo);
-    f->glBindVertexArray(m_vao);
-    f->glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
+    f->glGenVertexArrays(1, &m_staticVao);
+    f->glGenBuffers(1, &m_staticVbo);
+    setupVertexArray(m_staticVao, m_staticVbo);
+
+    f->glGenVertexArrays(1, &m_dynamicVao);
+    f->glGenBuffers(1, &m_dynamicVbo);
+    setupVertexArray(m_dynamicVao, m_dynamicVbo);
+
+    m_initialized = true;
+}
+
+void BorderRenderer::setupVertexArray(GLuint vao, GLuint vbo)
+{
+    QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
+    f->glBindVertexArray(vao);
+    f->glBindBuffer(GL_ARRAY_BUFFER, vbo);
     f->glEnableVertexAttribArray(0);
     f->glVertexAttribPointer(
         0,
         2,
         GL_FLOAT,
         GL_FALSE,
-        sizeof(ScreenVertex),
-        reinterpret_cast<void*>(offsetof(ScreenVertex, position)));
+        sizeof(GpuVertex),
+        reinterpret_cast<void*>(offsetof(GpuVertex, position)));
     f->glBindBuffer(GL_ARRAY_BUFFER, 0);
     f->glBindVertexArray(0);
-
-    m_initialized = true;
 }
 
 void BorderRenderer::render()
@@ -315,64 +360,130 @@ void BorderRenderer::render()
         return;
 
     initializeGpuResources();
-    if (!m_initialized || !m_lineProgram.isLinked())
+    if (!m_initialized)
         return;
 
-    QVector<ScreenVertex> vertices;
-
     if (m_camera->isOrthographic()) {
-        for (const auto& polygon : m_borders) {
-            if (polygon.points.size() < 2)
-                continue;
-
-            bool previousVisible = false;
-            QPointF previousScreen;
-            for (const auto& point : polygon.points) {
-                QPointF screen;
-                if (m_camera->projectMercatorToScreen(QPointF(point.x, point.y), &screen)) {
-                    if (previousVisible) {
-                        appendSegment(vertices, previousScreen, screen);
-                    }
-                    previousScreen = screen;
-                    previousVisible = true;
-                }
-                else {
-                    previousVisible = false;
-                }
-            }
-        }
+        renderOrthographic();
     }
     else {
-        const double worldWidth = GIS::MAX_MERCATOR_X - GIS::MIN_MERCATOR_X;
-        int firstCopy = 0;
-        int lastCopy = 0;
+        renderMercator();
+    }
+}
 
-        if (m_camera->isHorizontalWrapEnabled()) {
-            QRectF extent = m_camera->getVisibleMercatorExtent();
-            firstCopy = static_cast<int>(std::ceil((extent.left() - GIS::MAX_MERCATOR_X) / worldWidth));
-            lastCopy = static_cast<int>(std::floor((extent.right() - GIS::MIN_MERCATOR_X) / worldWidth));
-        }
+void BorderRenderer::appendMercatorLines(QVector<LineBatchRenderer::LineVertex>& vertices) const
+{
+    if (!m_camera || m_borders.isEmpty())
+        return;
 
-        for (const auto& polygon : m_borders) {
-            if (polygon.points.size() < 2)
-                continue;
+    const QColor borderColor(51, 51, 204, 204);
+    const double worldWidth = GIS::MAX_MERCATOR_X - GIS::MIN_MERCATOR_X;
+    int firstCopy = 0;
+    int lastCopy = 0;
 
-            for (int copy = firstCopy; copy <= lastCopy; ++copy) {
-                const double xOffset = copy * worldWidth;
-                QPointF previousScreen = m_camera->mercatorToScreen(
-                    QPointF(polygon.points.first().x + xOffset, polygon.points.first().y));
-
-                for (int i = 1; i < polygon.points.size(); ++i) {
-                    const BorderPoint& point = polygon.points.at(i);
-                    QPointF screen = m_camera->mercatorToScreen(QPointF(point.x + xOffset, point.y));
-                    appendSegment(vertices, previousScreen, screen);
-                    previousScreen = screen;
-                }
-            }
+    if (m_camera->isHorizontalWrapEnabled()) {
+        const QRectF extent = m_camera->getVisibleMercatorExtent();
+        firstCopy = static_cast<int>(std::ceil((extent.left() - GIS::MAX_MERCATOR_X) / worldWidth));
+        lastCopy = static_cast<int>(std::floor((extent.right() - GIS::MIN_MERCATOR_X) / worldWidth));
+        if (lastCopy < firstCopy) {
+            firstCopy = 0;
+            lastCopy = 0;
         }
     }
 
-    if (vertices.isEmpty())
+    for (const BorderPolygon& polygon : m_borders) {
+        if (polygon.points.size() < 2)
+            continue;
+
+        for (int copy = firstCopy; copy <= lastCopy; ++copy) {
+            const double xOffset = copy * worldWidth;
+            for (int i = 1; i < polygon.points.size(); ++i) {
+                const BorderPoint& previous = polygon.points.at(i - 1);
+                const BorderPoint& current = polygon.points.at(i);
+                LineBatchRenderer::appendSegment(
+                    vertices,
+                    QPointF(previous.x + xOffset, previous.y),
+                    QPointF(current.x + xOffset, current.y),
+                    borderColor);
+            }
+        }
+    }
+}
+
+void BorderRenderer::appendScreenLines(QVector<LineBatchRenderer::LineVertex>& vertices) const
+{
+    if (!m_camera || m_borders.isEmpty())
+        return;
+
+    const QColor borderColor(51, 51, 204, 204);
+    for (const BorderPolygon& polygon : m_borders) {
+        if (polygon.points.size() < 2)
+            continue;
+
+        bool previousVisible = false;
+        QPointF previousScreen;
+        for (const BorderPoint& point : polygon.points) {
+            QPointF screen;
+            if (m_camera->projectMercatorToScreen(QPointF(point.x, point.y), &screen)) {
+                if (previousVisible) {
+                    LineBatchRenderer::appendSegment(vertices, previousScreen, screen, borderColor);
+                }
+                previousScreen = screen;
+                previousVisible = true;
+            }
+            else {
+                previousVisible = false;
+            }
+        }
+    }
+}
+
+void BorderRenderer::uploadMercatorVertices()
+{
+    if (!m_staticBufferDirty)
+        return;
+
+    qsizetype segmentCount = 0;
+    for (const BorderPolygon& polygon : m_borders) {
+        if (polygon.points.size() >= 2) {
+            segmentCount += polygon.points.size() - 1;
+        }
+    }
+
+    QVector<GpuVertex> vertices;
+    vertices.reserve(segmentCount * 2);
+    for (const BorderPolygon& polygon : m_borders) {
+        if (polygon.points.size() < 2)
+            continue;
+
+        for (int i = 1; i < polygon.points.size(); ++i) {
+            const BorderPoint& previous = polygon.points.at(i - 1);
+            const BorderPoint& current = polygon.points.at(i);
+            vertices.append(gpuVertex(previous.x, previous.y));
+            vertices.append(gpuVertex(current.x, current.y));
+        }
+    }
+
+    QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
+    f->glBindBuffer(GL_ARRAY_BUFFER, m_staticVbo);
+    f->glBufferData(
+        GL_ARRAY_BUFFER,
+        vertices.size() * static_cast<qsizetype>(sizeof(GpuVertex)),
+        vertices.constData(),
+        GL_STATIC_DRAW);
+    f->glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    m_staticVertexCount = vertices.size();
+    m_staticBufferDirty = false;
+}
+
+void BorderRenderer::renderMercator()
+{
+    if (!m_mercatorLineProgram.isLinked())
+        return;
+
+    uploadMercatorVertices();
+    if (m_staticVertexCount <= 0)
         return;
 
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
@@ -381,22 +492,119 @@ void BorderRenderer::render()
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glLineWidth(2.0f);
 
-    m_lineProgram.bind();
-    m_lineProgram.setUniformValue(
+    int firstCopy = 0;
+    int lastCopy = 0;
+    const double worldWidth = GIS::MAX_MERCATOR_X - GIS::MIN_MERCATOR_X;
+    if (m_camera->isHorizontalWrapEnabled()) {
+        QRectF extent = m_camera->getVisibleMercatorExtent();
+        firstCopy = static_cast<int>(std::ceil((extent.left() - GIS::MAX_MERCATOR_X) / worldWidth));
+        lastCopy = static_cast<int>(std::floor((extent.right() - GIS::MIN_MERCATOR_X) / worldWidth));
+    }
+
+    m_mercatorLineProgram.bind();
+    m_mercatorLineProgram.setUniformValue(
         "u_viewportSize",
         QVector2D(
             static_cast<float>(m_camera->getViewportWidth()),
             static_cast<float>(m_camera->getViewportHeight())));
-    m_lineProgram.setUniformValue("u_color", QVector4D(0.2f, 0.2f, 0.8f, 0.8f));
+    m_mercatorLineProgram.setUniformValue(
+        "u_centerMercator",
+        QVector2D(
+            static_cast<float>(m_camera->getCenterMercator().x()),
+            static_cast<float>(m_camera->getCenterMercator().y())));
+    m_mercatorLineProgram.setUniformValue(
+        "u_pixelsPerMercator",
+        static_cast<float>(GIS::EARTH_RADIUS / m_camera->getResolution()));
+    m_mercatorLineProgram.setUniformValue("u_color", QVector4D(0.2f, 0.2f, 0.8f, 0.8f));
 
-    f->glBindVertexArray(m_vao);
-    f->glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
+    f->glBindVertexArray(m_staticVao);
+    for (int copy = firstCopy; copy <= lastCopy; ++copy) {
+        m_mercatorLineProgram.setUniformValue(
+            "u_worldOffset",
+            static_cast<float>(copy * worldWidth));
+        f->glDrawArrays(GL_LINES, 0, m_staticVertexCount);
+    }
+    f->glBindVertexArray(0);
+    m_mercatorLineProgram.release();
+}
+
+bool BorderRenderer::orthographicCacheMatchesCamera() const
+{
+    return m_orthographicCacheValid
+        && m_cachedOrthographicCenter == m_camera->getCenterMercator()
+        && qFuzzyCompare(m_cachedOrthographicZoom, m_camera->getZoomLevel())
+        && m_cachedOrthographicViewport == QSize(m_camera->getViewportWidth(), m_camera->getViewportHeight());
+}
+
+void BorderRenderer::updateOrthographicCache()
+{
+    if (orthographicCacheMatchesCamera())
+        return;
+
+    QVector<GpuVertex> vertices;
+
+    for (const auto& polygon : m_borders) {
+        if (polygon.points.size() < 2)
+            continue;
+
+        bool previousVisible = false;
+        QPointF previousScreen;
+        for (const auto& point : polygon.points) {
+            QPointF screen;
+            if (m_camera->projectMercatorToScreen(QPointF(point.x, point.y), &screen)) {
+                if (previousVisible) {
+                    appendSegment(vertices, previousScreen, screen);
+                }
+                previousScreen = screen;
+                previousVisible = true;
+            }
+            else {
+                previousVisible = false;
+            }
+        }
+    }
+
+    QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
+    f->glBindBuffer(GL_ARRAY_BUFFER, m_dynamicVbo);
     f->glBufferData(
         GL_ARRAY_BUFFER,
-        vertices.size() * static_cast<qsizetype>(sizeof(ScreenVertex)),
+        vertices.size() * static_cast<qsizetype>(sizeof(GpuVertex)),
         vertices.constData(),
-        GL_STREAM_DRAW);
-    f->glDrawArrays(GL_LINES, 0, vertices.size());
+        GL_DYNAMIC_DRAW);
+    f->glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    m_dynamicVertexCount = vertices.size();
+    m_cachedOrthographicCenter = m_camera->getCenterMercator();
+    m_cachedOrthographicZoom = m_camera->getZoomLevel();
+    m_cachedOrthographicViewport = QSize(m_camera->getViewportWidth(), m_camera->getViewportHeight());
+    m_orthographicCacheValid = true;
+}
+
+void BorderRenderer::renderOrthographic()
+{
+    if (!m_screenLineProgram.isLinked())
+        return;
+
+    updateOrthographicCache();
+    if (m_dynamicVertexCount <= 0)
+        return;
+
+    QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
+    glDisable(GL_DEPTH_TEST);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glLineWidth(2.0f);
+
+    m_screenLineProgram.bind();
+    m_screenLineProgram.setUniformValue(
+        "u_viewportSize",
+        QVector2D(
+            static_cast<float>(m_camera->getViewportWidth()),
+            static_cast<float>(m_camera->getViewportHeight())));
+    m_screenLineProgram.setUniformValue("u_color", QVector4D(0.2f, 0.2f, 0.8f, 0.8f));
+
+    f->glBindVertexArray(m_dynamicVao);
+    f->glDrawArrays(GL_LINES, 0, m_dynamicVertexCount);
     f->glBindVertexArray(0);
-    m_lineProgram.release();
+    m_screenLineProgram.release();
 }

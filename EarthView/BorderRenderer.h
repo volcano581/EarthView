@@ -2,10 +2,13 @@
 #ifndef BORDERRENDERER_H
 #define BORDERRENDERER_H
 
+#include "LineBatchRenderer.h"
 #include <QObject>
 #include <QOpenGLFunctions>
 #include <QOpenGLExtraFunctions>
 #include <QOpenGLShaderProgram>
+#include <QPointF>
+#include <QSize>
 #include <QString>
 #include <QVector>
 
@@ -30,6 +33,8 @@ public:
     void clearBorders();
     int borderCount() const { return m_borders.size(); }
     void render();
+    void appendMercatorLines(QVector<LineBatchRenderer::LineVertex>& vertices) const;
+    void appendScreenLines(QVector<LineBatchRenderer::LineVertex>& vertices) const;
 
 private:
     struct BorderPoint {
@@ -44,14 +49,30 @@ private:
 
 private:
     void initializeGpuResources();
+    void setupVertexArray(GLuint vao, GLuint vbo);
+    void uploadMercatorVertices();
+    void renderMercator();
+    void renderOrthographic();
+    void updateOrthographicCache();
+    bool orthographicCacheMatchesCamera() const;
 
 private:
     Camera* m_camera;
     QVector<BorderPolygon> m_borders;
-    QOpenGLShaderProgram m_lineProgram;
-    GLuint m_vbo;
-    GLuint m_vao;
+    QOpenGLShaderProgram m_mercatorLineProgram;
+    QOpenGLShaderProgram m_screenLineProgram;
+    GLuint m_staticVbo;
+    GLuint m_staticVao;
+    GLuint m_dynamicVbo;
+    GLuint m_dynamicVao;
+    qsizetype m_staticVertexCount;
+    qsizetype m_dynamicVertexCount;
+    QPointF m_cachedOrthographicCenter;
+    double m_cachedOrthographicZoom;
+    QSize m_cachedOrthographicViewport;
     bool m_initialized;
+    bool m_staticBufferDirty;
+    bool m_orthographicCacheValid;
 };
 
 #endif // BORDERRENDERER_H

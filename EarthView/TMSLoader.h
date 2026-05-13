@@ -37,12 +37,22 @@ public:
         QImage image;
         bool isLoading;
         int layerIndex;
+        int tileZoomLevel;
         QList<int> fallbackLayerIndices;
     };
 
     struct TileSourceLayer {
+        enum class SourceType {
+            UrlTemplate,
+            MbTiles,
+            VectorMbTiles
+        };
+
         QString name;
         QString urlTemplate;
+        QString mbTilesPath;
+        QString mbTilesFormat;
+        SourceType sourceType = SourceType::UrlTemplate;
         int minZoom = 0;
         int maxZoom = GIS::MAX_TILE_ZOOM;
         int minTileZoom = 0;
@@ -79,6 +89,9 @@ private slots:
 private:
     void deriveDisplayZoomsFromTileResources();
     void fetchTile(int z, int x, int y, int layerIndex);
+    void fetchMbTile(int z, int x, int y, int layerIndex);
+    void applyTileImage(const QString& key, const QImage& image);
+    void handleTileFailure(const QString& key, int z, int x, int y);
     void abortRequestsExcept(const QSet<QString>& keepKeys);
     QList<int> layerIndicesForZoom(int zoomLevel) const;
     int tileZoomForLayer(int zoomLevel, int layerIndex) const;

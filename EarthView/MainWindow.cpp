@@ -1,6 +1,7 @@
 #include "MainWindow.h"
 #include "MapWidget.h"
 #include "Camera.h"
+#include "MbTilesReader.h"
 #include "MercatorProjection.h"
 #include <QAction>
 #include <QBuffer>
@@ -420,6 +421,72 @@ QList<EarthSource> discoverEarthSources()
 
     return sources;
 }
+
+QStringList mbTilesSearchDirectories()
+{
+    QStringList directories;
+    const QString currentPath = QDir::currentPath();
+    const QString appPath = QCoreApplication::applicationDirPath();
+    directories << QDir(currentPath).absoluteFilePath("Data/OSM")
+                << QDir(appPath).absoluteFilePath("Data/OSM")
+                << QDir(appPath).absoluteFilePath("../Data/OSM");
+    directories.removeDuplicates();
+    return directories;
+}
+
+QList<EarthSource> discoverMbTilesSources()
+{
+    QList<EarthSource> sources;
+    QSet<QString> seenFiles;
+
+    for (const QString& directoryPath : mbTilesSearchDirectories()) {
+        const QDir directory(directoryPath);
+        const QFileInfoList files = directory.entryInfoList({ "*.mbtiles" }, QDir::Files, QDir::Name);
+        for (const QFileInfo& file : files) {
+            const QString absolutePath = file.absoluteFilePath();
+            if (seenFiles.contains(absolutePath))
+                continue;
+            seenFiles.insert(absolutePath);
+
+            QString errorMessage;
+            const MbTilesMetadata metadata = MbTilesReader::readMetadata(absolutePath, &errorMessage);
+            if (!metadata.valid) {
+                qWarning() << "Skipping MBTiles source" << absolutePath << errorMessage;
+                continue;
+            }
+
+            TmsLoader::TileSourceLayer layer;
+            layer.sourceType = MbTilesReader::isVectorFormat(metadata.format)
+                ? TmsLoader::TileSourceLayer::SourceType::VectorMbTiles
+                : TmsLoader::TileSourceLayer::SourceType::MbTiles;
+            layer.name = metadata.name.isEmpty() ? file.completeBaseName() : metadata.name;
+            layer.mbTilesPath = absolutePath;
+            layer.mbTilesFormat = metadata.format;
+            layer.minTileZoom = metadata.minZoom;
+            layer.maxTileZoom = metadata.maxZoom;
+            layer.tmsYOrigin = metadata.scheme.compare("xyz", Qt::CaseInsensitive) != 0;
+
+            EarthSource source;
+            source.label = QString("%1 - %2")
+                .arg(layer.sourceType == TmsLoader::TileSourceLayer::SourceType::VectorMbTiles
+                    ? QStringLiteral("Offline Vector MBTiles")
+                    : QStringLiteral("Offline Raster MBTiles"))
+                .arg(layer.name);
+            source.filePath = absolutePath;
+            source.layers = { layer };
+            sources.append(source);
+        }
+    }
+
+    return sources;
+}
+
+QList<EarthSource> discoverMapSources()
+{
+    QList<EarthSource> sources = discoverMbTilesSources();
+    sources.append(discoverEarthSources());
+    return sources;
+}
 }
 
 MainWindow::MainWindow(QWidget* parent)
@@ -448,9 +515,9 @@ void MainWindow::setupUI()
 
     // Create map widget
     m_mapWidget = new MapWidget(this);
-    const QList<EarthSource> earthSources = discoverEarthSources();
-    if (!earthSources.isEmpty()) {
-        m_mapWidget->setTileSourceLayers(earthSources.first().layers);
+    const QList<EarthSource> mapSources = discoverMapSources();
+    if (!mapSources.isEmpty()) {
+        m_mapWidget->setTileSourceLayers(mapSources.first().layers);
     }
     else {
         m_mapWidget->setTileServerUrl("https://tile.openstreetmap.org/{z}/{x}/{y}.png");
@@ -464,23 +531,23 @@ void MainWindow::setupUI()
     toolbar->addWidget(new QLabel("Map Source:", this));
     QComboBox* sourceCombo = new QComboBox(this);
     sourceCombo->setMinimumContentsLength(20);
-    sourceCombo->setToolTip("Select a map source loaded from a .earth file.");
+    sourceCombo->setToolTip("Select an offline MBTiles source or a map source loaded from a .earth file.");
 
-    for (int i = 0; i < earthSources.size(); ++i) {
-        const EarthSource& source = earthSources.at(i);
+    for (int i = 0; i < mapSources.size(); ++i) {
+        const EarthSource& source = mapSources.at(i);
         sourceCombo->addItem(
             QString("%1 (%2 layers)").arg(source.label).arg(source.layers.size()),
             i);
     }
-    if (earthSources.isEmpty()) {
+    if (mapSources.isEmpty()) {
         sourceCombo->addItem("OpenStreetMap fallback", -1);
     }
 
     toolbar->addWidget(sourceCombo);
 
-    auto applySourceSelection = [this, earthSources](int sourceIndex) {
-        if (sourceIndex >= 0 && sourceIndex < earthSources.size()) {
-            const EarthSource& source = earthSources.at(sourceIndex);
+    auto applySourceSelection = [this, mapSources](int sourceIndex) {
+        if (sourceIndex >= 0 && sourceIndex < mapSources.size()) {
+            const EarthSource& source = mapSources.at(sourceIndex);
             m_mapWidget->setTileSourceLayers(source.layers);
             statusBar()->showMessage(
                 QString("Map source set to %1 from %2")

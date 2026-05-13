@@ -3,12 +3,12 @@
 #include "Constants.h"
 #include "MercatorProjection.h"
 #include "ShaderUtils.h"
+#include <QApplication>
 #include <QDebug>
 #include <QFont>
 #include <QFontMetrics>
 #include <QOpenGLContext>
 #include <QOpenGLExtraFunctions>
-#include <QPainter>
 #include <QVector2D>
 #include <QVector4D>
 #include <QtMath>
@@ -119,6 +119,106 @@ void GridRenderer::initializeGpuResources()
     m_gpuResourcesInitialized = true;
 }
 
+void GridRenderer::appendMercatorLines(QVector<LineBatchRenderer::LineVertex>& vertices) const
+{
+    if (!m_camera)
+        return;
+
+    const QColor gridColor(230, 242, 255, 90);
+    const double step = gridStepDegrees();
+    const double startLon = std::ceil(-180.0 / step) * step;
+    const double startLat = std::ceil(-80.0 / step) * step;
+    const double worldWidth = GIS::MAX_MERCATOR_X - GIS::MIN_MERCATOR_X;
+    int firstCopy = 0;
+    int lastCopy = 0;
+    visibleWorldCopyRange(m_camera, &firstCopy, &lastCopy);
+
+    for (int copy = firstCopy; copy <= lastCopy; ++copy) {
+        const double lonOffsetDegrees = copy * 360.0;
+        const double xOffset = copy * worldWidth;
+
+        for (double lon = startLon; lon <= 180.0 + 0.001; lon += step) {
+            const double x = (lon + lonOffsetDegrees) * M_PI / 180.0;
+            LineBatchRenderer::appendSegment(
+                vertices,
+                QPointF(x, GIS::MIN_MERCATOR_Y),
+                QPointF(x, GIS::MAX_MERCATOR_Y),
+                gridColor);
+        }
+
+        for (double lat = startLat; lat <= 80.0 + 0.001; lat += step) {
+            const double y = MercatorProjection::latLonToMercator(lat, 0.0).y();
+            LineBatchRenderer::appendSegment(
+                vertices,
+                QPointF(GIS::MIN_MERCATOR_X + xOffset, y),
+                QPointF(GIS::MAX_MERCATOR_X + xOffset, y),
+                gridColor);
+        }
+    }
+}
+
+void GridRenderer::appendScreenLines(QVector<LineBatchRenderer::LineVertex>& vertices) const
+{
+    if (!m_camera)
+        return;
+
+    const QColor gridColor(230, 242, 255, 90);
+    const double step = gridStepDegrees();
+    const double startLon = std::ceil(-180.0 / step) * step;
+    const double startLat = std::ceil(-80.0 / step) * step;
+    int firstCopy = 0;
+    int lastCopy = 0;
+    visibleWorldCopyRange(m_camera, &firstCopy, &lastCopy);
+
+    for (int copy = firstCopy; copy <= lastCopy; ++copy) {
+        const double lonOffset = copy * 360.0;
+        const double lonEnd = copy == lastCopy ? 180.0 + 0.001 : 180.0 - 0.001;
+
+        for (double lon = startLon; lon <= lonEnd; lon += step) {
+            bool previousVisible = false;
+            QPointF previousScreen;
+            const double renderLon = lon + lonOffset;
+            for (double lat = -85.0; lat <= 85.0 + 0.001; lat += 1.0) {
+                QPointF screen;
+                if (projectLatLon(lat, renderLon, &screen)) {
+                    if (previousVisible) {
+                        LineBatchRenderer::appendSegment(vertices, previousScreen, screen, gridColor);
+                    }
+                    previousScreen = screen;
+                    previousVisible = true;
+                }
+                else {
+                    previousVisible = false;
+                }
+            }
+        }
+    }
+
+    for (int copy = firstCopy; copy <= lastCopy; ++copy) {
+        const double lonOffset = copy * 360.0;
+        const double lonStart = -180.0 + lonOffset;
+        const double lonEnd = 180.0 + lonOffset;
+
+        for (double lat = startLat; lat <= 80.0 + 0.001; lat += step) {
+            bool previousVisible = false;
+            QPointF previousScreen;
+            for (double lon = lonStart; lon <= lonEnd + 0.001; lon += 1.0) {
+                QPointF screen;
+                if (projectLatLon(lat, lon, &screen)) {
+                    if (previousVisible) {
+                        LineBatchRenderer::appendSegment(vertices, previousScreen, screen, gridColor);
+                    }
+                    previousScreen = screen;
+                    previousVisible = true;
+                }
+                else {
+                    previousVisible = false;
+                }
+            }
+        }
+    }
+}
+
 void GridRenderer::render()
 {
     if (!m_camera)
@@ -214,7 +314,7 @@ void GridRenderer::render()
     m_lineProgram.release();
 }
 
-void GridRenderer::renderLabels(QPainter& painter)
+void GridRenderer::appendLabels(QVector<TextRenderer::Label>& labels)
 {
     if (!m_camera)
         return;
@@ -229,32 +329,32 @@ void GridRenderer::renderLabels(QPainter& painter)
     int lastCopy = 0;
     visibleWorldCopyRange(m_camera, &firstCopy, &lastCopy);
 
-    QFont font = painter.font();
+    QFont font = QApplication::font();
     font.setPointSize(9);
     font.setBold(true);
-    painter.setFont(font);
 
     QFontMetrics metrics(font);
 
-    auto drawLabel = [&](const QPointF& anchor, const QString& text) {
+    auto appendLabel = [&](const QPointF& anchor, const QString& text) {
         QRect rect = metrics.boundingRect(text).adjusted(-5, -3, 5, 3);
         rect.moveCenter(anchor.toPoint());
-        painter.setPen(Qt::NoPen);
-        painter.setBrush(QColor(0, 0, 0, 145));
-        painter.drawRoundedRect(rect, 3, 3);
-        painter.setPen(QColor(230, 245, 255));
-        painter.drawText(rect, Qt::AlignCenter, text);
-    };
 
-    painter.save();
-    painter.setRenderHint(QPainter::Antialiasing);
+        TextRenderer::Label label;
+        label.text = text;
+        label.rect = QRectF(rect);
+        label.font = font;
+        label.textColor = QColor(230, 245, 255);
+        label.backgroundColor = QColor(0, 0, 0, 145);
+        label.radius = 3;
+        labels.append(label);
+    };
 
     for (double lat = std::ceil(-80.0 / step) * step; lat <= 80.0 + 0.001; lat += step) {
         QPointF screen;
         if (projectLatLon(lat, centerLon, &screen)) {
             if (screen.x() >= 24.0 && screen.x() <= m_camera->getViewportWidth() - 24.0
                 && screen.y() >= 16.0 && screen.y() <= m_camera->getViewportHeight() - 16.0) {
-                drawLabel(screen, latitudeLabel(lat));
+                appendLabel(screen, latitudeLabel(lat));
             }
         }
     }
@@ -269,13 +369,11 @@ void GridRenderer::renderLabels(QPainter& painter)
             if (projectLatLon(centerLat, renderLon, &screen)) {
                 if (screen.x() >= 24.0 && screen.x() <= m_camera->getViewportWidth() - 24.0
                     && screen.y() >= 16.0 && screen.y() <= m_camera->getViewportHeight() - 16.0) {
-                    drawLabel(screen, longitudeLabel(renderLon));
+                    appendLabel(screen, longitudeLabel(renderLon));
                 }
             }
         }
     }
-
-    painter.restore();
 }
 
 double GridRenderer::gridStepDegrees() const

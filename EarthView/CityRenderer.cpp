@@ -2,13 +2,12 @@
 #include "Camera.h"
 #include "Constants.h"
 #include "ShaderUtils.h"
+#include <QApplication>
 #include <QDebug>
 #include <QFont>
 #include <QFontMetrics>
 #include <QOpenGLContext>
 #include <QOpenGLExtraFunctions>
-#include <QPainter>
-#include <QPen>
 #include <QVector2D>
 #include <algorithm>
 #include <cmath>
@@ -238,7 +237,7 @@ void CityRenderer::renderMarkers()
     glDisable(GL_PROGRAM_POINT_SIZE);
 }
 
-void CityRenderer::renderLabels(QPainter& painter)
+void CityRenderer::appendLabels(QVector<TextRenderer::Label>& labels)
 {
     if (!m_camera || !hasData())
         return;
@@ -264,16 +263,11 @@ void CityRenderer::renderLabels(QPainter& painter)
     int lastCopy = 0;
     visibleWorldCopyRange(m_camera, &firstCopy, &lastCopy);
     const int maxLabels = maxLabelsForZoom(zoom);
-    const bool drawMarkerFallback = !m_gpuResourcesInitialized || !m_markerProgram.isLinked();
     int labelsDrawn = 0;
 
-    painter.save();
-    painter.setRenderHint(QPainter::Antialiasing);
-
-    QFont font = painter.font();
+    QFont font = QApplication::font();
     font.setPointSize(zoom >= 11.0 ? 9 : 10);
     font.setBold(zoom < 11.0);
-    painter.setFont(font);
     QFontMetrics metrics(font);
 
     QVector<QRect> occupiedRects;
@@ -285,7 +279,6 @@ void CityRenderer::renderLabels(QPainter& painter)
             continue;
 
         const int markerSize = markerSizeForRank(layer->rank);
-        const QColor markerColor = markerColorForRank(layer->rank);
         const QColor textColor = textColorForRank(layer->rank);
 
         for (const CityLoader::CityPoint& point : layer->points) {
@@ -328,26 +321,20 @@ void CityRenderer::renderLabels(QPainter& painter)
                 if (collides)
                     continue;
 
-                painter.setPen(Qt::NoPen);
-                painter.setBrush(QColor(0, 0, 0, 145));
-                painter.drawRoundedRect(textRect, 3, 3);
-
-                if (drawMarkerFallback) {
-                    painter.setBrush(markerColor);
-                    painter.setPen(QPen(QColor(10, 22, 32, 210), 1));
-                    painter.drawEllipse(screen, markerSize, markerSize);
-                }
-
-                painter.setPen(textColor);
-                painter.drawText(textRect, Qt::AlignCenter, point.name);
+                TextRenderer::Label label;
+                label.text = point.name;
+                label.rect = QRectF(textRect);
+                label.font = font;
+                label.textColor = textColor;
+                label.backgroundColor = QColor(0, 0, 0, 145);
+                label.radius = 3;
+                labels.append(label);
 
                 occupiedRects.append(collisionRect);
                 ++labelsDrawn;
             }
         }
     }
-
-    painter.restore();
 }
 
 bool CityRenderer::pointInExtent(const QPointF& mercator, const QRectF& extent) const

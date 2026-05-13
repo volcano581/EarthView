@@ -11,7 +11,9 @@
 #include <QOpenGLShaderProgram>
 #include <QString>
 #include <QTimer>
+#include "LineBatchRenderer.h"
 #include "TMSLoader.h"
+#include "TextRenderer.h"
 #include "fpsCounter.h"
 
 class Camera;
@@ -19,6 +21,9 @@ class TileRenderer;
 class BorderRenderer;
 class GridRenderer;
 class CityRenderer;
+class TextRenderer;
+class LineBatchRenderer;
+class VectorTileRenderer;
 
 /**
  * @brief MapWidget is the main OpenGL rendering widget
@@ -64,8 +69,14 @@ protected:
     void mouseReleaseEvent(QMouseEvent* event) override;
     void wheelEvent(QWheelEvent* event) override;
     void keyPressEvent(QKeyEvent* event) override;
-    void drawFpsOverlay();
+    void rebuildMapLabelsIfNeeded();
+    void rebuildLineBatchIfNeeded();
+    void invalidateMapLabels();
+    void invalidateLineBatch();
+    void appendFpsOverlay(QVector<TextRenderer::Label>& labels);
+    void appendScaleBarOverlay(QVector<TextRenderer::Label>& labels);
     void drawGlobeBackdrop();
+    void drawScaleBarOverlay();
     void initializeShapeResources();
 
 private slots:
@@ -78,6 +89,12 @@ private:
     BorderRenderer* m_borderRenderer;
     GridRenderer* m_gridRenderer;
     CityRenderer* m_cityRenderer;
+    VectorTileRenderer* m_vectorTileRenderer;
+    LineBatchRenderer* m_lineBatchRenderer;
+    TextRenderer* m_textRenderer;
+    QVector<LineBatchRenderer::LineVertex> m_cachedLineVertices;
+    QVector<TextRenderer::Label> m_cachedMapLabels;
+    LineBatchRenderer::CoordinateMode m_lineBatchMode;
 
     QPoint m_lastMousePos;
     bool m_isPanning;
@@ -85,6 +102,7 @@ private:
     bool m_bordersVisible;
     bool m_gridVisible;
     bool m_citiesVisible;
+    QList<TmsLoader::TileSourceLayer> m_tileSourceLayers;
     QString m_pendingBorderFilePath;
     QString m_pendingCitiesDirectoryPath;
     QTimer* m_updateTimer;
@@ -93,6 +111,8 @@ private:
     GLuint m_shapeVbo;
     GLuint m_shapeVao;
     bool m_shapeResourcesInitialized;
+    bool m_lineBatchDirty;
+    bool m_mapLabelsDirty;
 };
 
 #endif // MAPWIDGET_H

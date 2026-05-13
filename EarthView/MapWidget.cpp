@@ -5,6 +5,7 @@
 #include "BorderRenderer.h"
 #include "GridRenderer.h"
 #include "CityRenderer.h"
+#include "VectorTileRenderer.h"
 #include "Constants.h"
 #include "ShaderUtils.h"
 #include <QCoreApplication>
@@ -14,10 +15,10 @@
 #include <QOpenGLContext>
 #include <QOpenGLExtraFunctions>
 #include <QStringList>
-#include <QPainter>
 #include <QFont>
 #include <QFontMetrics>
 #include <QSurfaceFormat>
+#include <QtGlobal>
 #include <QVector2D>
 #include <QVector4D>
 #include <cmath>
@@ -28,9 +29,84 @@ struct ScreenVertex {
     float position[2];
 };
 
+struct ScaleBarInfo {
+    bool valid = false;
+    QRectF backgroundRect;
+    QPointF lineStart;
+    QPointF lineEnd;
+    double tickHeight = 8.0;
+    QString label;
+};
+
 ScreenVertex screenVertex(double x, double y)
 {
     return { { static_cast<float>(x), static_cast<float>(y) } };
+}
+
+double niceScaleDistance(double meters)
+{
+    if (meters <= 0.0 || !std::isfinite(meters))
+        return 0.0;
+
+    const double exponent = std::floor(std::log10(meters));
+    const double base = std::pow(10.0, exponent);
+    const double fraction = meters / base;
+    double niceFraction = 1.0;
+
+    if (fraction >= 5.0) {
+        niceFraction = 5.0;
+    }
+    else if (fraction >= 2.0) {
+        niceFraction = 2.0;
+    }
+
+    return niceFraction * base;
+}
+
+QString scaleDistanceLabel(double meters)
+{
+    if (meters >= 1000.0) {
+        const double kilometers = meters / 1000.0;
+        return QString("%1 km").arg(kilometers, 0, 'f', kilometers >= 10.0 ? 0 : 1);
+    }
+
+    return QString("%1 m").arg(std::round(meters), 0, 'f', 0);
+}
+
+ScaleBarInfo scaleBarInfo(const Camera* camera, int viewportWidth, int viewportHeight)
+{
+    ScaleBarInfo info;
+    if (!camera || viewportWidth < 160 || viewportHeight < 120)
+        return info;
+
+    const double metersPerPixel = camera->getResolution();
+    if (metersPerPixel <= 0.0 || !std::isfinite(metersPerPixel))
+        return info;
+
+    const double targetPixels = qBound(90.0, viewportWidth * 0.18, 180.0);
+    const double meters = niceScaleDistance(metersPerPixel * targetPixels);
+    if (meters <= 0.0)
+        return info;
+
+    const double pixelWidth = meters / metersPerPixel;
+    if (pixelWidth <= 8.0)
+        return info;
+
+    const double left = 18.0;
+    const double bottom = viewportHeight - 18.0;
+    const double lineY = bottom - 12.0;
+    const double top = lineY - 32.0;
+    const double right = left + pixelWidth + 28.0;
+
+    info.valid = true;
+    info.backgroundRect = QRectF(
+        QPointF(left - 10.0, top),
+        QPointF(qMin<double>(right, viewportWidth - 10.0), bottom));
+    info.lineStart = QPointF(left, lineY);
+    info.lineEnd = QPointF(left + pixelWidth, lineY);
+    info.tickHeight = 8.0;
+    info.label = scaleDistanceLabel(meters);
+    return info;
 }
 
 QString defaultBorderShapefilePath()
@@ -81,6 +157,10 @@ MapWidget::MapWidget(QWidget* parent)
     , m_borderRenderer(nullptr)
     , m_gridRenderer(nullptr)
     , m_cityRenderer(nullptr)
+    , m_vectorTileRenderer(nullptr)
+    , m_lineBatchRenderer(nullptr)
+    , m_textRenderer(nullptr)
+    , m_lineBatchMode(LineBatchRenderer::CoordinateMode::Mercator)
     , m_isPanning(false)
     , m_texturesVisible(true)
     , m_bordersVisible(true)
@@ -90,11 +170,15 @@ MapWidget::MapWidget(QWidget* parent)
     , m_shapeVbo(0)
     , m_shapeVao(0)
     , m_shapeResourcesInitialized(false)
+    , m_lineBatchDirty(true)
+    , m_mapLabelsDirty(true)
 {
     QSurfaceFormat format = QSurfaceFormat::defaultFormat();
-    format.setVersion(4, 5);
+    format.setRenderableType(QSurfaceFormat::OpenGL);
+    format.setVersion(3, 3);
     format.setProfile(QSurfaceFormat::CoreProfile);
     format.setDepthBufferSize(24);
+    format.setStencilBufferSize(8);
     format.setSwapInterval(0);
     setFormat(format);
 
@@ -121,6 +205,9 @@ MapWidget::~MapWidget()
     delete m_borderRenderer;
     delete m_gridRenderer;
     delete m_cityRenderer;
+    delete m_vectorTileRenderer;
+    delete m_lineBatchRenderer;
+    delete m_textRenderer;
     delete m_tileLoader;
     if (m_shapeResourcesInitialized) {
         QOpenGLContext* current = QOpenGLContext::currentContext();
@@ -148,16 +235,22 @@ void MapWidget::setTileServerUrl(const QString& url)
 
 void MapWidget::setTileSourceLayers(const QList<TmsLoader::TileSourceLayer>& layers)
 {
+    m_tileSourceLayers = layers;
     const bool hasContext = context() && isValid();
     if (hasContext) {
         makeCurrent();
     }
 
     m_tileLoader->setTileSourceLayers(layers);
+    if (m_vectorTileRenderer) {
+        m_vectorTileRenderer->setTileSourceLayers(layers);
+    }
 
     if (hasContext) {
         doneCurrent();
     }
+    invalidateLineBatch();
+    invalidateMapLabels();
     update();
 }
 
@@ -178,6 +271,7 @@ bool MapWidget::loadBorderShapefile(const QString& filePath, QString* errorMessa
 
     bool loaded = m_borderRenderer->loadShapefile(filePath, errorMessage);
     if (loaded) {
+        invalidateLineBatch();
         update();
     }
     return loaded;
@@ -196,6 +290,7 @@ bool MapWidget::loadCities(const QString& directoryPath, QString* errorMessage)
 
     const bool loaded = m_cityRenderer->loadDirectory(resolvedPath, errorMessage);
     if (loaded) {
+        invalidateMapLabels();
         update();
     }
     return loaded;
@@ -213,10 +308,14 @@ void MapWidget::setTexturesVisible(bool visible)
     }
 
     m_tileLoader->setLoadingEnabled(visible);
+    if (m_vectorTileRenderer) {
+        m_vectorTileRenderer->setEnabled(visible);
+    }
 
     if (hasContext) {
         doneCurrent();
     }
+    invalidateMapLabels();
     update();
 }
 
@@ -226,6 +325,7 @@ void MapWidget::setBordersVisible(bool visible)
         return;
 
     m_bordersVisible = visible;
+    invalidateLineBatch();
     update();
 }
 
@@ -235,6 +335,8 @@ void MapWidget::setGridVisible(bool visible)
         return;
 
     m_gridVisible = visible;
+    invalidateLineBatch();
+    invalidateMapLabels();
     update();
 }
 
@@ -244,6 +346,7 @@ void MapWidget::setCitiesVisible(bool visible)
         return;
 
     m_citiesVisible = visible;
+    invalidateMapLabels();
     update();
 }
 
@@ -288,12 +391,24 @@ void MapWidget::initializeShapeResources()
 void MapWidget::initializeGL()
 {
     initializeOpenGLFunctions();
+    if (context()) {
+        const QSurfaceFormat actualFormat = context()->format();
+        qDebug() << "Actual OpenGL context:"
+                 << actualFormat.majorVersion() << "." << actualFormat.minorVersion()
+                 << "profile" << actualFormat.profile()
+                 << "renderer" << reinterpret_cast<const char*>(glGetString(GL_RENDERER));
+    }
 
     // Create tile renderer after OpenGL context is ready
     m_tileRenderer = new TileRenderer(m_camera, m_tileLoader, this);
     m_borderRenderer = new BorderRenderer(m_camera, this);
     m_gridRenderer = new GridRenderer(m_camera, this);
     m_cityRenderer = new CityRenderer(m_camera, this);
+    m_vectorTileRenderer = new VectorTileRenderer(m_camera, this);
+    m_vectorTileRenderer->setTileSourceLayers(m_tileSourceLayers);
+    m_vectorTileRenderer->setEnabled(m_texturesVisible);
+    m_lineBatchRenderer = new LineBatchRenderer(m_camera, this);
+    m_textRenderer = new TextRenderer(m_camera, this);
     if (m_pendingBorderFilePath.isEmpty()) {
         m_pendingBorderFilePath = defaultBorderShapefilePath();
     }
@@ -308,6 +423,8 @@ void MapWidget::initializeGL()
     if (m_texturesVisible) {
         m_tileLoader->updateVisibleTiles();
     }
+    invalidateLineBatch();
+    invalidateMapLabels();
 
     glClearColor(0.1f, 0.1f, 0.2f, 1.0f);
     glEnable(GL_DEPTH_TEST);
@@ -319,11 +436,13 @@ void MapWidget::resizeGL(int w, int h)
 {
     m_camera->setViewportSize(w, h);
     glViewport(0, 0, w, h);
+    invalidateLineBatch();
+    invalidateMapLabels();
 }
 
 void MapWidget::paintGL()
 {
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
     m_fpsCounter.frameRendered();
 
@@ -335,14 +454,14 @@ void MapWidget::paintGL()
     if (m_texturesVisible && m_tileRenderer) {
         m_tileRenderer->render();
     }
-
-    // Render world borders on top
-    if (m_bordersVisible && m_borderRenderer) {
-        m_borderRenderer->render();
+    if (m_texturesVisible && m_vectorTileRenderer) {
+        m_vectorTileRenderer->render();
     }
 
-    if (m_gridVisible && m_gridRenderer) {
-        m_gridRenderer->render();
+    if (((m_bordersVisible && m_borderRenderer) || (m_gridVisible && m_gridRenderer))
+        && m_lineBatchRenderer) {
+        rebuildLineBatchIfNeeded();
+        m_lineBatchRenderer->render(m_lineBatchMode);
     }
 
     if (m_citiesVisible && m_cityRenderer) {
@@ -351,17 +470,15 @@ void MapWidget::paintGL()
 
     glDisable(GL_DEPTH_TEST);
 
-    if ((m_gridVisible && m_gridRenderer) || (m_citiesVisible && m_cityRenderer)) {
-        QPainter painter(this);
-        if (m_gridVisible && m_gridRenderer) {
-            m_gridRenderer->renderLabels(painter);
-        }
-        if (m_citiesVisible && m_cityRenderer) {
-            m_cityRenderer->renderLabels(painter);
-        }
+    rebuildMapLabelsIfNeeded();
+    QVector<TextRenderer::Label> textLabels = m_cachedMapLabels;
+    appendFpsOverlay(textLabels);
+    appendScaleBarOverlay(textLabels);
+    drawScaleBarOverlay();
+    if (m_textRenderer) {
+        m_textRenderer->render(textLabels);
     }
 
-    drawFpsOverlay();
     glEnable(GL_DEPTH_TEST);
 }
 
@@ -434,23 +551,80 @@ void MapWidget::keyPressEvent(QKeyEvent* event)
 
 void MapWidget::onCameraChanged()
 {
+    invalidateLineBatch();
+    invalidateMapLabels();
     update();
 }
 
-void MapWidget::drawFpsOverlay()
+void MapWidget::invalidateMapLabels()
 {
-    QPainter painter(this);
-    painter.setRenderHint(QPainter::Antialiasing);
+    m_mapLabelsDirty = true;
+}
 
+void MapWidget::invalidateLineBatch()
+{
+    m_lineBatchDirty = true;
+}
+
+void MapWidget::rebuildLineBatchIfNeeded()
+{
+    if (!m_lineBatchDirty || !m_lineBatchRenderer)
+        return;
+
+    m_cachedLineVertices.clear();
+    m_lineBatchMode = m_camera->isOrthographic()
+        ? LineBatchRenderer::CoordinateMode::Screen
+        : LineBatchRenderer::CoordinateMode::Mercator;
+
+    if (m_lineBatchMode == LineBatchRenderer::CoordinateMode::Mercator) {
+        if (m_bordersVisible && m_borderRenderer) {
+            m_borderRenderer->appendMercatorLines(m_cachedLineVertices);
+        }
+        if (m_gridVisible && m_gridRenderer) {
+            m_gridRenderer->appendMercatorLines(m_cachedLineVertices);
+        }
+    }
+    else {
+        if (m_bordersVisible && m_borderRenderer) {
+            m_borderRenderer->appendScreenLines(m_cachedLineVertices);
+        }
+        if (m_gridVisible && m_gridRenderer) {
+            m_gridRenderer->appendScreenLines(m_cachedLineVertices);
+        }
+    }
+
+    m_lineBatchRenderer->setVertices(m_cachedLineVertices);
+    m_lineBatchDirty = false;
+}
+
+void MapWidget::rebuildMapLabelsIfNeeded()
+{
+    if (!m_mapLabelsDirty)
+        return;
+
+    m_cachedMapLabels.clear();
+    if (m_gridVisible && m_gridRenderer) {
+        m_gridRenderer->appendLabels(m_cachedMapLabels);
+    }
+    if (m_texturesVisible && m_vectorTileRenderer) {
+        m_vectorTileRenderer->appendLabels(m_cachedMapLabels);
+    }
+    if (m_citiesVisible && m_cityRenderer) {
+        m_cityRenderer->appendLabels(m_cachedMapLabels);
+    }
+    m_mapLabelsDirty = false;
+}
+
+void MapWidget::appendFpsOverlay(QVector<TextRenderer::Label>& labels)
+{
     const double fps = m_fpsCounter.fps();
     const QString fpsText = QString("FPS: %1").arg(fps, 0, 'f', 0);
 
-    QFont font = painter.font();
+    QFont font;
     font.setPointSize(11);
     font.setFamily("Arial");
-    painter.setFont(font);
 
-    QFontMetrics fm(painter.font());
+    QFontMetrics fm(font);
 
     const int x = 10;
     const int y = 10;
@@ -465,14 +639,108 @@ void MapWidget::drawFpsOverlay()
         qMax(28, textHeight + 20)
     );
 
-    QRect textRect = boxRect.adjusted(8, 6, -8, -6);
+    TextRenderer::Label label;
+    label.text = fpsText;
+    label.rect = QRectF(boxRect);
+    label.font = font;
+    label.textColor = QColor(0, 255, 0);
+    label.backgroundColor = QColor(0, 0, 0, 170);
+    label.textMargins = QMargins(8, 6, 8, 6);
+    label.radius = 6;
+    label.alignment = Qt::AlignLeft | Qt::AlignVCenter;
+    labels.append(label);
+}
 
-    painter.setPen(Qt::NoPen);
-    painter.setBrush(QColor(0, 0, 0, 170));
-    painter.drawRoundedRect(boxRect, 8, 6);
+void MapWidget::appendScaleBarOverlay(QVector<TextRenderer::Label>& labels)
+{
+    const ScaleBarInfo info = scaleBarInfo(m_camera, width(), height());
+    if (!info.valid)
+        return;
 
-    painter.setPen(QColor(0, 255, 0));
-    painter.drawText(textRect, Qt::AlignLeft | Qt::AlignVCenter, fpsText);
+    QFont font;
+    font.setPointSize(9);
+    font.setFamily("Arial");
+    font.setBold(true);
+
+    QFontMetrics metrics(font);
+    QRect textRect = metrics.boundingRect(info.label).adjusted(-4, -2, 4, 2);
+    textRect.moveCenter(QPoint(
+        static_cast<int>((info.lineStart.x() + info.lineEnd.x()) * 0.5),
+        static_cast<int>(info.lineStart.y() - 15.0)));
+
+    TextRenderer::Label label;
+    label.text = info.label;
+    label.rect = QRectF(textRect);
+    label.font = font;
+    label.textColor = QColor(240, 250, 255);
+    label.backgroundColor = QColor(0, 0, 0, 0);
+    label.radius = 0;
+    label.alignment = Qt::AlignCenter;
+    labels.append(label);
+}
+
+void MapWidget::drawScaleBarOverlay()
+{
+    const ScaleBarInfo info = scaleBarInfo(m_camera, width(), height());
+    if (!info.valid)
+        return;
+
+    initializeShapeResources();
+    if (!m_shapeResourcesInitialized || !m_solidProgram || !m_solidProgram->isLinked())
+        return;
+
+    const QRectF background = info.backgroundRect;
+    QVector<ScreenVertex> backgroundVertices;
+    backgroundVertices.reserve(6);
+    backgroundVertices.append(screenVertex(background.left(), background.top()));
+    backgroundVertices.append(screenVertex(background.right(), background.top()));
+    backgroundVertices.append(screenVertex(background.right(), background.bottom()));
+    backgroundVertices.append(screenVertex(background.left(), background.top()));
+    backgroundVertices.append(screenVertex(background.right(), background.bottom()));
+    backgroundVertices.append(screenVertex(background.left(), background.bottom()));
+
+    const double tickTop = info.lineStart.y() - info.tickHeight;
+    const double tickBottom = info.lineStart.y() + 2.0;
+    QVector<ScreenVertex> lineVertices;
+    lineVertices.reserve(6);
+    lineVertices.append(screenVertex(info.lineStart.x(), info.lineStart.y()));
+    lineVertices.append(screenVertex(info.lineEnd.x(), info.lineEnd.y()));
+    lineVertices.append(screenVertex(info.lineStart.x(), tickTop));
+    lineVertices.append(screenVertex(info.lineStart.x(), tickBottom));
+    lineVertices.append(screenVertex(info.lineEnd.x(), tickTop));
+    lineVertices.append(screenVertex(info.lineEnd.x(), tickBottom));
+
+    QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
+    glDisable(GL_DEPTH_TEST);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    m_solidProgram->bind();
+    m_solidProgram->setUniformValue(
+        "u_viewportSize",
+        QVector2D(static_cast<float>(width()), static_cast<float>(height())));
+
+    f->glBindVertexArray(m_shapeVao);
+    f->glBindBuffer(GL_ARRAY_BUFFER, m_shapeVbo);
+    f->glBufferData(
+        GL_ARRAY_BUFFER,
+        backgroundVertices.size() * static_cast<qsizetype>(sizeof(ScreenVertex)),
+        backgroundVertices.constData(),
+        GL_STREAM_DRAW);
+    m_solidProgram->setUniformValue("u_color", QVector4D(0.0f, 0.0f, 0.0f, 0.55f));
+    f->glDrawArrays(GL_TRIANGLES, 0, backgroundVertices.size());
+
+    glLineWidth(2.0f);
+    f->glBufferData(
+        GL_ARRAY_BUFFER,
+        lineVertices.size() * static_cast<qsizetype>(sizeof(ScreenVertex)),
+        lineVertices.constData(),
+        GL_STREAM_DRAW);
+    m_solidProgram->setUniformValue("u_color", QVector4D(0.92f, 0.98f, 1.0f, 0.95f));
+    f->glDrawArrays(GL_LINES, 0, lineVertices.size());
+
+    f->glBindVertexArray(0);
+    m_solidProgram->release();
 }
 
 void MapWidget::drawGlobeBackdrop()

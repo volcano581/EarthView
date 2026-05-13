@@ -1,4 +1,4 @@
-set(CMAKE_CXX_COMPILER "C:/Qtfull/Tools/llvm-mingw1706_64/bin/c++.exe")
+set(CMAKE_CXX_COMPILER "C:/Qt/Tools/llvm-mingw1706_64/bin/c++.exe")
 set(CMAKE_CXX_COMPILER_ARG1 "")
 set(CMAKE_CXX_COMPILER_ID "Clang")
 set(CMAKE_CXX_COMPILER_VERSION "17.0.6")
@@ -19,19 +19,21 @@ set(CMAKE_CXX26_COMPILE_FEATURES "cxx_std_26")
 set(CMAKE_CXX_PLATFORM_ID "MinGW")
 set(CMAKE_CXX_SIMULATE_ID "")
 set(CMAKE_CXX_COMPILER_FRONTEND_VARIANT "GNU")
+set(CMAKE_CXX_COMPILER_APPLE_SYSROOT "")
 set(CMAKE_CXX_SIMULATE_VERSION "")
+set(CMAKE_CXX_COMPILER_ARCHITECTURE_ID "x86_64")
 
 
 
 
-set(CMAKE_AR "C:/Qtfull/Tools/llvm-mingw1706_64/bin/llvm-ar.exe")
-set(CMAKE_CXX_COMPILER_AR "C:/Qtfull/Tools/llvm-mingw1706_64/bin/llvm-ar.exe")
-set(CMAKE_RANLIB "C:/Qtfull/Tools/llvm-mingw1706_64/bin/llvm-ranlib.exe")
-set(CMAKE_CXX_COMPILER_RANLIB "C:/Qtfull/Tools/llvm-mingw1706_64/bin/llvm-ranlib.exe")
-set(CMAKE_LINKER "C:/Qtfull/Tools/llvm-mingw1706_64/bin/ld.lld.exe")
+set(CMAKE_AR "C:/Qt/Tools/llvm-mingw1706_64/bin/llvm-ar.exe")
+set(CMAKE_CXX_COMPILER_AR "C:/Qt/Tools/llvm-mingw1706_64/bin/llvm-ar.exe")
+set(CMAKE_RANLIB "C:/Qt/Tools/llvm-mingw1706_64/bin/llvm-ranlib.exe")
+set(CMAKE_CXX_COMPILER_RANLIB "C:/Qt/Tools/llvm-mingw1706_64/bin/llvm-ranlib.exe")
+set(CMAKE_LINKER "C:/Qt/Tools/llvm-mingw1706_64/bin/ld.lld.exe")
 set(CMAKE_LINKER_LINK "")
 set(CMAKE_LINKER_LLD "")
-set(CMAKE_CXX_COMPILER_LINKER "C:/Qtfull/Tools/llvm-mingw1706_64/bin/ld.lld")
+set(CMAKE_CXX_COMPILER_LINKER "C:/Qt/Tools/llvm-mingw1706_64/bin/ld.lld")
 set(CMAKE_CXX_COMPILER_LINKER_ID "LLD")
 set(CMAKE_CXX_COMPILER_LINKER_VERSION 17.0.6)
 set(CMAKE_CXX_COMPILER_LINKER_FRONTEND_VARIANT GNU)
@@ -58,7 +60,9 @@ endforeach()
 
 set(CMAKE_CXX_LINKER_PREFERENCE 30)
 set(CMAKE_CXX_LINKER_PREFERENCE_PROPAGATES 1)
-set(CMAKE_CXX_LINKER_DEPFILE_SUPPORTED )
+set(CMAKE_CXX_LINKER_DEPFILE_SUPPORTED FALSE)
+set(CMAKE_LINKER_PUSHPOP_STATE_SUPPORTED FALSE)
+set(CMAKE_CXX_LINKER_PUSHPOP_STATE_SUPPORTED FALSE)
 
 # Save compiler ABI information.
 set(CMAKE_CXX_SIZEOF_DATA_PTR "8")
@@ -87,19 +91,12 @@ endif()
 
 
 
-set(CMAKE_CXX_IMPLICIT_INCLUDE_DIRECTORIES "C:/Qtfull/Tools/llvm-mingw1706_64/include/c++/v1;C:/Qtfull/Tools/llvm-mingw1706_64/lib/clang/17/include;C:/Qtfull/Tools/llvm-mingw1706_64/include")
+set(CMAKE_CXX_IMPLICIT_INCLUDE_DIRECTORIES "C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1;C:/Qt/Tools/llvm-mingw1706_64/lib/clang/17/include;C:/Qt/Tools/llvm-mingw1706_64/include")
 set(CMAKE_CXX_IMPLICIT_LINK_LIBRARIES "c++;mingw32;unwind;moldname;mingwex;advapi32;shell32;user32;kernel32;mingw32;unwind;moldname;mingwex;kernel32")
-set(CMAKE_CXX_IMPLICIT_LINK_DIRECTORIES "C:/Qtfull/Tools/llvm-mingw1706_64/x86_64-w64-mingw32/lib;C:/Qtfull/Tools/llvm-mingw1706_64/x86_64-w64-mingw32/mingw/lib;C:/Qtfull/Tools/llvm-mingw1706_64/lib;C:/Qtfull/Tools/llvm-mingw1706_64/lib/clang/17/lib/windows")
+set(CMAKE_CXX_IMPLICIT_LINK_DIRECTORIES "C:/Qt/Tools/llvm-mingw1706_64/x86_64-w64-mingw32/lib;C:/Qt/Tools/llvm-mingw1706_64/x86_64-w64-mingw32/mingw/lib;C:/Qt/Tools/llvm-mingw1706_64/lib;C:/Qt/Tools/llvm-mingw1706_64/lib/clang/17/lib/windows")
 set(CMAKE_CXX_IMPLICIT_LINK_FRAMEWORK_DIRECTORIES "")
-set(CMAKE_CXX_COMPILER_CLANG_RESOURCE_DIR "C:/Qtfull/Tools/llvm-mingw1706_64/lib/clang/17")
+set(CMAKE_CXX_COMPILER_CLANG_RESOURCE_DIR "C:/Qt/Tools/llvm-mingw1706_64/lib/clang/17")
 
 set(CMAKE_CXX_COMPILER_IMPORT_STD "")
-### Imported target for C++23 standard library
-set(CMAKE_CXX23_COMPILER_IMPORT_STD_NOT_FOUND_MESSAGE "Unsupported generator: MinGW Makefiles")
-
-
-### Imported target for C++26 standard library
-set(CMAKE_CXX26_COMPILER_IMPORT_STD_NOT_FOUND_MESSAGE "Unsupported generator: MinGW Makefiles")
-
-
-
+set(CMAKE_CXX_COMPILER_IMPORT_STD_ERROR_MESSAGE  "Unsupported generator: MinGW Makefiles")
+set(CMAKE_CXX_STDLIB_MODULES_JSON "")
