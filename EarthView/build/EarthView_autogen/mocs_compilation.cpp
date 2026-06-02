@@ -3,6 +3,7 @@
 #include "EWIEGA46WW/moc_Camera.cpp"
 #include "EWIEGA46WW/moc_DemLoader.cpp"
 #include "EWIEGA46WW/moc_MainWindow.cpp"
+#include "EWIEGA46WW/moc_MapViewWindow.cpp"
 #include "EWIEGA46WW/moc_MapWidget.cpp"
 #include "EWIEGA46WW/moc_TMSLoader.cpp"
 #include "EWIEGA46WW/moc_TileRenderer.cpp"

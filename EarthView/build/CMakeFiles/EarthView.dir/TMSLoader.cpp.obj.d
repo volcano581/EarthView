@@ -1021,9 +1021,23 @@ CMakeFiles/EarthView.dir/TMSLoader.cpp.obj: \
   C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/__filesystem/recursive_directory_iterator.h \
   C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/__filesystem/u8path.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qtimezone.h \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QMetaObject \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtNetwork/QNetworkRequest \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtNetwork/QNetworkReply \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtNetwork/qnetworkreply.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QIODevice \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QPointer \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qpointer.h \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QThreadPool \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qthreadpool.h \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qthread.h \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qdeadlinetimer.h \
+  C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/future \
+  C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/thread \
+  C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/__thread/formatter.h \
+  C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/__thread/this_thread.h \
+  C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/__thread/thread.h \
+  C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/sstream \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qrunnable.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QDebug \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QtMath

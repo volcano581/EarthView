@@ -8,6 +8,7 @@ uniform vec2 u_centerMercator;
 uniform float u_pixelsPerMeter;
 uniform float u_earthRadius;
 uniform float u_pitchRadians;
+uniform float u_yawRadians;
 uniform vec2 u_screenAnchor;
 uniform float u_focalPixels;
 uniform float u_viewDistanceMeters;
@@ -17,18 +18,23 @@ out vec4 v_color;
 void main()
 {
     vec2 localMeters = (a_mercator - u_centerMercator) * u_earthRadius;
+    float cosYaw = cos(u_yawRadians);
+    float sinYaw = sin(u_yawRadians);
+    vec2 viewMeters = vec2(
+        localMeters.x * cosYaw - localMeters.y * sinYaw,
+        localMeters.x * sinYaw + localMeters.y * cosYaw);
     float cosPitch = cos(u_pitchRadians);
     float sinPitch = sin(u_pitchRadians);
-    float tiltedNorthMeters = localMeters.y * cosPitch;
-    float depthMeters = localMeters.y * sinPitch;
+    float tiltedForwardMeters = viewMeters.y * cosPitch;
+    float depthMeters = viewMeters.y * sinPitch;
     float perspective = clamp(
         u_focalPixels / max(u_focalPixels + depthMeters * u_pixelsPerMeter, 1.0),
         0.35,
         3.0);
 
     vec2 screen = vec2(
-        u_screenAnchor.x + localMeters.x * u_pixelsPerMeter * perspective,
-        u_screenAnchor.y - tiltedNorthMeters * u_pixelsPerMeter * perspective);
+        u_screenAnchor.x + viewMeters.x * u_pixelsPerMeter * perspective,
+        u_screenAnchor.y - tiltedForwardMeters * u_pixelsPerMeter * perspective);
 
     vec2 ndc = vec2(
         screen.x * (2.0 / u_viewportSize.x) - 1.0,

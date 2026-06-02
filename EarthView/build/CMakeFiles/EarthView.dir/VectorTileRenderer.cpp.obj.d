@@ -1037,9 +1037,25 @@ CMakeFiles/EarthView.dir/VectorTileRenderer.cpp.obj: \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QDebug \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/QFontMetrics \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/qfontmetrics.h \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QMetaObject \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/QOpenGLContext \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/QOpenGLExtraFunctions \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/qopenglextrafunctions.h \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QPointer \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qpointer.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QStringList \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QThreadPool \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qthreadpool.h \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qthread.h \
+  C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/future \
+  C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/thread \
+  C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/__thread/formatter.h \
+  C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/__thread/this_thread.h \
+  C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/__thread/thread.h \
+  C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/sstream \
+  C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/istream \
+  C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/ostream \
+  C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/bitset \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qrunnable.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/QVector2D \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QtMath

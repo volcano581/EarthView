@@ -35,6 +35,7 @@ set(SOURCES
     GridRenderer.cpp
     LineBatchRenderer.cpp
     MainWindow.cpp
+    MapViewWindow.cpp
     MapWidget.cpp
     MbTilesReader.cpp
     MercatorProjection.cpp
@@ -58,6 +59,7 @@ set(HEADERS
     GridRenderer.h
     LineBatchRenderer.h
     MainWindow.h
+    MapViewWindow.h
     MapWidget.h
     MbTilesReader.h
     Constants.h

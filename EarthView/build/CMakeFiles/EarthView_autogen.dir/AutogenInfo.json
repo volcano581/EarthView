@@ -497,6 +497,12 @@
 			null
 		],
 		[
+			"G:/Projects/EarthView/EarthView/MapViewWindow.h",
+			"MU",
+			"EWIEGA46WW/moc_MapViewWindow.cpp",
+			null
+		],
+		[
 			"G:/Projects/EarthView/EarthView/MapWidget.h",
 			"MU",
 			"EWIEGA46WW/moc_MapWidget.cpp",
@@ -665,6 +671,7 @@
 		[ "G:/Projects/EarthView/EarthView/GridRenderer.cpp", "MU", null ],
 		[ "G:/Projects/EarthView/EarthView/LineBatchRenderer.cpp", "MU", null ],
 		[ "G:/Projects/EarthView/EarthView/MainWindow.cpp", "MU", null ],
+		[ "G:/Projects/EarthView/EarthView/MapViewWindow.cpp", "MU", null ],
 		[ "G:/Projects/EarthView/EarthView/MapWidget.cpp", "MU", null ],
 		[ "G:/Projects/EarthView/EarthView/MbTilesReader.cpp", "MU", null ],
 		[ "G:/Projects/EarthView/EarthView/MercatorProjection.cpp", "MU", null ],

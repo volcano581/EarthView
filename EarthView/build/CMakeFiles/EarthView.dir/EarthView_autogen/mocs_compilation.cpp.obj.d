@@ -1033,6 +1033,8 @@ CMakeFiles/EarthView.dir/EarthView_autogen/mocs_compilation.cpp.obj: \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/qcursor.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/qbitmap.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtWidgets/qtabwidget.h \
+  G:/Projects/EarthView/EarthView/build/EarthView_autogen/EWIEGA46WW/moc_MapViewWindow.cpp \
+  G:/Projects/EarthView/EarthView/build/EarthView_autogen/EWIEGA46WW/../../../MapViewWindow.h \
   G:/Projects/EarthView/EarthView/build/EarthView_autogen/EWIEGA46WW/moc_MapWidget.cpp \
   G:/Projects/EarthView/EarthView/build/EarthView_autogen/EWIEGA46WW/../../../MapWidget.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtOpenGLWidgets/QOpenGLWidget \

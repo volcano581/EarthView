@@ -19,6 +19,8 @@ file(REMOVE_RECURSE
   "CMakeFiles/EarthView.dir/LineBatchRenderer.cpp.obj.d"
   "CMakeFiles/EarthView.dir/MainWindow.cpp.obj"
   "CMakeFiles/EarthView.dir/MainWindow.cpp.obj.d"
+  "CMakeFiles/EarthView.dir/MapViewWindow.cpp.obj"
+  "CMakeFiles/EarthView.dir/MapViewWindow.cpp.obj.d"
   "CMakeFiles/EarthView.dir/MapWidget.cpp.obj"
   "CMakeFiles/EarthView.dir/MapWidget.cpp.obj.d"
   "CMakeFiles/EarthView.dir/MbTilesReader.cpp.obj"

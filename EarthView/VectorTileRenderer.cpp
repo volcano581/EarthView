@@ -10,9 +10,12 @@
 #include <QDebug>
 #include <QFont>
 #include <QFontMetrics>
+#include <QMetaObject>
 #include <QOpenGLContext>
 #include <QOpenGLExtraFunctions>
+#include <QPointer>
 #include <QStringList>
+#include <QThreadPool>
 #include <QtGlobal>
 #include <QVector2D>
 #include <QtMath>
@@ -603,6 +606,7 @@ VectorTileRenderer::VectorTileRenderer(Camera* camera, QObject* parent)
     , m_hasBatchCameraState(false)
     , m_batchWasOrthographic(false)
     , m_enabled(true)
+    , m_requestGeneration(0)
 {
     initializeOpenGLFunctions();
 }
@@ -782,8 +786,10 @@ void VectorTileRenderer::setupBackgroundInstanceArray()
 
 void VectorTileRenderer::clearCache()
 {
+    ++m_requestGeneration;
     m_tileCache.clear();
     m_visibleKeys.clear();
+    m_pendingTileReads.clear();
     m_backgroundInstances.clear();
     m_backgroundFillVertices.clear();
     m_fillBatches.clear();
@@ -878,34 +884,10 @@ void VectorTileRenderer::updateVisibleTiles()
             for (int y = tileRange.y(); y < tileRange.y() + tileRange.height(); ++y) {
                 const QString key = tileKey(layerIndex, tileZoomLevel, x, y);
                 newVisibleKeys.insert(key);
-                if (m_tileCache.contains(key))
+                if (m_tileCache.contains(key) || m_pendingTileReads.contains(key))
                     continue;
 
-                QString errorMessage;
-                const MbTilesVectorTile vectorTile = MbTilesReader::readVectorTile(
-                    layer.mbTilesPath,
-                    tileZoomLevel,
-                    MercatorProjection::wrapTileX(x, tileZoomLevel),
-                    y,
-                    layer.tmsYOrigin,
-                    &errorMessage);
-
-                if (!errorMessage.isEmpty() && !vectorTile.isEmpty()) {
-                    qDebug() << errorMessage;
-                }
-                else if (!errorMessage.isEmpty()) {
-                    qWarning() << errorMessage;
-                }
-
-                CachedTile cachedTile;
-                cachedTile.layerIndex = layerIndex;
-                cachedTile.z = tileZoomLevel;
-                cachedTile.x = x;
-                cachedTile.y = y;
-                cachedTile.mercatorBounds = MercatorProjection::tileToMercatorBounds(tileZoomLevel, x, y);
-                cachedTile.tile = vectorTile;
-                m_tileCache.insert(key, cachedTile);
-                m_batchesDirty = true;
+                fetchVectorTile(layerIndex, tileZoomLevel, x, y);
             }
         }
     }
@@ -927,6 +909,85 @@ void VectorTileRenderer::updateVisibleTiles()
         }
         m_batchesDirty = true;
     }
+}
+
+void VectorTileRenderer::fetchVectorTile(int layerIndex, int z, int x, int y)
+{
+    if (layerIndex < 0 || layerIndex >= m_layers.size())
+        return;
+
+    const QString key = tileKey(layerIndex, z, x, y);
+    if (m_tileCache.contains(key) || m_pendingTileReads.contains(key))
+        return;
+
+    const TmsLoader::TileSourceLayer layer = m_layers.at(layerIndex);
+    if (layer.sourceType != TmsLoader::TileSourceLayer::SourceType::VectorMbTiles)
+        return;
+
+    m_pendingTileReads.insert(key);
+
+    const int wrappedX = MercatorProjection::wrapTileX(x, z);
+    const quint64 generation = m_requestGeneration;
+    QPointer<VectorTileRenderer> renderer(this);
+
+    QThreadPool::globalInstance()->start([renderer, key, layer, layerIndex, z, x, wrappedX, y, generation]() {
+        QString errorMessage;
+        const MbTilesVectorTile vectorTile = MbTilesReader::readVectorTile(
+            layer.mbTilesPath,
+            z,
+            wrappedX,
+            y,
+            layer.tmsYOrigin,
+            &errorMessage);
+
+        if (!renderer)
+            return;
+
+        QMetaObject::invokeMethod(
+            renderer.data(),
+            [renderer, key, vectorTile, errorMessage, layerIndex, z, x, y, generation]() {
+                if (!renderer)
+                    return;
+                renderer->completeVectorTileRead(key, vectorTile, errorMessage, layerIndex, z, x, y, generation);
+            },
+            Qt::QueuedConnection);
+    });
+}
+
+void VectorTileRenderer::completeVectorTileRead(
+    const QString& key,
+    const MbTilesVectorTile& tile,
+    const QString& errorMessage,
+    int layerIndex,
+    int z,
+    int x,
+    int y,
+    quint64 generation)
+{
+    if (generation != m_requestGeneration || !m_pendingTileReads.contains(key))
+        return;
+
+    m_pendingTileReads.remove(key);
+
+    if (!errorMessage.isEmpty() && !tile.isEmpty()) {
+        qDebug() << errorMessage;
+    }
+    else if (!errorMessage.isEmpty()) {
+        qWarning() << errorMessage;
+    }
+
+    if (!m_visibleKeys.contains(key))
+        return;
+
+    CachedTile cachedTile;
+    cachedTile.layerIndex = layerIndex;
+    cachedTile.z = z;
+    cachedTile.x = x;
+    cachedTile.y = y;
+    cachedTile.mercatorBounds = MercatorProjection::tileToMercatorBounds(z, x, y);
+    cachedTile.tile = tile;
+    m_tileCache.insert(key, cachedTile);
+    m_batchesDirty = true;
 }
 
 QPointF VectorTileRenderer::tilePixelToMercator(const QPointF& point, const QRectF& bounds) const
@@ -1156,6 +1217,9 @@ void VectorTileRenderer::bindFillProgram(QOpenGLShaderProgram* program, LineBatc
         program->setUniformValue("u_pixelsPerMeter", static_cast<float>(1.0 / m_camera->getResolution()));
         program->setUniformValue("u_earthRadius", static_cast<float>(GIS::EARTH_RADIUS));
         program->setUniformValue("u_pitchRadians", qDegreesToRadians(m_camera->terrainPitchDegrees()));
+        program->setUniformValue(
+            "u_yawRadians",
+            m_camera->isStealthViewEnabled() ? qDegreesToRadians(m_camera->cameraYawDegrees()) : 0.0f);
         program->setUniformValue(
             "u_screenAnchor",
             QVector2D(

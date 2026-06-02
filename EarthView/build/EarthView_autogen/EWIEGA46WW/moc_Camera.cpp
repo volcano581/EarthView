@@ -47,7 +47,8 @@ template <> constexpr inline auto Camera::qt_create_metaobjectdata<qt_meta_tag_Z
         "Camera::ProjectionMode",
         "mode",
         "terrain3DChanged",
-        "terrainViewParametersChanged"
+        "terrainViewParametersChanged",
+        "stealthViewChanged"
     };
 
     QtMocHelpers::UintData qt_methods {
@@ -67,6 +68,10 @@ template <> constexpr inline auto Camera::qt_create_metaobjectdata<qt_meta_tag_Z
         }}),
         // Signal 'terrainViewParametersChanged'
         QtMocHelpers::SignalData<void()>(9, 2, QMC::AccessPublic, QMetaType::Void),
+        // Signal 'stealthViewChanged'
+        QtMocHelpers::SignalData<void(bool)>(10, 2, QMC::AccessPublic, QMetaType::Void, {{
+            { QMetaType::Bool, 4 },
+        }}),
     };
     QtMocHelpers::UintData qt_properties {
     };
@@ -95,6 +100,7 @@ void Camera::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, void
         case 2: _t->projectionModeChanged((*reinterpret_cast<std::add_pointer_t<Camera::ProjectionMode>>(_a[1]))); break;
         case 3: _t->terrain3DChanged((*reinterpret_cast<std::add_pointer_t<bool>>(_a[1]))); break;
         case 4: _t->terrainViewParametersChanged(); break;
+        case 5: _t->stealthViewChanged((*reinterpret_cast<std::add_pointer_t<bool>>(_a[1]))); break;
         default: ;
         }
     }
@@ -108,6 +114,8 @@ void Camera::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, void
         if (QtMocHelpers::indexOfMethod<void (Camera::*)(bool )>(_a, &Camera::terrain3DChanged, 3))
             return;
         if (QtMocHelpers::indexOfMethod<void (Camera::*)()>(_a, &Camera::terrainViewParametersChanged, 4))
+            return;
+        if (QtMocHelpers::indexOfMethod<void (Camera::*)(bool )>(_a, &Camera::stealthViewChanged, 5))
             return;
     }
 }
@@ -131,14 +139,14 @@ int Camera::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     if (_id < 0)
         return _id;
     if (_c == QMetaObject::InvokeMetaMethod) {
-        if (_id < 5)
+        if (_id < 6)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 5;
+        _id -= 6;
     }
     if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
-        if (_id < 5)
+        if (_id < 6)
             *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType();
-        _id -= 5;
+        _id -= 6;
     }
     return _id;
 }
@@ -171,5 +179,11 @@ void Camera::terrain3DChanged(bool _t1)
 void Camera::terrainViewParametersChanged()
 {
     QMetaObject::activate(this, &staticMetaObject, 4, nullptr);
+}
+
+// SIGNAL 5
+void Camera::stealthViewChanged(bool _t1)
+{
+    QMetaObject::activate<void>(this, &staticMetaObject, 5, nullptr, _t1);
 }
 QT_WARNING_POP

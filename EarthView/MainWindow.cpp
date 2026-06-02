@@ -1,5 +1,6 @@
 #include "MainWindow.h"
 #include "MapWidget.h"
+#include "MapViewWindow.h"
 #include "Camera.h"
 #include "MbTilesReader.h"
 #include "MercatorProjection.h"
@@ -492,6 +493,10 @@ QList<EarthSource> discoverMapSources()
 
 MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent)
+    , m_mapWidget(nullptr)
+    , m_secondaryWindow(nullptr)
+    , m_coordLabel(nullptr)
+    , m_zoomLabel(nullptr)
 {
     setupUI();
     createStatusBar();
@@ -514,19 +519,26 @@ void MainWindow::setupUI()
         m_mapWidget->camera()->setZoomLevel(2.0);
         });
 
-    // Create map widget
+    // Create map widgets
     m_mapWidget = new MapWidget(this);
+    m_secondaryWindow = new MapViewWindow("EarthView Secondary View", this);
+
     const QList<EarthSource> mapSources = discoverMapSources();
     if (!mapSources.isEmpty()) {
         m_mapWidget->setTileSourceLayers(mapSources.first().layers);
+        m_secondaryWindow->mapWidget()->setTileSourceLayers(mapSources.first().layers);
     }
     else {
         m_mapWidget->setTileServerUrl("https://tile.openstreetmap.org/{z}/{x}/{y}.png");
+        m_secondaryWindow->mapWidget()->setTileServerUrl("https://tile.openstreetmap.org/{z}/{x}/{y}.png");
     }
     m_mapWidget->loadWorldBorders();
     m_mapWidget->loadCities();
+    m_secondaryWindow->mapWidget()->loadWorldBorders();
+    m_secondaryWindow->mapWidget()->loadCities();
 
     setCentralWidget(m_mapWidget);
+    m_mapWidget->setFocus(Qt::OtherFocusReason);
 
     toolbar->addSeparator();
     toolbar->addWidget(new QLabel("Map Source:", this));
@@ -550,6 +562,7 @@ void MainWindow::setupUI()
         if (sourceIndex >= 0 && sourceIndex < mapSources.size()) {
             const EarthSource& source = mapSources.at(sourceIndex);
             m_mapWidget->setTileSourceLayers(source.layers);
+            m_secondaryWindow->mapWidget()->setTileSourceLayers(source.layers);
             statusBar()->showMessage(
                 QString("Map source set to %1 from %2")
                     .arg(source.label, QFileInfo(source.filePath).fileName()),
@@ -558,6 +571,7 @@ void MainWindow::setupUI()
         }
 
         m_mapWidget->setTileServerUrl("https://tile.openstreetmap.org/{z}/{x}/{y}.png");
+        m_secondaryWindow->mapWidget()->setTileServerUrl("https://tile.openstreetmap.org/{z}/{x}/{y}.png");
         statusBar()->showMessage("Map source set to OpenStreetMap fallback", 3000);
     };
 
@@ -599,6 +613,12 @@ void MainWindow::setupUI()
     terrainVisibleAction->setToolTip("Show or hide DEM terrain overlay.");
     toolbar->addAction(terrainVisibleAction);
 
+    QAction* secondaryWindowAction = new QAction("Secondary Window", this);
+    secondaryWindowAction->setCheckable(true);
+    secondaryWindowAction->setChecked(true);
+    secondaryWindowAction->setToolTip("Show or hide the independent secondary map window.");
+    toolbar->addAction(secondaryWindowAction);
+
     QAction* wrapLongitudeAction = new QAction("Wrap Longitude", this);
     wrapLongitudeAction->setCheckable(true);
     wrapLongitudeAction->setToolTip("Repeat imagery horizontally instead of constraining longitude to +/-180 degrees.");
@@ -619,6 +639,7 @@ void MainWindow::setupUI()
     viewMenu->addAction(gridVisibleAction);
     viewMenu->addAction(citiesVisibleAction);
     viewMenu->addAction(terrainVisibleAction);
+    viewMenu->addAction(secondaryWindowAction);
     viewMenu->addSeparator();
     viewMenu->addAction(wrapLongitudeAction);
     viewMenu->addAction(globeViewAction);
@@ -635,6 +656,7 @@ void MainWindow::setupUI()
 
         QString message;
         if (m_mapWidget->loadBorderShapefile(filePath, &message)) {
+            m_secondaryWindow->mapWidget()->loadBorderShapefile(filePath);
             statusBar()->showMessage(message, 4000);
         }
         else {
@@ -669,6 +691,11 @@ void MainWindow::setupUI()
         statusBar()->showMessage(visible ? "Terrain shown" : "Terrain hidden", 2000);
         });
 
+    connect(secondaryWindowAction, &QAction::toggled, this, [this](bool visible) {
+        m_secondaryWindow->setVisible(visible);
+        statusBar()->showMessage(visible ? "Secondary map window shown" : "Secondary map window hidden", 2000);
+        });
+
     connect(wrapLongitudeAction, &QAction::toggled, this, [this](bool enabled) {
         m_mapWidget->camera()->setHorizontalWrapEnabled(enabled);
         statusBar()->showMessage(
@@ -682,9 +709,14 @@ void MainWindow::setupUI()
         statusBar()->showMessage(enabled ? "Orthographic globe view enabled" : "Mercator map view enabled", 2000);
         });
 
-    connect(m_mapWidget->camera(), &Camera::projectionModeChanged, this, [globeViewAction](Camera::ProjectionMode mode) {
+    auto syncGlobeAction = [this, globeViewAction]() {
         QSignalBlocker blocker(globeViewAction);
-        globeViewAction->setChecked(mode == Camera::ProjectionMode::Orthographic);
+        globeViewAction->setChecked(m_mapWidget->camera()->isOrthographic());
+    };
+    connect(m_mapWidget->camera(), &Camera::projectionModeChanged, this, syncGlobeAction);
+    connect(m_secondaryWindow, &MapViewWindow::windowVisibilityChanged, this, [secondaryWindowAction](bool visible) {
+        QSignalBlocker blocker(secondaryWindowAction);
+        secondaryWindowAction->setChecked(visible);
     });
 
     // Connect camera for status updates
@@ -698,6 +730,7 @@ void MainWindow::setupUI()
         m_zoomLabel->setText(QString("Zoom: %1")
             .arg(m_mapWidget->camera()->getZoomLevel(), 0, 'f', 1));
         });
+    m_secondaryWindow->show();
 }
 
 void MainWindow::createStatusBar()

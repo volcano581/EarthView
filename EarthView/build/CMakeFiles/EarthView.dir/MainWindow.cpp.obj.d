@@ -998,6 +998,7 @@ CMakeFiles/EarthView.dir/MainWindow.cpp.obj: \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/qguiapplication_platform.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/QWheelEvent \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/QKeyEvent \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QSet \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtOpenGL/QOpenGLShaderProgram \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtOpenGL/qopenglshaderprogram.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtOpenGL/qtopenglglobal.h \
@@ -1047,7 +1048,6 @@ CMakeFiles/EarthView.dir/MainWindow.cpp.obj: \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QMetaType \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QHash \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QMap \
-  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QSet \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/QImage \
   G:/Projects/EarthView/EarthView/Constants.h \
   G:/Projects/EarthView/EarthView/TextureManager.h \
@@ -1059,6 +1059,7 @@ CMakeFiles/EarthView.dir/MainWindow.cpp.obj: \
   G:/Projects/EarthView/EarthView/fpsCounter.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QElapsedTimer \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qelapsedtimer.h \
+  G:/Projects/EarthView/EarthView/MapViewWindow.h \
   G:/Projects/EarthView/EarthView/Camera.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/QMatrix4x4 \
   G:/Projects/EarthView/EarthView/MbTilesReader.h \

@@ -5,9 +5,12 @@
 #include "MercatorProjection.h"
 #include "Constants.h"
 #include <QFileInfo>
+#include <QMetaObject>
 #include <QNetworkRequest>
 #include <QNetworkReply>
 #include <QImage>
+#include <QPointer>
+#include <QThreadPool>
 #include <QDebug>
 #include <QtMath>
 #include <algorithm>
@@ -30,6 +33,7 @@ TmsLoader::TmsLoader(Camera* camera, QObject* parent)
     , m_camera(camera)
     , m_networkManager(new QNetworkAccessManager(this))
     , m_textureManager(new TextureManager(GIS::TEXTURE_CACHE_SIZE_MB))
+    , m_requestGeneration(0)
     , m_loadingEnabled(true)
 {
     TileSourceLayer defaultLayer;
@@ -241,6 +245,7 @@ void TmsLoader::updateVisibleTiles()
 
 void TmsLoader::clearCache()
 {
+    ++m_requestGeneration;
     abortRequestsExcept(QSet<QString>());
     m_activeTiles.clear();
     m_pendingRequests.clear();
@@ -301,15 +306,50 @@ void TmsLoader::fetchMbTile(int z, int x, int y, int layerIndex)
         return;
 
     m_pendingRequests.insert(key);
-    QString errorMessage;
-    const QImage image = MbTilesReader::readTileImage(
-        layer.mbTilesPath,
-        z,
-        MercatorProjection::wrapTileX(x, z),
-        y,
-        layer.tmsYOrigin,
-        layer.mbTilesFormat,
-        &errorMessage);
+    const QString mbTilesPath = layer.mbTilesPath;
+    const QString mbTilesFormat = layer.mbTilesFormat;
+    const bool tmsYOrigin = layer.tmsYOrigin;
+    const int wrappedX = MercatorProjection::wrapTileX(x, z);
+    const quint64 generation = m_requestGeneration;
+    QPointer<TmsLoader> loader(this);
+
+    QThreadPool::globalInstance()->start([loader, key, mbTilesPath, z, wrappedX, y, tmsYOrigin, mbTilesFormat, generation]() {
+        QString errorMessage;
+        const QImage image = MbTilesReader::readTileImage(
+            mbTilesPath,
+            z,
+            wrappedX,
+            y,
+            tmsYOrigin,
+            mbTilesFormat,
+            &errorMessage);
+
+        if (!loader)
+            return;
+
+        QMetaObject::invokeMethod(
+            loader.data(),
+            [loader, key, image, errorMessage, z, wrappedX, y, generation]() {
+                if (!loader)
+                    return;
+                loader->completeMbTileRead(key, image, errorMessage, z, wrappedX, y, generation);
+            },
+            Qt::QueuedConnection);
+    });
+}
+
+void TmsLoader::completeMbTileRead(
+    const QString& key,
+    const QImage& image,
+    const QString& errorMessage,
+    int z,
+    int x,
+    int y,
+    quint64 generation)
+{
+    if (generation != m_requestGeneration || !m_pendingRequests.contains(key))
+        return;
+
     m_pendingRequests.remove(key);
 
     if (!image.isNull()) {

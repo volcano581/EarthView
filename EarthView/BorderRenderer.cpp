@@ -531,6 +531,9 @@ void BorderRenderer::renderMercator()
         program->setUniformValue("u_earthRadius", static_cast<float>(GIS::EARTH_RADIUS));
         program->setUniformValue("u_pitchRadians", qDegreesToRadians(m_camera->terrainPitchDegrees()));
         program->setUniformValue(
+            "u_yawRadians",
+            m_camera->isStealthViewEnabled() ? qDegreesToRadians(m_camera->cameraYawDegrees()) : 0.0f);
+        program->setUniformValue(
             "u_screenAnchor",
             QVector2D(
                 static_cast<float>(m_camera->terrainScreenAnchor().x()),

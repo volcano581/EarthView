@@ -90,6 +90,14 @@ private:
     void deriveDisplayZoomsFromTileResources();
     void fetchTile(int z, int x, int y, int layerIndex);
     void fetchMbTile(int z, int x, int y, int layerIndex);
+    void completeMbTileRead(
+        const QString& key,
+        const QImage& image,
+        const QString& errorMessage,
+        int z,
+        int x,
+        int y,
+        quint64 generation);
     void applyTileImage(const QString& key, const QImage& image);
     void handleTileFailure(const QString& key, int z, int x, int y);
     void abortRequestsExcept(const QSet<QString>& keepKeys);
@@ -106,6 +114,7 @@ private:
     QSet<QString> m_pendingRequests;
     QHash<QString, QNetworkReply*> m_pendingReplies;
     QList<TileSourceLayer> m_tileLayers;
+    quint64 m_requestGeneration;
     bool m_loadingEnabled;
 };
 

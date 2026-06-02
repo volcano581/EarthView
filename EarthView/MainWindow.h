@@ -5,6 +5,7 @@
 #include <QMainWindow>
 
 class MapWidget;
+class MapViewWindow;
 class QLabel;
 
 /**
@@ -23,6 +24,7 @@ private:
 
 private:
     MapWidget* m_mapWidget;
+    MapViewWindow* m_secondaryWindow;
     QLabel* m_coordLabel;
     QLabel* m_zoomLabel;
 };

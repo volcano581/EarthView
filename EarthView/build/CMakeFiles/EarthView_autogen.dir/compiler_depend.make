@@ -1384,6 +1384,8 @@ EarthView_autogen/timestamp: C:/Program\ Files/CMake/bin/cmake.exe \
   G:/Projects/EarthView/EarthView/LineBatchRenderer.h \
   G:/Projects/EarthView/EarthView/MainWindow.cpp \
   G:/Projects/EarthView/EarthView/MainWindow.h \
+  G:/Projects/EarthView/EarthView/MapViewWindow.cpp \
+  G:/Projects/EarthView/EarthView/MapViewWindow.h \
   G:/Projects/EarthView/EarthView/MapWidget.cpp \
   G:/Projects/EarthView/EarthView/MapWidget.h \
   G:/Projects/EarthView/EarthView/MbTilesReader.cpp \
@@ -4201,6 +4203,10 @@ G:/Projects/EarthView/EarthView/GridRenderer.h:
 G:/Projects/EarthView/EarthView/LineBatchRenderer.h:
 
 G:/Projects/EarthView/EarthView/MainWindow.cpp:
+
+G:/Projects/EarthView/EarthView/MapViewWindow.cpp:
+
+G:/Projects/EarthView/EarthView/MapViewWindow.h:
 
 G:/Projects/EarthView/EarthView/MapWidget.h:
 

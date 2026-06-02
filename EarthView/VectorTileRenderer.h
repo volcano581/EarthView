@@ -65,6 +65,16 @@ private:
     void initializeGpuResources();
     void clearCache();
     void updateVisibleTiles();
+    void fetchVectorTile(int layerIndex, int z, int x, int y);
+    void completeVectorTileRead(
+        const QString& key,
+        const MbTilesVectorTile& tile,
+        const QString& errorMessage,
+        int layerIndex,
+        int z,
+        int x,
+        int y,
+        quint64 generation);
     void rebuildBatches();
     void drawFillBatch();
     void drawInstancedBackground();
@@ -82,6 +92,7 @@ private:
     QList<TmsLoader::TileSourceLayer> m_layers;
     QMap<QString, CachedTile> m_tileCache;
     QSet<QString> m_visibleKeys;
+    QSet<QString> m_pendingTileReads;
     QVector<BackgroundInstance> m_backgroundInstances;
     QVector<LineBatchRenderer::LineVertex> m_backgroundFillVertices;
     QVector<FillBatch> m_fillBatches;
@@ -112,6 +123,7 @@ private:
     bool m_hasBatchCameraState;
     bool m_batchWasOrthographic;
     bool m_enabled;
+    quint64 m_requestGeneration;
 };
 
 #endif // VECTORTILERENDERER_H

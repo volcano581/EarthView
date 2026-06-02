@@ -362,6 +362,9 @@ void TerrainRenderer::render()
     m_program.setUniformValue("u_pixelsPerMeter", static_cast<float>(1.0 / m_camera->getResolution()));
     m_program.setUniformValue("u_earthRadius", static_cast<float>(GIS::EARTH_RADIUS));
     m_program.setUniformValue("u_pitchRadians", qDegreesToRadians(m_camera->terrainPitchDegrees()));
+    m_program.setUniformValue(
+        "u_yawRadians",
+        m_camera->isStealthViewEnabled() ? qDegreesToRadians(m_camera->cameraYawDegrees()) : 0.0f);
     m_program.setUniformValue("u_verticalExaggeration", m_camera->terrainVerticalExaggeration());
     m_program.setUniformValue(
         "u_screenAnchor",

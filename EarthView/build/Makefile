@@ -394,6 +394,30 @@ MainWindow.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\EarthView.dir\build.make CMakeFiles/EarthView.dir/MainWindow.cpp.s
 .PHONY : MainWindow.cpp.s
 
+MapViewWindow.obj: MapViewWindow.cpp.obj
+.PHONY : MapViewWindow.obj
+
+# target to build an object file
+MapViewWindow.cpp.obj:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\EarthView.dir\build.make CMakeFiles/EarthView.dir/MapViewWindow.cpp.obj
+.PHONY : MapViewWindow.cpp.obj
+
+MapViewWindow.i: MapViewWindow.cpp.i
+.PHONY : MapViewWindow.i
+
+# target to preprocess a source file
+MapViewWindow.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\EarthView.dir\build.make CMakeFiles/EarthView.dir/MapViewWindow.cpp.i
+.PHONY : MapViewWindow.cpp.i
+
+MapViewWindow.s: MapViewWindow.cpp.s
+.PHONY : MapViewWindow.s
+
+# target to generate assembly for a file
+MapViewWindow.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\EarthView.dir\build.make CMakeFiles/EarthView.dir/MapViewWindow.cpp.s
+.PHONY : MapViewWindow.cpp.s
+
 MapWidget.obj: MapWidget.cpp.obj
 .PHONY : MapWidget.obj
 
@@ -747,6 +771,9 @@ help:
 	@echo ... MainWindow.obj
 	@echo ... MainWindow.i
 	@echo ... MainWindow.s
+	@echo ... MapViewWindow.obj
+	@echo ... MapViewWindow.i
+	@echo ... MapViewWindow.s
 	@echo ... MapWidget.obj
 	@echo ... MapWidget.i
 	@echo ... MapWidget.s
