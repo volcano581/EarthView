@@ -1010,6 +1010,8 @@ CMakeFiles/EarthView.dir/MainWindow.cpp.obj: \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QTimer \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qtimer.h \
   G:/Projects/EarthView/EarthView/LineBatchRenderer.h \
+  G:/Projects/EarthView/EarthView/StreamingBuffer.h \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QtGlobal \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/QColor \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QPointF \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QVector \
@@ -1121,6 +1123,7 @@ CMakeFiles/EarthView.dir/MainWindow.cpp.obj: \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtNetwork/qnetworkreply.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QIODevice \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtNetwork/QNetworkRequest \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QSignalBlocker \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtWidgets/QToolBar \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtWidgets/qtoolbar.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtWidgets/QStatusBar \

@@ -168,11 +168,41 @@ CMakeFiles/EarthView.dir/CityRenderer.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/EarthView.dir/CityRenderer.cpp.s"
 	C:\Qt\Tools\llvm-mingw1706_64\bin\c++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S G:\Projects\EarthView\EarthView\CityRenderer.cpp -o CMakeFiles\EarthView.dir\CityRenderer.cpp.s
 
+CMakeFiles/EarthView.dir/DemLoader.cpp.obj: CMakeFiles/EarthView.dir/flags.make
+CMakeFiles/EarthView.dir/DemLoader.cpp.obj: CMakeFiles/EarthView.dir/includes_CXX.rsp
+CMakeFiles/EarthView.dir/DemLoader.cpp.obj: G:/Projects/EarthView/EarthView/DemLoader.cpp
+CMakeFiles/EarthView.dir/DemLoader.cpp.obj: CMakeFiles/EarthView.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=G:\Projects\EarthView\EarthView\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_8) "Building CXX object CMakeFiles/EarthView.dir/DemLoader.cpp.obj"
+	C:\Qt\Tools\llvm-mingw1706_64\bin\c++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/EarthView.dir/DemLoader.cpp.obj -MF CMakeFiles\EarthView.dir\DemLoader.cpp.obj.d -o CMakeFiles\EarthView.dir\DemLoader.cpp.obj -c G:\Projects\EarthView\EarthView\DemLoader.cpp
+
+CMakeFiles/EarthView.dir/DemLoader.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/EarthView.dir/DemLoader.cpp.i"
+	C:\Qt\Tools\llvm-mingw1706_64\bin\c++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E G:\Projects\EarthView\EarthView\DemLoader.cpp > CMakeFiles\EarthView.dir\DemLoader.cpp.i
+
+CMakeFiles/EarthView.dir/DemLoader.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/EarthView.dir/DemLoader.cpp.s"
+	C:\Qt\Tools\llvm-mingw1706_64\bin\c++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S G:\Projects\EarthView\EarthView\DemLoader.cpp -o CMakeFiles\EarthView.dir\DemLoader.cpp.s
+
+CMakeFiles/EarthView.dir/FrameProfiler.cpp.obj: CMakeFiles/EarthView.dir/flags.make
+CMakeFiles/EarthView.dir/FrameProfiler.cpp.obj: CMakeFiles/EarthView.dir/includes_CXX.rsp
+CMakeFiles/EarthView.dir/FrameProfiler.cpp.obj: G:/Projects/EarthView/EarthView/FrameProfiler.cpp
+CMakeFiles/EarthView.dir/FrameProfiler.cpp.obj: CMakeFiles/EarthView.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=G:\Projects\EarthView\EarthView\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_9) "Building CXX object CMakeFiles/EarthView.dir/FrameProfiler.cpp.obj"
+	C:\Qt\Tools\llvm-mingw1706_64\bin\c++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/EarthView.dir/FrameProfiler.cpp.obj -MF CMakeFiles\EarthView.dir\FrameProfiler.cpp.obj.d -o CMakeFiles\EarthView.dir\FrameProfiler.cpp.obj -c G:\Projects\EarthView\EarthView\FrameProfiler.cpp
+
+CMakeFiles/EarthView.dir/FrameProfiler.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/EarthView.dir/FrameProfiler.cpp.i"
+	C:\Qt\Tools\llvm-mingw1706_64\bin\c++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E G:\Projects\EarthView\EarthView\FrameProfiler.cpp > CMakeFiles\EarthView.dir\FrameProfiler.cpp.i
+
+CMakeFiles/EarthView.dir/FrameProfiler.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/EarthView.dir/FrameProfiler.cpp.s"
+	C:\Qt\Tools\llvm-mingw1706_64\bin\c++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S G:\Projects\EarthView\EarthView\FrameProfiler.cpp -o CMakeFiles\EarthView.dir\FrameProfiler.cpp.s
+
 CMakeFiles/EarthView.dir/GridRenderer.cpp.obj: CMakeFiles/EarthView.dir/flags.make
 CMakeFiles/EarthView.dir/GridRenderer.cpp.obj: CMakeFiles/EarthView.dir/includes_CXX.rsp
 CMakeFiles/EarthView.dir/GridRenderer.cpp.obj: G:/Projects/EarthView/EarthView/GridRenderer.cpp
 CMakeFiles/EarthView.dir/GridRenderer.cpp.obj: CMakeFiles/EarthView.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=G:\Projects\EarthView\EarthView\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_8) "Building CXX object CMakeFiles/EarthView.dir/GridRenderer.cpp.obj"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=G:\Projects\EarthView\EarthView\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_10) "Building CXX object CMakeFiles/EarthView.dir/GridRenderer.cpp.obj"
 	C:\Qt\Tools\llvm-mingw1706_64\bin\c++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/EarthView.dir/GridRenderer.cpp.obj -MF CMakeFiles\EarthView.dir\GridRenderer.cpp.obj.d -o CMakeFiles\EarthView.dir\GridRenderer.cpp.obj -c G:\Projects\EarthView\EarthView\GridRenderer.cpp
 
 CMakeFiles/EarthView.dir/GridRenderer.cpp.i: cmake_force
@@ -187,7 +217,7 @@ CMakeFiles/EarthView.dir/LineBatchRenderer.cpp.obj: CMakeFiles/EarthView.dir/fla
 CMakeFiles/EarthView.dir/LineBatchRenderer.cpp.obj: CMakeFiles/EarthView.dir/includes_CXX.rsp
 CMakeFiles/EarthView.dir/LineBatchRenderer.cpp.obj: G:/Projects/EarthView/EarthView/LineBatchRenderer.cpp
 CMakeFiles/EarthView.dir/LineBatchRenderer.cpp.obj: CMakeFiles/EarthView.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=G:\Projects\EarthView\EarthView\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_9) "Building CXX object CMakeFiles/EarthView.dir/LineBatchRenderer.cpp.obj"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=G:\Projects\EarthView\EarthView\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_11) "Building CXX object CMakeFiles/EarthView.dir/LineBatchRenderer.cpp.obj"
 	C:\Qt\Tools\llvm-mingw1706_64\bin\c++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/EarthView.dir/LineBatchRenderer.cpp.obj -MF CMakeFiles\EarthView.dir\LineBatchRenderer.cpp.obj.d -o CMakeFiles\EarthView.dir\LineBatchRenderer.cpp.obj -c G:\Projects\EarthView\EarthView\LineBatchRenderer.cpp
 
 CMakeFiles/EarthView.dir/LineBatchRenderer.cpp.i: cmake_force
@@ -202,7 +232,7 @@ CMakeFiles/EarthView.dir/MainWindow.cpp.obj: CMakeFiles/EarthView.dir/flags.make
 CMakeFiles/EarthView.dir/MainWindow.cpp.obj: CMakeFiles/EarthView.dir/includes_CXX.rsp
 CMakeFiles/EarthView.dir/MainWindow.cpp.obj: G:/Projects/EarthView/EarthView/MainWindow.cpp
 CMakeFiles/EarthView.dir/MainWindow.cpp.obj: CMakeFiles/EarthView.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=G:\Projects\EarthView\EarthView\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_10) "Building CXX object CMakeFiles/EarthView.dir/MainWindow.cpp.obj"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=G:\Projects\EarthView\EarthView\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_12) "Building CXX object CMakeFiles/EarthView.dir/MainWindow.cpp.obj"
 	C:\Qt\Tools\llvm-mingw1706_64\bin\c++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/EarthView.dir/MainWindow.cpp.obj -MF CMakeFiles\EarthView.dir\MainWindow.cpp.obj.d -o CMakeFiles\EarthView.dir\MainWindow.cpp.obj -c G:\Projects\EarthView\EarthView\MainWindow.cpp
 
 CMakeFiles/EarthView.dir/MainWindow.cpp.i: cmake_force
@@ -217,7 +247,7 @@ CMakeFiles/EarthView.dir/MapWidget.cpp.obj: CMakeFiles/EarthView.dir/flags.make
 CMakeFiles/EarthView.dir/MapWidget.cpp.obj: CMakeFiles/EarthView.dir/includes_CXX.rsp
 CMakeFiles/EarthView.dir/MapWidget.cpp.obj: G:/Projects/EarthView/EarthView/MapWidget.cpp
 CMakeFiles/EarthView.dir/MapWidget.cpp.obj: CMakeFiles/EarthView.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=G:\Projects\EarthView\EarthView\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_11) "Building CXX object CMakeFiles/EarthView.dir/MapWidget.cpp.obj"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=G:\Projects\EarthView\EarthView\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_13) "Building CXX object CMakeFiles/EarthView.dir/MapWidget.cpp.obj"
 	C:\Qt\Tools\llvm-mingw1706_64\bin\c++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/EarthView.dir/MapWidget.cpp.obj -MF CMakeFiles\EarthView.dir\MapWidget.cpp.obj.d -o CMakeFiles\EarthView.dir\MapWidget.cpp.obj -c G:\Projects\EarthView\EarthView\MapWidget.cpp
 
 CMakeFiles/EarthView.dir/MapWidget.cpp.i: cmake_force
@@ -232,7 +262,7 @@ CMakeFiles/EarthView.dir/MbTilesReader.cpp.obj: CMakeFiles/EarthView.dir/flags.m
 CMakeFiles/EarthView.dir/MbTilesReader.cpp.obj: CMakeFiles/EarthView.dir/includes_CXX.rsp
 CMakeFiles/EarthView.dir/MbTilesReader.cpp.obj: G:/Projects/EarthView/EarthView/MbTilesReader.cpp
 CMakeFiles/EarthView.dir/MbTilesReader.cpp.obj: CMakeFiles/EarthView.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=G:\Projects\EarthView\EarthView\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_12) "Building CXX object CMakeFiles/EarthView.dir/MbTilesReader.cpp.obj"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=G:\Projects\EarthView\EarthView\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_14) "Building CXX object CMakeFiles/EarthView.dir/MbTilesReader.cpp.obj"
 	C:\Qt\Tools\llvm-mingw1706_64\bin\c++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/EarthView.dir/MbTilesReader.cpp.obj -MF CMakeFiles\EarthView.dir\MbTilesReader.cpp.obj.d -o CMakeFiles\EarthView.dir\MbTilesReader.cpp.obj -c G:\Projects\EarthView\EarthView\MbTilesReader.cpp
 
 CMakeFiles/EarthView.dir/MbTilesReader.cpp.i: cmake_force
@@ -247,7 +277,7 @@ CMakeFiles/EarthView.dir/MercatorProjection.cpp.obj: CMakeFiles/EarthView.dir/fl
 CMakeFiles/EarthView.dir/MercatorProjection.cpp.obj: CMakeFiles/EarthView.dir/includes_CXX.rsp
 CMakeFiles/EarthView.dir/MercatorProjection.cpp.obj: G:/Projects/EarthView/EarthView/MercatorProjection.cpp
 CMakeFiles/EarthView.dir/MercatorProjection.cpp.obj: CMakeFiles/EarthView.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=G:\Projects\EarthView\EarthView\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_13) "Building CXX object CMakeFiles/EarthView.dir/MercatorProjection.cpp.obj"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=G:\Projects\EarthView\EarthView\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_15) "Building CXX object CMakeFiles/EarthView.dir/MercatorProjection.cpp.obj"
 	C:\Qt\Tools\llvm-mingw1706_64\bin\c++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/EarthView.dir/MercatorProjection.cpp.obj -MF CMakeFiles\EarthView.dir\MercatorProjection.cpp.obj.d -o CMakeFiles\EarthView.dir\MercatorProjection.cpp.obj -c G:\Projects\EarthView\EarthView\MercatorProjection.cpp
 
 CMakeFiles/EarthView.dir/MercatorProjection.cpp.i: cmake_force
@@ -258,11 +288,26 @@ CMakeFiles/EarthView.dir/MercatorProjection.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/EarthView.dir/MercatorProjection.cpp.s"
 	C:\Qt\Tools\llvm-mingw1706_64\bin\c++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S G:\Projects\EarthView\EarthView\MercatorProjection.cpp -o CMakeFiles\EarthView.dir\MercatorProjection.cpp.s
 
+CMakeFiles/EarthView.dir/OpenGLRuntime.cpp.obj: CMakeFiles/EarthView.dir/flags.make
+CMakeFiles/EarthView.dir/OpenGLRuntime.cpp.obj: CMakeFiles/EarthView.dir/includes_CXX.rsp
+CMakeFiles/EarthView.dir/OpenGLRuntime.cpp.obj: G:/Projects/EarthView/EarthView/OpenGLRuntime.cpp
+CMakeFiles/EarthView.dir/OpenGLRuntime.cpp.obj: CMakeFiles/EarthView.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=G:\Projects\EarthView\EarthView\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_16) "Building CXX object CMakeFiles/EarthView.dir/OpenGLRuntime.cpp.obj"
+	C:\Qt\Tools\llvm-mingw1706_64\bin\c++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/EarthView.dir/OpenGLRuntime.cpp.obj -MF CMakeFiles\EarthView.dir\OpenGLRuntime.cpp.obj.d -o CMakeFiles\EarthView.dir\OpenGLRuntime.cpp.obj -c G:\Projects\EarthView\EarthView\OpenGLRuntime.cpp
+
+CMakeFiles/EarthView.dir/OpenGLRuntime.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/EarthView.dir/OpenGLRuntime.cpp.i"
+	C:\Qt\Tools\llvm-mingw1706_64\bin\c++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E G:\Projects\EarthView\EarthView\OpenGLRuntime.cpp > CMakeFiles\EarthView.dir\OpenGLRuntime.cpp.i
+
+CMakeFiles/EarthView.dir/OpenGLRuntime.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/EarthView.dir/OpenGLRuntime.cpp.s"
+	C:\Qt\Tools\llvm-mingw1706_64\bin\c++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S G:\Projects\EarthView\EarthView\OpenGLRuntime.cpp -o CMakeFiles\EarthView.dir\OpenGLRuntime.cpp.s
+
 CMakeFiles/EarthView.dir/ShaderUtils.cpp.obj: CMakeFiles/EarthView.dir/flags.make
 CMakeFiles/EarthView.dir/ShaderUtils.cpp.obj: CMakeFiles/EarthView.dir/includes_CXX.rsp
 CMakeFiles/EarthView.dir/ShaderUtils.cpp.obj: G:/Projects/EarthView/EarthView/ShaderUtils.cpp
 CMakeFiles/EarthView.dir/ShaderUtils.cpp.obj: CMakeFiles/EarthView.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=G:\Projects\EarthView\EarthView\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_14) "Building CXX object CMakeFiles/EarthView.dir/ShaderUtils.cpp.obj"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=G:\Projects\EarthView\EarthView\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_17) "Building CXX object CMakeFiles/EarthView.dir/ShaderUtils.cpp.obj"
 	C:\Qt\Tools\llvm-mingw1706_64\bin\c++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/EarthView.dir/ShaderUtils.cpp.obj -MF CMakeFiles\EarthView.dir\ShaderUtils.cpp.obj.d -o CMakeFiles\EarthView.dir\ShaderUtils.cpp.obj -c G:\Projects\EarthView\EarthView\ShaderUtils.cpp
 
 CMakeFiles/EarthView.dir/ShaderUtils.cpp.i: cmake_force
@@ -273,11 +318,41 @@ CMakeFiles/EarthView.dir/ShaderUtils.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/EarthView.dir/ShaderUtils.cpp.s"
 	C:\Qt\Tools\llvm-mingw1706_64\bin\c++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S G:\Projects\EarthView\EarthView\ShaderUtils.cpp -o CMakeFiles\EarthView.dir\ShaderUtils.cpp.s
 
+CMakeFiles/EarthView.dir/StreamingBuffer.cpp.obj: CMakeFiles/EarthView.dir/flags.make
+CMakeFiles/EarthView.dir/StreamingBuffer.cpp.obj: CMakeFiles/EarthView.dir/includes_CXX.rsp
+CMakeFiles/EarthView.dir/StreamingBuffer.cpp.obj: G:/Projects/EarthView/EarthView/StreamingBuffer.cpp
+CMakeFiles/EarthView.dir/StreamingBuffer.cpp.obj: CMakeFiles/EarthView.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=G:\Projects\EarthView\EarthView\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_18) "Building CXX object CMakeFiles/EarthView.dir/StreamingBuffer.cpp.obj"
+	C:\Qt\Tools\llvm-mingw1706_64\bin\c++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/EarthView.dir/StreamingBuffer.cpp.obj -MF CMakeFiles\EarthView.dir\StreamingBuffer.cpp.obj.d -o CMakeFiles\EarthView.dir\StreamingBuffer.cpp.obj -c G:\Projects\EarthView\EarthView\StreamingBuffer.cpp
+
+CMakeFiles/EarthView.dir/StreamingBuffer.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/EarthView.dir/StreamingBuffer.cpp.i"
+	C:\Qt\Tools\llvm-mingw1706_64\bin\c++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E G:\Projects\EarthView\EarthView\StreamingBuffer.cpp > CMakeFiles\EarthView.dir\StreamingBuffer.cpp.i
+
+CMakeFiles/EarthView.dir/StreamingBuffer.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/EarthView.dir/StreamingBuffer.cpp.s"
+	C:\Qt\Tools\llvm-mingw1706_64\bin\c++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S G:\Projects\EarthView\EarthView\StreamingBuffer.cpp -o CMakeFiles\EarthView.dir\StreamingBuffer.cpp.s
+
+CMakeFiles/EarthView.dir/TerrainRenderer.cpp.obj: CMakeFiles/EarthView.dir/flags.make
+CMakeFiles/EarthView.dir/TerrainRenderer.cpp.obj: CMakeFiles/EarthView.dir/includes_CXX.rsp
+CMakeFiles/EarthView.dir/TerrainRenderer.cpp.obj: G:/Projects/EarthView/EarthView/TerrainRenderer.cpp
+CMakeFiles/EarthView.dir/TerrainRenderer.cpp.obj: CMakeFiles/EarthView.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=G:\Projects\EarthView\EarthView\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_19) "Building CXX object CMakeFiles/EarthView.dir/TerrainRenderer.cpp.obj"
+	C:\Qt\Tools\llvm-mingw1706_64\bin\c++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/EarthView.dir/TerrainRenderer.cpp.obj -MF CMakeFiles\EarthView.dir\TerrainRenderer.cpp.obj.d -o CMakeFiles\EarthView.dir\TerrainRenderer.cpp.obj -c G:\Projects\EarthView\EarthView\TerrainRenderer.cpp
+
+CMakeFiles/EarthView.dir/TerrainRenderer.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/EarthView.dir/TerrainRenderer.cpp.i"
+	C:\Qt\Tools\llvm-mingw1706_64\bin\c++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E G:\Projects\EarthView\EarthView\TerrainRenderer.cpp > CMakeFiles\EarthView.dir\TerrainRenderer.cpp.i
+
+CMakeFiles/EarthView.dir/TerrainRenderer.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/EarthView.dir/TerrainRenderer.cpp.s"
+	C:\Qt\Tools\llvm-mingw1706_64\bin\c++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S G:\Projects\EarthView\EarthView\TerrainRenderer.cpp -o CMakeFiles\EarthView.dir\TerrainRenderer.cpp.s
+
 CMakeFiles/EarthView.dir/TextRenderer.cpp.obj: CMakeFiles/EarthView.dir/flags.make
 CMakeFiles/EarthView.dir/TextRenderer.cpp.obj: CMakeFiles/EarthView.dir/includes_CXX.rsp
 CMakeFiles/EarthView.dir/TextRenderer.cpp.obj: G:/Projects/EarthView/EarthView/TextRenderer.cpp
 CMakeFiles/EarthView.dir/TextRenderer.cpp.obj: CMakeFiles/EarthView.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=G:\Projects\EarthView\EarthView\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_15) "Building CXX object CMakeFiles/EarthView.dir/TextRenderer.cpp.obj"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=G:\Projects\EarthView\EarthView\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_20) "Building CXX object CMakeFiles/EarthView.dir/TextRenderer.cpp.obj"
 	C:\Qt\Tools\llvm-mingw1706_64\bin\c++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/EarthView.dir/TextRenderer.cpp.obj -MF CMakeFiles\EarthView.dir\TextRenderer.cpp.obj.d -o CMakeFiles\EarthView.dir\TextRenderer.cpp.obj -c G:\Projects\EarthView\EarthView\TextRenderer.cpp
 
 CMakeFiles/EarthView.dir/TextRenderer.cpp.i: cmake_force
@@ -292,7 +367,7 @@ CMakeFiles/EarthView.dir/TextureManager.cpp.obj: CMakeFiles/EarthView.dir/flags.
 CMakeFiles/EarthView.dir/TextureManager.cpp.obj: CMakeFiles/EarthView.dir/includes_CXX.rsp
 CMakeFiles/EarthView.dir/TextureManager.cpp.obj: G:/Projects/EarthView/EarthView/TextureManager.cpp
 CMakeFiles/EarthView.dir/TextureManager.cpp.obj: CMakeFiles/EarthView.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=G:\Projects\EarthView\EarthView\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_16) "Building CXX object CMakeFiles/EarthView.dir/TextureManager.cpp.obj"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=G:\Projects\EarthView\EarthView\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_21) "Building CXX object CMakeFiles/EarthView.dir/TextureManager.cpp.obj"
 	C:\Qt\Tools\llvm-mingw1706_64\bin\c++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/EarthView.dir/TextureManager.cpp.obj -MF CMakeFiles\EarthView.dir\TextureManager.cpp.obj.d -o CMakeFiles\EarthView.dir\TextureManager.cpp.obj -c G:\Projects\EarthView\EarthView\TextureManager.cpp
 
 CMakeFiles/EarthView.dir/TextureManager.cpp.i: cmake_force
@@ -307,7 +382,7 @@ CMakeFiles/EarthView.dir/TileRenderer.cpp.obj: CMakeFiles/EarthView.dir/flags.ma
 CMakeFiles/EarthView.dir/TileRenderer.cpp.obj: CMakeFiles/EarthView.dir/includes_CXX.rsp
 CMakeFiles/EarthView.dir/TileRenderer.cpp.obj: G:/Projects/EarthView/EarthView/TileRenderer.cpp
 CMakeFiles/EarthView.dir/TileRenderer.cpp.obj: CMakeFiles/EarthView.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=G:\Projects\EarthView\EarthView\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_17) "Building CXX object CMakeFiles/EarthView.dir/TileRenderer.cpp.obj"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=G:\Projects\EarthView\EarthView\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_22) "Building CXX object CMakeFiles/EarthView.dir/TileRenderer.cpp.obj"
 	C:\Qt\Tools\llvm-mingw1706_64\bin\c++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/EarthView.dir/TileRenderer.cpp.obj -MF CMakeFiles\EarthView.dir\TileRenderer.cpp.obj.d -o CMakeFiles\EarthView.dir\TileRenderer.cpp.obj -c G:\Projects\EarthView\EarthView\TileRenderer.cpp
 
 CMakeFiles/EarthView.dir/TileRenderer.cpp.i: cmake_force
@@ -322,7 +397,7 @@ CMakeFiles/EarthView.dir/TMSLoader.cpp.obj: CMakeFiles/EarthView.dir/flags.make
 CMakeFiles/EarthView.dir/TMSLoader.cpp.obj: CMakeFiles/EarthView.dir/includes_CXX.rsp
 CMakeFiles/EarthView.dir/TMSLoader.cpp.obj: G:/Projects/EarthView/EarthView/TMSLoader.cpp
 CMakeFiles/EarthView.dir/TMSLoader.cpp.obj: CMakeFiles/EarthView.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=G:\Projects\EarthView\EarthView\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_18) "Building CXX object CMakeFiles/EarthView.dir/TMSLoader.cpp.obj"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=G:\Projects\EarthView\EarthView\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_23) "Building CXX object CMakeFiles/EarthView.dir/TMSLoader.cpp.obj"
 	C:\Qt\Tools\llvm-mingw1706_64\bin\c++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/EarthView.dir/TMSLoader.cpp.obj -MF CMakeFiles\EarthView.dir\TMSLoader.cpp.obj.d -o CMakeFiles\EarthView.dir\TMSLoader.cpp.obj -c G:\Projects\EarthView\EarthView\TMSLoader.cpp
 
 CMakeFiles/EarthView.dir/TMSLoader.cpp.i: cmake_force
@@ -337,7 +412,7 @@ CMakeFiles/EarthView.dir/VectorTileRenderer.cpp.obj: CMakeFiles/EarthView.dir/fl
 CMakeFiles/EarthView.dir/VectorTileRenderer.cpp.obj: CMakeFiles/EarthView.dir/includes_CXX.rsp
 CMakeFiles/EarthView.dir/VectorTileRenderer.cpp.obj: G:/Projects/EarthView/EarthView/VectorTileRenderer.cpp
 CMakeFiles/EarthView.dir/VectorTileRenderer.cpp.obj: CMakeFiles/EarthView.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=G:\Projects\EarthView\EarthView\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_19) "Building CXX object CMakeFiles/EarthView.dir/VectorTileRenderer.cpp.obj"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=G:\Projects\EarthView\EarthView\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_24) "Building CXX object CMakeFiles/EarthView.dir/VectorTileRenderer.cpp.obj"
 	C:\Qt\Tools\llvm-mingw1706_64\bin\c++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/EarthView.dir/VectorTileRenderer.cpp.obj -MF CMakeFiles\EarthView.dir\VectorTileRenderer.cpp.obj.d -o CMakeFiles\EarthView.dir\VectorTileRenderer.cpp.obj -c G:\Projects\EarthView\EarthView\VectorTileRenderer.cpp
 
 CMakeFiles/EarthView.dir/VectorTileRenderer.cpp.i: cmake_force
@@ -356,13 +431,18 @@ EarthView_OBJECTS = \
 "CMakeFiles/EarthView.dir/Camera.cpp.obj" \
 "CMakeFiles/EarthView.dir/CityLoader.cpp.obj" \
 "CMakeFiles/EarthView.dir/CityRenderer.cpp.obj" \
+"CMakeFiles/EarthView.dir/DemLoader.cpp.obj" \
+"CMakeFiles/EarthView.dir/FrameProfiler.cpp.obj" \
 "CMakeFiles/EarthView.dir/GridRenderer.cpp.obj" \
 "CMakeFiles/EarthView.dir/LineBatchRenderer.cpp.obj" \
 "CMakeFiles/EarthView.dir/MainWindow.cpp.obj" \
 "CMakeFiles/EarthView.dir/MapWidget.cpp.obj" \
 "CMakeFiles/EarthView.dir/MbTilesReader.cpp.obj" \
 "CMakeFiles/EarthView.dir/MercatorProjection.cpp.obj" \
+"CMakeFiles/EarthView.dir/OpenGLRuntime.cpp.obj" \
 "CMakeFiles/EarthView.dir/ShaderUtils.cpp.obj" \
+"CMakeFiles/EarthView.dir/StreamingBuffer.cpp.obj" \
+"CMakeFiles/EarthView.dir/TerrainRenderer.cpp.obj" \
 "CMakeFiles/EarthView.dir/TextRenderer.cpp.obj" \
 "CMakeFiles/EarthView.dir/TextureManager.cpp.obj" \
 "CMakeFiles/EarthView.dir/TileRenderer.cpp.obj" \
@@ -378,13 +458,18 @@ EarthView.exe: CMakeFiles/EarthView.dir/BorderRenderer.cpp.obj
 EarthView.exe: CMakeFiles/EarthView.dir/Camera.cpp.obj
 EarthView.exe: CMakeFiles/EarthView.dir/CityLoader.cpp.obj
 EarthView.exe: CMakeFiles/EarthView.dir/CityRenderer.cpp.obj
+EarthView.exe: CMakeFiles/EarthView.dir/DemLoader.cpp.obj
+EarthView.exe: CMakeFiles/EarthView.dir/FrameProfiler.cpp.obj
 EarthView.exe: CMakeFiles/EarthView.dir/GridRenderer.cpp.obj
 EarthView.exe: CMakeFiles/EarthView.dir/LineBatchRenderer.cpp.obj
 EarthView.exe: CMakeFiles/EarthView.dir/MainWindow.cpp.obj
 EarthView.exe: CMakeFiles/EarthView.dir/MapWidget.cpp.obj
 EarthView.exe: CMakeFiles/EarthView.dir/MbTilesReader.cpp.obj
 EarthView.exe: CMakeFiles/EarthView.dir/MercatorProjection.cpp.obj
+EarthView.exe: CMakeFiles/EarthView.dir/OpenGLRuntime.cpp.obj
 EarthView.exe: CMakeFiles/EarthView.dir/ShaderUtils.cpp.obj
+EarthView.exe: CMakeFiles/EarthView.dir/StreamingBuffer.cpp.obj
+EarthView.exe: CMakeFiles/EarthView.dir/TerrainRenderer.cpp.obj
 EarthView.exe: CMakeFiles/EarthView.dir/TextRenderer.cpp.obj
 EarthView.exe: CMakeFiles/EarthView.dir/TextureManager.cpp.obj
 EarthView.exe: CMakeFiles/EarthView.dir/TileRenderer.cpp.obj
@@ -401,10 +486,10 @@ EarthView.exe: C:/Qt/6.11.0/llvm-mingw_64/lib/libQt6Core.a
 EarthView.exe: CMakeFiles/EarthView.dir/linkLibs.rsp
 EarthView.exe: CMakeFiles/EarthView.dir/objects1.rsp
 EarthView.exe: CMakeFiles/EarthView.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=G:\Projects\EarthView\EarthView\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_20) "Linking CXX executable EarthView.exe"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=G:\Projects\EarthView\EarthView\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_25) "Linking CXX executable EarthView.exe"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles\EarthView.dir\link.txt --verbose=$(VERBOSE)
 	"C:\Program Files\CMake\bin\cmake.exe" -E copy_directory G:/Projects/EarthView/EarthView/shaders G:/Projects/EarthView/EarthView/build/shaders
-	"C:\Program Files\CMake\bin\cmake.exe" -E env "PATH=C:/Qt/6.11.0/llvm-mingw_64/bin;C:\Users\abdul.qadeer\.codex\tmp\arg0\codex-arg0jAkmhh;C:\Users\abdul.qadeer\AppData\Local\Programs\Microsoft VS Code;C:\Program Files (x86)\Intel\iCLS Client\;C:\Program Files\Intel\iCLS Client\;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\NVIDIA Corporation\NVIDIA NvDLISR;C:\Program Files (x86)\Intel\Intel(R) Management Engine Components\DAL;C:\Program Files\Intel\Intel(R) Management Engine Components\DAL;C:\Program Files (x86)\Intel\Intel(R) Management Engine Components\IPT;C:\Program Files\Intel\Intel(R) Management Engine Components\IPT;C:\Program Files\CMake\bin;C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\;C:\Users\abdul.qadeer\.local\bin;C:\Users\abdul.qadeer\AppData\Local\anaconda3;C:\Users\abdul.qadeer\AppData\Local\anaconda3\Library\mingw-w64\bin;C:\Users\abdul.qadeer\AppData\Local\anaconda3\Library\usr\bin;C:\Users\abdul.qadeer\AppData\Local\anaconda3\Library\bin;C:\Users\abdul.qadeer\AppData\Local\anaconda3\Scripts;C:\Users\abdul.qadeer\AppData\Local\Microsoft\WindowsApps;C:\Users\abdul.qadeer\AppData\Local\Programs\Git\cmd;C:\Users\abdul.qadeer\AppData\Local\Programs\Microsoft VS Code\bin;C:\Qt\Tools\llvm-mingw1706_64\bin;;C:\Program Files\Microsoft Office\root\Client;c:\Users\abdul.qadeer\.vscode\extensions\openai.chatgpt-26.422.62136-win32-x64\bin\windows-x86_64" C:/Qt/6.11.0/llvm-mingw_64/bin/windeployqt.exe G:/Projects/EarthView/EarthView/build
+	"C:\Program Files\CMake\bin\cmake.exe" -E env "PATH=C:/Qt/6.11.0/llvm-mingw_64/bin;C:\Users\abdul.qadeer\.codex\tmp\arg0\codex-arg03k9Ct8;C:\Users\abdul.qadeer\AppData\Local\Programs\Microsoft VS Code;C:\Program Files (x86)\Intel\iCLS Client\;C:\Program Files\Intel\iCLS Client\;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\NVIDIA Corporation\NVIDIA NvDLISR;C:\Program Files (x86)\Intel\Intel(R) Management Engine Components\DAL;C:\Program Files\Intel\Intel(R) Management Engine Components\DAL;C:\Program Files (x86)\Intel\Intel(R) Management Engine Components\IPT;C:\Program Files\Intel\Intel(R) Management Engine Components\IPT;C:\Program Files\CMake\bin;C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\;C:\Program Files\doxygen\bin;C:\Program Files\nodejs\;C:\Program Files\Docker\Docker\resources\bin;C:\Program Files (x86)\Intel\iCLS Client\;C:\Program Files\Intel\iCLS Client\;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\NVIDIA Corporation\NVIDIA NvDLISR;C:\Program Files (x86)\Intel\Intel(R) Management Engine Components\DAL;C:\Program Files\Intel\Intel(R) Management Engine Components\DAL;C:\Program Files (x86)\Intel\Intel(R) Management Engine Components\IPT;C:\Program Files\Intel\Intel(R) Management Engine Components\IPT;C:\Program Files\CMake\bin;C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\;C:\Program Files\doxygen\bin;C:\Program Files\nodejs\;C:\Program Files (x86)\Intel\iCLS Client\;C:\Program Files\Intel\iCLS Client\;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\NVIDIA Corp;C:\pnpm;C:\Users\abdul.qadeer\AppData\Local\Programs\Microsoft VS Code\bin;C:\Users\abdul.qadeer\AppData\Local\Programs\cursor\resources\app\bin;C:\Users\abdul.qadeer\AppData\Local\Programs\Python\Python314;;c:\Users\abdul.qadeer\.vscode\extensions\openai.chatgpt-26.506.31421-win32-x64\bin\windows-x86_64" C:/Qt/6.11.0/llvm-mingw_64/bin/windeployqt.exe G:/Projects/EarthView/EarthView/build
 
 # Rule to build all files generated by this target.
 CMakeFiles/EarthView.dir/build: EarthView.exe

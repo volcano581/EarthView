@@ -467,6 +467,18 @@
 			null
 		],
 		[
+			"G:/Projects/EarthView/EarthView/DemLoader.h",
+			"MU",
+			"EWIEGA46WW/moc_DemLoader.cpp",
+			null
+		],
+		[
+			"G:/Projects/EarthView/EarthView/FrameProfiler.h",
+			"MU",
+			"EWIEGA46WW/moc_FrameProfiler.cpp",
+			null
+		],
+		[
 			"G:/Projects/EarthView/EarthView/GridRenderer.h",
 			"MU",
 			"EWIEGA46WW/moc_GridRenderer.cpp",
@@ -503,15 +515,33 @@
 			null
 		],
 		[
+			"G:/Projects/EarthView/EarthView/OpenGLRuntime.h",
+			"MU",
+			"EWIEGA46WW/moc_OpenGLRuntime.cpp",
+			null
+		],
+		[
 			"G:/Projects/EarthView/EarthView/ShaderUtils.h",
 			"MU",
 			"EWIEGA46WW/moc_ShaderUtils.cpp",
 			null
 		],
 		[
+			"G:/Projects/EarthView/EarthView/StreamingBuffer.h",
+			"MU",
+			"EWIEGA46WW/moc_StreamingBuffer.cpp",
+			null
+		],
+		[
 			"G:/Projects/EarthView/EarthView/TMSLoader.h",
 			"MU",
 			"EWIEGA46WW/moc_TMSLoader.cpp",
+			null
+		],
+		[
+			"G:/Projects/EarthView/EarthView/TerrainRenderer.h",
+			"MU",
+			"EWIEGA46WW/moc_TerrainRenderer.cpp",
 			null
 		],
 		[
@@ -630,14 +660,19 @@
 		[ "G:/Projects/EarthView/EarthView/Camera.cpp", "MU", null ],
 		[ "G:/Projects/EarthView/EarthView/CityLoader.cpp", "MU", null ],
 		[ "G:/Projects/EarthView/EarthView/CityRenderer.cpp", "MU", null ],
+		[ "G:/Projects/EarthView/EarthView/DemLoader.cpp", "MU", null ],
+		[ "G:/Projects/EarthView/EarthView/FrameProfiler.cpp", "MU", null ],
 		[ "G:/Projects/EarthView/EarthView/GridRenderer.cpp", "MU", null ],
 		[ "G:/Projects/EarthView/EarthView/LineBatchRenderer.cpp", "MU", null ],
 		[ "G:/Projects/EarthView/EarthView/MainWindow.cpp", "MU", null ],
 		[ "G:/Projects/EarthView/EarthView/MapWidget.cpp", "MU", null ],
 		[ "G:/Projects/EarthView/EarthView/MbTilesReader.cpp", "MU", null ],
 		[ "G:/Projects/EarthView/EarthView/MercatorProjection.cpp", "MU", null ],
+		[ "G:/Projects/EarthView/EarthView/OpenGLRuntime.cpp", "MU", null ],
 		[ "G:/Projects/EarthView/EarthView/ShaderUtils.cpp", "MU", null ],
+		[ "G:/Projects/EarthView/EarthView/StreamingBuffer.cpp", "MU", null ],
 		[ "G:/Projects/EarthView/EarthView/TMSLoader.cpp", "MU", null ],
+		[ "G:/Projects/EarthView/EarthView/TerrainRenderer.cpp", "MU", null ],
 		[ "G:/Projects/EarthView/EarthView/TextRenderer.cpp", "MU", null ],
 		[ "G:/Projects/EarthView/EarthView/TextureManager.cpp", "MU", null ],
 		[ "G:/Projects/EarthView/EarthView/TileRenderer.cpp", "MU", null ],

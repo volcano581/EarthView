@@ -250,6 +250,30 @@ CityRenderer.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\EarthView.dir\build.make CMakeFiles/EarthView.dir/CityRenderer.cpp.s
 .PHONY : CityRenderer.cpp.s
 
+DemLoader.obj: DemLoader.cpp.obj
+.PHONY : DemLoader.obj
+
+# target to build an object file
+DemLoader.cpp.obj:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\EarthView.dir\build.make CMakeFiles/EarthView.dir/DemLoader.cpp.obj
+.PHONY : DemLoader.cpp.obj
+
+DemLoader.i: DemLoader.cpp.i
+.PHONY : DemLoader.i
+
+# target to preprocess a source file
+DemLoader.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\EarthView.dir\build.make CMakeFiles/EarthView.dir/DemLoader.cpp.i
+.PHONY : DemLoader.cpp.i
+
+DemLoader.s: DemLoader.cpp.s
+.PHONY : DemLoader.s
+
+# target to generate assembly for a file
+DemLoader.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\EarthView.dir\build.make CMakeFiles/EarthView.dir/DemLoader.cpp.s
+.PHONY : DemLoader.cpp.s
+
 EarthView_autogen/mocs_compilation.obj: EarthView_autogen/mocs_compilation.cpp.obj
 .PHONY : EarthView_autogen/mocs_compilation.obj
 
@@ -273,6 +297,30 @@ EarthView_autogen/mocs_compilation.s: EarthView_autogen/mocs_compilation.cpp.s
 EarthView_autogen/mocs_compilation.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\EarthView.dir\build.make CMakeFiles/EarthView.dir/EarthView_autogen/mocs_compilation.cpp.s
 .PHONY : EarthView_autogen/mocs_compilation.cpp.s
+
+FrameProfiler.obj: FrameProfiler.cpp.obj
+.PHONY : FrameProfiler.obj
+
+# target to build an object file
+FrameProfiler.cpp.obj:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\EarthView.dir\build.make CMakeFiles/EarthView.dir/FrameProfiler.cpp.obj
+.PHONY : FrameProfiler.cpp.obj
+
+FrameProfiler.i: FrameProfiler.cpp.i
+.PHONY : FrameProfiler.i
+
+# target to preprocess a source file
+FrameProfiler.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\EarthView.dir\build.make CMakeFiles/EarthView.dir/FrameProfiler.cpp.i
+.PHONY : FrameProfiler.cpp.i
+
+FrameProfiler.s: FrameProfiler.cpp.s
+.PHONY : FrameProfiler.s
+
+# target to generate assembly for a file
+FrameProfiler.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\EarthView.dir\build.make CMakeFiles/EarthView.dir/FrameProfiler.cpp.s
+.PHONY : FrameProfiler.cpp.s
 
 GridRenderer.obj: GridRenderer.cpp.obj
 .PHONY : GridRenderer.obj
@@ -418,6 +466,30 @@ MercatorProjection.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\EarthView.dir\build.make CMakeFiles/EarthView.dir/MercatorProjection.cpp.s
 .PHONY : MercatorProjection.cpp.s
 
+OpenGLRuntime.obj: OpenGLRuntime.cpp.obj
+.PHONY : OpenGLRuntime.obj
+
+# target to build an object file
+OpenGLRuntime.cpp.obj:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\EarthView.dir\build.make CMakeFiles/EarthView.dir/OpenGLRuntime.cpp.obj
+.PHONY : OpenGLRuntime.cpp.obj
+
+OpenGLRuntime.i: OpenGLRuntime.cpp.i
+.PHONY : OpenGLRuntime.i
+
+# target to preprocess a source file
+OpenGLRuntime.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\EarthView.dir\build.make CMakeFiles/EarthView.dir/OpenGLRuntime.cpp.i
+.PHONY : OpenGLRuntime.cpp.i
+
+OpenGLRuntime.s: OpenGLRuntime.cpp.s
+.PHONY : OpenGLRuntime.s
+
+# target to generate assembly for a file
+OpenGLRuntime.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\EarthView.dir\build.make CMakeFiles/EarthView.dir/OpenGLRuntime.cpp.s
+.PHONY : OpenGLRuntime.cpp.s
+
 ShaderUtils.obj: ShaderUtils.cpp.obj
 .PHONY : ShaderUtils.obj
 
@@ -442,6 +514,30 @@ ShaderUtils.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\EarthView.dir\build.make CMakeFiles/EarthView.dir/ShaderUtils.cpp.s
 .PHONY : ShaderUtils.cpp.s
 
+StreamingBuffer.obj: StreamingBuffer.cpp.obj
+.PHONY : StreamingBuffer.obj
+
+# target to build an object file
+StreamingBuffer.cpp.obj:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\EarthView.dir\build.make CMakeFiles/EarthView.dir/StreamingBuffer.cpp.obj
+.PHONY : StreamingBuffer.cpp.obj
+
+StreamingBuffer.i: StreamingBuffer.cpp.i
+.PHONY : StreamingBuffer.i
+
+# target to preprocess a source file
+StreamingBuffer.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\EarthView.dir\build.make CMakeFiles/EarthView.dir/StreamingBuffer.cpp.i
+.PHONY : StreamingBuffer.cpp.i
+
+StreamingBuffer.s: StreamingBuffer.cpp.s
+.PHONY : StreamingBuffer.s
+
+# target to generate assembly for a file
+StreamingBuffer.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\EarthView.dir\build.make CMakeFiles/EarthView.dir/StreamingBuffer.cpp.s
+.PHONY : StreamingBuffer.cpp.s
+
 TMSLoader.obj: TMSLoader.cpp.obj
 .PHONY : TMSLoader.obj
 
@@ -465,6 +561,30 @@ TMSLoader.s: TMSLoader.cpp.s
 TMSLoader.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\EarthView.dir\build.make CMakeFiles/EarthView.dir/TMSLoader.cpp.s
 .PHONY : TMSLoader.cpp.s
+
+TerrainRenderer.obj: TerrainRenderer.cpp.obj
+.PHONY : TerrainRenderer.obj
+
+# target to build an object file
+TerrainRenderer.cpp.obj:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\EarthView.dir\build.make CMakeFiles/EarthView.dir/TerrainRenderer.cpp.obj
+.PHONY : TerrainRenderer.cpp.obj
+
+TerrainRenderer.i: TerrainRenderer.cpp.i
+.PHONY : TerrainRenderer.i
+
+# target to preprocess a source file
+TerrainRenderer.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\EarthView.dir\build.make CMakeFiles/EarthView.dir/TerrainRenderer.cpp.i
+.PHONY : TerrainRenderer.cpp.i
+
+TerrainRenderer.s: TerrainRenderer.cpp.s
+.PHONY : TerrainRenderer.s
+
+# target to generate assembly for a file
+TerrainRenderer.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\EarthView.dir\build.make CMakeFiles/EarthView.dir/TerrainRenderer.cpp.s
+.PHONY : TerrainRenderer.cpp.s
 
 TextRenderer.obj: TextRenderer.cpp.obj
 .PHONY : TextRenderer.obj
@@ -609,9 +729,15 @@ help:
 	@echo ... CityRenderer.obj
 	@echo ... CityRenderer.i
 	@echo ... CityRenderer.s
+	@echo ... DemLoader.obj
+	@echo ... DemLoader.i
+	@echo ... DemLoader.s
 	@echo ... EarthView_autogen/mocs_compilation.obj
 	@echo ... EarthView_autogen/mocs_compilation.i
 	@echo ... EarthView_autogen/mocs_compilation.s
+	@echo ... FrameProfiler.obj
+	@echo ... FrameProfiler.i
+	@echo ... FrameProfiler.s
 	@echo ... GridRenderer.obj
 	@echo ... GridRenderer.i
 	@echo ... GridRenderer.s
@@ -630,12 +756,21 @@ help:
 	@echo ... MercatorProjection.obj
 	@echo ... MercatorProjection.i
 	@echo ... MercatorProjection.s
+	@echo ... OpenGLRuntime.obj
+	@echo ... OpenGLRuntime.i
+	@echo ... OpenGLRuntime.s
 	@echo ... ShaderUtils.obj
 	@echo ... ShaderUtils.i
 	@echo ... ShaderUtils.s
+	@echo ... StreamingBuffer.obj
+	@echo ... StreamingBuffer.i
+	@echo ... StreamingBuffer.s
 	@echo ... TMSLoader.obj
 	@echo ... TMSLoader.i
 	@echo ... TMSLoader.s
+	@echo ... TerrainRenderer.obj
+	@echo ... TerrainRenderer.i
+	@echo ... TerrainRenderer.s
 	@echo ... TextRenderer.obj
 	@echo ... TextRenderer.i
 	@echo ... TextRenderer.s

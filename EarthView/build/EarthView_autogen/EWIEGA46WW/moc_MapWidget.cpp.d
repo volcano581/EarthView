@@ -21,6 +21,7 @@ G:/Projects/EarthView/EarthView/build/EarthView_autogen/EWIEGA46WW/moc_MapWidget
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QVariant \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QVector \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/Qt \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QtGlobal \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/q17memory.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/q20bit.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/q20functional.h \
@@ -1020,6 +1021,7 @@ G:/Projects/EarthView/EarthView/build/EarthView_autogen/EWIEGA46WW/moc_MapWidget
   C:/Qt/Tools/llvm-mingw1706_64/lib/clang/17/include/vadefs.h \
   G:/Projects/EarthView/EarthView/Constants.h \
   G:/Projects/EarthView/EarthView/LineBatchRenderer.h \
+  G:/Projects/EarthView/EarthView/StreamingBuffer.h \
   G:/Projects/EarthView/EarthView/TMSLoader.h \
   G:/Projects/EarthView/EarthView/TextRenderer.h \
   G:/Projects/EarthView/EarthView/TextureManager.h \

@@ -39,6 +39,9 @@ public:
     void setZoomLevel(double zoom);
     void setHorizontalWrapEnabled(bool enabled);
     void setProjectionMode(ProjectionMode mode);
+    void setTerrain3DEnabled(bool enabled);
+    void setTerrainPitchDegrees(float pitchDegrees);
+    void setTerrainVerticalExaggeration(float exaggeration);
 
     // Getters
     QPointF getCenterMercator() const { return m_centerMercator; }
@@ -48,6 +51,10 @@ public:
     bool isHorizontalWrapEnabled() const { return m_horizontalWrapEnabled; }
     ProjectionMode projectionMode() const { return m_projectionMode; }
     bool isOrthographic() const { return m_projectionMode == ProjectionMode::Orthographic; }
+    bool isTerrain3DEnabled() const { return m_terrain3DEnabled; }
+    bool isTerrain3DView() const { return m_terrain3DEnabled && !isOrthographic(); }
+    float terrainPitchDegrees() const { return m_terrainPitchDegrees; }
+    float terrainVerticalExaggeration() const { return m_terrainVerticalExaggeration; }
 
     // Coordinate conversion
     QPointF screenToMercator(const QPointF& screenPos) const;
@@ -67,16 +74,23 @@ public:
 
     // Resolution (meters per pixel)
     double getResolution() const;
+    QPointF terrainScreenAnchor() const;
+    double terrainFocalPixels() const;
+    double terrainViewDistanceMeters() const;
 
 signals:
     void cameraChanged();
     void horizontalWrapChanged(bool enabled);
     void projectionModeChanged(Camera::ProjectionMode mode);
+    void terrain3DChanged(bool enabled);
+    void terrainViewParametersChanged();
 
 private:
     void updateMatrices();
     void clampCenter();
     double calculateResolution() const;
+    QPointF terrainMercatorToScreen(const QPointF& mercatorPos, double elevationMeters = 0.0) const;
+    QPointF terrainScreenToMercator(const QPointF& screenPos) const;
 
 private:
     QPointF m_centerMercator;
@@ -85,6 +99,9 @@ private:
     int m_viewportHeight;
     bool m_horizontalWrapEnabled;
     ProjectionMode m_projectionMode;
+    bool m_terrain3DEnabled;
+    float m_terrainPitchDegrees;
+    float m_terrainVerticalExaggeration;
     mutable double m_cachedResolution;
     mutable bool m_cacheValid;
 

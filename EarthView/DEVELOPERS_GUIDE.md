@@ -8,7 +8,8 @@ for developers who need to build, debug, or extend the application.
 
 EarthView is a Qt 6 desktop GIS/map viewer written in C++17. It renders map
 imagery, borders, latitude/longitude grids, city markers, and labels using a
-Qt `QOpenGLWidget` with an OpenGL 3.3 core profile.
+Qt `QOpenGLWidget` with a core-profile OpenGL context. Hardware rendering
+requests OpenGL 4.5; software or forced compatibility mode requests OpenGL 3.3.
 
 The application currently supports:
 
@@ -72,7 +73,8 @@ treated as source code.
   - OpenGLWidgets
   - Sql
 - SQLite Qt driver for MBTiles support.
-- OpenGL 3.3 core profile support, or software OpenGL.
+- OpenGL 4.5 core profile support for the optimized hardware path.
+- OpenGL 3.3 core profile support for compatibility/software fallback.
 
 `CMakeLists.txt` looks for Qt in this order:
 
@@ -132,7 +134,9 @@ The app also honors `QT_OPENGL=software`.
 
 Startup happens in this order:
 
-1. `main.cpp` selects an OpenGL 3.3 core profile `QSurfaceFormat`.
+1. `main.cpp` selects a core profile `QSurfaceFormat`: OpenGL 4.5 for normal
+   hardware rendering, or OpenGL 3.3 when software/compatibility fallback is
+   requested.
 2. If software OpenGL is requested, Qt attribute `AA_UseSoftwareOpenGL` is set
    before `QApplication` is created.
 3. `MainWindow` is constructed.
@@ -919,8 +923,9 @@ Important messages include:
 
 Check:
 
-- OpenGL 3.3 support.
+- OpenGL 4.5 hardware support, or the 3.3 fallback path.
 - `EARTHVIEW_FORCE_SOFTWARE_OPENGL=1`.
+- `EARTHVIEW_FORCE_OPENGL_33=1`.
 - Shader files were copied to `build/shaders`.
 - Shader load errors in debug output.
 

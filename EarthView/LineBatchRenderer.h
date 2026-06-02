@@ -2,6 +2,7 @@
 #ifndef LINEBATCHRENDERER_H
 #define LINEBATCHRENDERER_H
 
+#include "StreamingBuffer.h"
 #include <QColor>
 #include <QObject>
 #include <QOpenGLFunctions>
@@ -16,7 +17,8 @@ class LineBatchRenderer : public QObject, protected QOpenGLFunctions
 public:
     enum class CoordinateMode {
         Screen,
-        Mercator
+        Mercator,
+        Terrain3D
     };
 
     struct LineVertex {
@@ -39,12 +41,14 @@ public:
 
 private:
     void initializeGpuResources();
+    void setupVertexArray();
 
 private:
     Camera* m_camera;
     QOpenGLShaderProgram m_screenProgram;
     QOpenGLShaderProgram m_mercatorProgram;
-    GLuint m_vbo;
+    QOpenGLShaderProgram m_terrainProgram;
+    StreamingBuffer m_vertexBuffer;
     GLuint m_vao;
     qsizetype m_vertexCount;
     bool m_initialized;

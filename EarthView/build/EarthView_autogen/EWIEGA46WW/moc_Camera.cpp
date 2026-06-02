@@ -45,7 +45,9 @@ template <> constexpr inline auto Camera::qt_create_metaobjectdata<qt_meta_tag_Z
         "enabled",
         "projectionModeChanged",
         "Camera::ProjectionMode",
-        "mode"
+        "mode",
+        "terrain3DChanged",
+        "terrainViewParametersChanged"
     };
 
     QtMocHelpers::UintData qt_methods {
@@ -59,6 +61,12 @@ template <> constexpr inline auto Camera::qt_create_metaobjectdata<qt_meta_tag_Z
         QtMocHelpers::SignalData<void(Camera::ProjectionMode)>(5, 2, QMC::AccessPublic, QMetaType::Void, {{
             { 0x80000000 | 6, 7 },
         }}),
+        // Signal 'terrain3DChanged'
+        QtMocHelpers::SignalData<void(bool)>(8, 2, QMC::AccessPublic, QMetaType::Void, {{
+            { QMetaType::Bool, 4 },
+        }}),
+        // Signal 'terrainViewParametersChanged'
+        QtMocHelpers::SignalData<void()>(9, 2, QMC::AccessPublic, QMetaType::Void),
     };
     QtMocHelpers::UintData qt_properties {
     };
@@ -85,6 +93,8 @@ void Camera::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, void
         case 0: _t->cameraChanged(); break;
         case 1: _t->horizontalWrapChanged((*reinterpret_cast<std::add_pointer_t<bool>>(_a[1]))); break;
         case 2: _t->projectionModeChanged((*reinterpret_cast<std::add_pointer_t<Camera::ProjectionMode>>(_a[1]))); break;
+        case 3: _t->terrain3DChanged((*reinterpret_cast<std::add_pointer_t<bool>>(_a[1]))); break;
+        case 4: _t->terrainViewParametersChanged(); break;
         default: ;
         }
     }
@@ -94,6 +104,10 @@ void Camera::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, void
         if (QtMocHelpers::indexOfMethod<void (Camera::*)(bool )>(_a, &Camera::horizontalWrapChanged, 1))
             return;
         if (QtMocHelpers::indexOfMethod<void (Camera::*)(Camera::ProjectionMode )>(_a, &Camera::projectionModeChanged, 2))
+            return;
+        if (QtMocHelpers::indexOfMethod<void (Camera::*)(bool )>(_a, &Camera::terrain3DChanged, 3))
+            return;
+        if (QtMocHelpers::indexOfMethod<void (Camera::*)()>(_a, &Camera::terrainViewParametersChanged, 4))
             return;
     }
 }
@@ -117,14 +131,14 @@ int Camera::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     if (_id < 0)
         return _id;
     if (_c == QMetaObject::InvokeMetaMethod) {
-        if (_id < 3)
+        if (_id < 5)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 3;
+        _id -= 5;
     }
     if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
-        if (_id < 3)
+        if (_id < 5)
             *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType();
-        _id -= 3;
+        _id -= 5;
     }
     return _id;
 }
@@ -145,5 +159,17 @@ void Camera::horizontalWrapChanged(bool _t1)
 void Camera::projectionModeChanged(Camera::ProjectionMode _t1)
 {
     QMetaObject::activate<void>(this, &staticMetaObject, 2, nullptr, _t1);
+}
+
+// SIGNAL 3
+void Camera::terrain3DChanged(bool _t1)
+{
+    QMetaObject::activate<void>(this, &staticMetaObject, 3, nullptr, _t1);
+}
+
+// SIGNAL 4
+void Camera::terrainViewParametersChanged()
+{
+    QMetaObject::activate(this, &staticMetaObject, 4, nullptr);
 }
 QT_WARNING_POP

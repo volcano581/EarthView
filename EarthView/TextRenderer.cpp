@@ -1,5 +1,6 @@
 #include "TextRenderer.h"
 #include "Camera.h"
+#include "FrameProfiler.h"
 #include "ShaderUtils.h"
 
 #include <QDebug>
@@ -78,22 +79,18 @@ quint64 quantizedCoordinate(double value)
 }
 }
 
-struct TextRenderer::PackedLabel {
-    Label label;
-    QRect textureRect;
-};
-
 TextRenderer::TextRenderer(Camera* camera, QObject* parent)
     : QObject(parent)
     , m_camera(camera)
-    , m_vbo(0)
     , m_vao(0)
     , m_textureId(0)
     , m_maxTextureSize(4096)
-    , m_cachedLabelHash(0)
+    , m_cachedAtlasHash(0)
+    , m_cachedGeometryHash(0)
     , m_cachedVertexCount(0)
     , m_gpuResourcesInitialized(false)
-    , m_cacheValid(false)
+    , m_atlasCacheValid(false)
+    , m_geometryCacheValid(false)
 {
     initializeOpenGLFunctions();
 }
@@ -109,9 +106,7 @@ TextRenderer::~TextRenderer()
         if (m_textureId) {
             f->glDeleteTextures(1, &m_textureId);
         }
-        if (m_vbo) {
-            f->glDeleteBuffers(1, &m_vbo);
-        }
+        m_vertexBuffer.destroy();
         if (m_vao) {
             f->glDeleteVertexArrays(1, &m_vao);
         }
@@ -139,11 +134,27 @@ void TextRenderer::initializeGpuResources()
     m_maxTextureSize = qMax(256, m_maxTextureSize);
 
     f->glGenVertexArrays(1, &m_vao);
-    f->glGenBuffers(1, &m_vbo);
+    if (!m_vertexBuffer.initialize(GL_ARRAY_BUFFER))
+        return;
     f->glGenTextures(1, &m_textureId);
 
+    setupVertexArray();
+
+    f->glBindTexture(GL_TEXTURE_2D, m_textureId);
+    f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    f->glBindTexture(GL_TEXTURE_2D, 0);
+
+    m_gpuResourcesInitialized = true;
+}
+
+void TextRenderer::setupVertexArray()
+{
+    QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
     f->glBindVertexArray(m_vao);
-    f->glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
+    f->glBindBuffer(GL_ARRAY_BUFFER, m_vertexBuffer.id());
     f->glEnableVertexAttribArray(0);
     f->glVertexAttribPointer(
         0,
@@ -162,15 +173,6 @@ void TextRenderer::initializeGpuResources()
         reinterpret_cast<void*>(offsetof(TextVertex, texCoord)));
     f->glBindBuffer(GL_ARRAY_BUFFER, 0);
     f->glBindVertexArray(0);
-
-    f->glBindTexture(GL_TEXTURE_2D, m_textureId);
-    f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    f->glBindTexture(GL_TEXTURE_2D, 0);
-
-    m_gpuResourcesInitialized = true;
 }
 
 QImage TextRenderer::buildAtlas(const QVector<Label>& labels, QVector<PackedLabel>* packedLabels) const
@@ -183,6 +185,7 @@ QImage TextRenderer::buildAtlas(const QVector<Label>& labels, QVector<PackedLabe
         return QImage();
 
     struct SizedLabel {
+        int sourceIndex = -1;
         Label label;
         QSize size;
     };
@@ -191,7 +194,8 @@ QImage TextRenderer::buildAtlas(const QVector<Label>& labels, QVector<PackedLabe
     sizedLabels.reserve(labels.size());
     int widestLabel = 0;
 
-    for (const Label& label : labels) {
+    for (int i = 0; i < labels.size(); ++i) {
+        const Label& label = labels.at(i);
         const int width = static_cast<int>(std::ceil(label.rect.width()));
         const int height = static_cast<int>(std::ceil(label.rect.height()));
         if (label.text.isEmpty() || width <= 0 || height <= 0)
@@ -203,7 +207,7 @@ QImage TextRenderer::buildAtlas(const QVector<Label>& labels, QVector<PackedLabe
         if (size.width() <= 0 || size.height() <= 0)
             continue;
 
-        sizedLabels.append({ label, size });
+        sizedLabels.append({ i, label, size });
         widestLabel = qMax(widestLabel, size.width());
     }
 
@@ -231,6 +235,7 @@ QImage TextRenderer::buildAtlas(const QVector<Label>& labels, QVector<PackedLabe
             break;
 
         PackedLabel packed;
+        packed.sourceIndex = sized.sourceIndex;
         packed.label = sized.label;
         packed.textureRect = QRect(QPoint(x, y), sized.size);
         packedLabels->append(packed);
@@ -269,7 +274,7 @@ QImage TextRenderer::buildAtlas(const QVector<Label>& labels, QVector<PackedLabe
     return atlas;
 }
 
-quint64 TextRenderer::hashLabels(const QVector<Label>& labels) const
+quint64 TextRenderer::hashAtlas(const QVector<Label>& labels) const
 {
     quint64 seed = static_cast<quint64>(labels.size());
     for (const Label& label : labels) {
@@ -277,8 +282,6 @@ quint64 TextRenderer::hashLabels(const QVector<Label>& labels) const
         mixHash(&seed, qHash(label.font.toString()));
         mixHash(&seed, label.textColor.rgba());
         mixHash(&seed, label.backgroundColor.rgba());
-        mixHash(&seed, quantizedCoordinate(label.rect.left()));
-        mixHash(&seed, quantizedCoordinate(label.rect.top()));
         mixHash(&seed, quantizedCoordinate(label.rect.width()));
         mixHash(&seed, quantizedCoordinate(label.rect.height()));
         mixHash(&seed, static_cast<quint64>(label.textMargins.left()));
@@ -291,28 +294,39 @@ quint64 TextRenderer::hashLabels(const QVector<Label>& labels) const
     return seed;
 }
 
-void TextRenderer::uploadBatch(const QVector<Label>& labels, quint64 labelsHash)
+quint64 TextRenderer::hashGeometry(const QVector<Label>& labels) const
 {
+    quint64 seed = static_cast<quint64>(labels.size());
+    for (const Label& label : labels) {
+        mixHash(&seed, quantizedCoordinate(label.rect.left()));
+        mixHash(&seed, quantizedCoordinate(label.rect.top()));
+        mixHash(&seed, quantizedCoordinate(label.rect.width()));
+        mixHash(&seed, quantizedCoordinate(label.rect.height()));
+    }
+    return seed;
+}
+
+void TextRenderer::uploadAtlas(const QVector<Label>& labels, quint64 atlasHash)
+{
+    FrameProfiler::Scope uploadScope(QStringLiteral("rebuild.textAtlas"));
+    FrameProfiler::recordCount(QStringLiteral("textAtlas.labels"), labels.size());
+
     QVector<PackedLabel> packedLabels;
     const QImage atlas = buildAtlas(labels, &packedLabels);
     if (atlas.isNull() || packedLabels.isEmpty()) {
-        m_cachedLabelHash = labelsHash;
+        m_cachedPackedLabels.clear();
+        m_cachedAtlasSize = QSize();
+        m_cachedAtlasHash = atlasHash;
         m_cachedVertexCount = 0;
-        m_cacheValid = true;
+        m_atlasCacheValid = true;
+        m_geometryCacheValid = false;
         return;
     }
 
-    QVector<TextVertex> vertices;
-    vertices.reserve(packedLabels.size() * 6);
-    for (const PackedLabel& packed : packedLabels) {
-        appendQuad(vertices, packed.label.rect, packed.textureRect, atlas.size());
-    }
-    if (vertices.isEmpty()) {
-        m_cachedLabelHash = labelsHash;
-        m_cachedVertexCount = 0;
-        m_cacheValid = true;
-        return;
-    }
+    FrameProfiler::recordCount(QStringLiteral("textAtlas.packedLabels"), packedLabels.size());
+    FrameProfiler::recordCount(
+        QStringLiteral("textAtlas.pixels"),
+        static_cast<qint64>(atlas.width()) * atlas.height());
 
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
     f->glActiveTexture(GL_TEXTURE0);
@@ -329,19 +343,51 @@ void TextRenderer::uploadBatch(const QVector<Label>& labels, quint64 labelsHash)
         GL_UNSIGNED_BYTE,
         atlas.constBits());
 
-    f->glBindVertexArray(m_vao);
-    f->glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
-    f->glBufferData(
-        GL_ARRAY_BUFFER,
-        vertices.size() * static_cast<qsizetype>(sizeof(TextVertex)),
-        vertices.constData(),
-        GL_STREAM_DRAW);
-    f->glBindBuffer(GL_ARRAY_BUFFER, 0);
-    f->glBindVertexArray(0);
+    m_cachedPackedLabels = packedLabels;
+    m_cachedAtlasSize = atlas.size();
+    m_cachedAtlasHash = atlasHash;
+    m_atlasCacheValid = true;
+    m_geometryCacheValid = false;
+}
 
-    m_cachedLabelHash = labelsHash;
+void TextRenderer::uploadGeometry(const QVector<Label>& labels, quint64 geometryHash)
+{
+    FrameProfiler::Scope uploadScope(QStringLiteral("upload.textGeometry"));
+
+    QVector<TextVertex> vertices;
+    vertices.reserve(m_cachedPackedLabels.size() * 6);
+    for (const PackedLabel& packed : m_cachedPackedLabels) {
+        if (packed.sourceIndex < 0 || packed.sourceIndex >= labels.size())
+            continue;
+
+        appendQuad(vertices, labels.at(packed.sourceIndex).rect, packed.textureRect, m_cachedAtlasSize);
+    }
+
+    if (vertices.isEmpty()) {
+        m_cachedGeometryHash = geometryHash;
+        m_cachedVertexCount = 0;
+        m_geometryCacheValid = true;
+        return;
+    }
+
+    FrameProfiler::recordCount(QStringLiteral("upload.textGeometry.vertices"), vertices.size());
+    FrameProfiler::recordCount(
+        QStringLiteral("upload.textGeometry.bytes"),
+        vertices.size() * static_cast<qsizetype>(sizeof(TextVertex)));
+
+    const StreamingBuffer::UploadResult upload = m_vertexBuffer.upload(
+        vertices.constData(),
+        vertices.size() * static_cast<qsizetype>(sizeof(TextVertex)),
+        GL_STREAM_DRAW);
+    if (!upload.ok)
+        return;
+    if (upload.bufferRecreated) {
+        setupVertexArray();
+    }
+
+    m_cachedGeometryHash = geometryHash;
     m_cachedVertexCount = vertices.size();
-    m_cacheValid = true;
+    m_geometryCacheValid = true;
 }
 
 void TextRenderer::render(const QVector<Label>& labels)
@@ -353,10 +399,16 @@ void TextRenderer::render(const QVector<Label>& labels)
     if (!m_gpuResourcesInitialized || !m_program.isLinked())
         return;
 
-    const quint64 labelsHash = hashLabels(labels);
-    if (!m_cacheValid || labelsHash != m_cachedLabelHash) {
-        uploadBatch(labels, labelsHash);
+    const quint64 atlasHash = hashAtlas(labels);
+    if (!m_atlasCacheValid || atlasHash != m_cachedAtlasHash) {
+        uploadAtlas(labels, atlasHash);
     }
+
+    const quint64 geometryHash = hashGeometry(labels);
+    if (!m_geometryCacheValid || geometryHash != m_cachedGeometryHash) {
+        uploadGeometry(labels, geometryHash);
+    }
+
     if (m_cachedVertexCount <= 0)
         return;
 
@@ -379,6 +431,8 @@ void TextRenderer::render(const QVector<Label>& labels)
 
     f->glBindVertexArray(m_vao);
     f->glDrawArrays(GL_TRIANGLES, 0, m_cachedVertexCount);
+    FrameProfiler::recordCount(QStringLiteral("draw.calls"));
+    FrameProfiler::recordCount(QStringLiteral("draw.text.vertices"), m_cachedVertexCount);
 
     f->glBindVertexArray(0);
     m_program.release();

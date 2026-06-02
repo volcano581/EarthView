@@ -1,6 +1,7 @@
 #include "VectorTileRenderer.h"
 #include "Camera.h"
 #include "Constants.h"
+#include "FrameProfiler.h"
 #include "MercatorProjection.h"
 #include "ShaderUtils.h"
 
@@ -14,6 +15,7 @@
 #include <QStringList>
 #include <QtGlobal>
 #include <QVector2D>
+#include <QtMath>
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
@@ -365,7 +367,7 @@ void appendProjectedSegment(
     const QColor& color,
     CoordinateMode mode)
 {
-    if (mode == CoordinateMode::Mercator) {
+    if (mode == CoordinateMode::Mercator || mode == CoordinateMode::Terrain3D) {
         LineBatchRenderer::appendSegment(vertices, a, b, color);
         return;
     }
@@ -388,7 +390,7 @@ void appendProjectedTileBackground(
     const QColor& color,
     CoordinateMode mode)
 {
-    if (mode == CoordinateMode::Mercator) {
+    if (mode == CoordinateMode::Mercator || mode == CoordinateMode::Terrain3D) {
         appendColoredQuad(
             vertices,
             bounds.topLeft(),
@@ -509,7 +511,7 @@ void appendProjectedWindingPath(
     if (ringSize < 3)
         return;
 
-    if (mode == CoordinateMode::Mercator) {
+    if (mode == CoordinateMode::Mercator || mode == CoordinateMode::Terrain3D) {
         const QPointF origin = mercatorPath.first();
         for (int i = 0; i < ringSize; ++i) {
             const QPointF& a = mercatorPath.at(i);
@@ -585,10 +587,8 @@ VectorTileRenderer::VectorTileRenderer(Camera* camera, QObject* parent)
     : QObject(parent)
     , m_camera(camera)
     , m_lineRenderer(new LineBatchRenderer(camera, this))
-    , m_fillVbo(0)
     , m_fillVao(0)
     , m_backgroundQuadVbo(0)
-    , m_backgroundInstanceVbo(0)
     , m_backgroundVao(0)
     , m_backgroundFirst(0)
     , m_backgroundCount(0)
@@ -617,18 +617,14 @@ VectorTileRenderer::~VectorTileRenderer()
     if (!f)
         return;
 
-    if (m_fillVbo) {
-        f->glDeleteBuffers(1, &m_fillVbo);
-    }
+    m_fillBuffer.destroy();
     if (m_fillVao) {
         f->glDeleteVertexArrays(1, &m_fillVao);
     }
     if (m_backgroundQuadVbo) {
         f->glDeleteBuffers(1, &m_backgroundQuadVbo);
     }
-    if (m_backgroundInstanceVbo) {
-        f->glDeleteBuffers(1, &m_backgroundInstanceVbo);
-    }
+    m_backgroundInstanceBuffer.destroy();
     if (m_backgroundVao) {
         f->glDeleteVertexArrays(1, &m_backgroundVao);
     }
@@ -686,6 +682,15 @@ void VectorTileRenderer::initializeGpuResources()
     }
 
     if (!ShaderUtils::loadProgram(
+            &m_terrainFillProgram,
+            QStringLiteral("colored_terrain.vert"),
+            QStringLiteral("colored_line.frag"),
+            &errorMessage)) {
+        qWarning() << errorMessage;
+        return;
+    }
+
+    if (!ShaderUtils::loadProgram(
             &m_mercatorBackgroundProgram,
             QStringLiteral("instanced_rect_mercator.vert"),
             QStringLiteral("colored_line.frag"),
@@ -697,11 +702,13 @@ void VectorTileRenderer::initializeGpuResources()
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
     f->initializeOpenGLFunctions();
     f->glGenVertexArrays(1, &m_fillVao);
-    f->glGenBuffers(1, &m_fillVbo);
+    if (!m_fillBuffer.initialize(GL_ARRAY_BUFFER))
+        return;
     setupFillVertexArray();
     f->glGenVertexArrays(1, &m_backgroundVao);
     f->glGenBuffers(1, &m_backgroundQuadVbo);
-    f->glGenBuffers(1, &m_backgroundInstanceVbo);
+    if (!m_backgroundInstanceBuffer.initialize(GL_ARRAY_BUFFER))
+        return;
     setupBackgroundInstanceArray();
     m_gpuResourcesInitialized = true;
 }
@@ -710,7 +717,7 @@ void VectorTileRenderer::setupFillVertexArray()
 {
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
     f->glBindVertexArray(m_fillVao);
-    f->glBindBuffer(GL_ARRAY_BUFFER, m_fillVbo);
+    f->glBindBuffer(GL_ARRAY_BUFFER, m_fillBuffer.id());
     f->glEnableVertexAttribArray(0);
     f->glVertexAttribPointer(
         0,
@@ -749,7 +756,7 @@ void VectorTileRenderer::setupBackgroundInstanceArray()
     f->glEnableVertexAttribArray(0);
     f->glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), nullptr);
 
-    f->glBindBuffer(GL_ARRAY_BUFFER, m_backgroundInstanceVbo);
+    f->glBindBuffer(GL_ARRAY_BUFFER, m_backgroundInstanceBuffer.id());
     f->glEnableVertexAttribArray(1);
     f->glVertexAttribPointer(
         1,
@@ -940,6 +947,9 @@ void VectorTileRenderer::rebuildBatches()
     if (!m_batchesDirty)
         return;
 
+    FrameProfiler::Scope rebuildScope(QStringLiteral("rebuild.vectorTiles"));
+    FrameProfiler::recordCount(QStringLiteral("vectorTiles.visibleTiles"), m_visibleKeys.size());
+
     m_backgroundInstances.clear();
     m_backgroundFillVertices.clear();
     m_fillBatches.clear();
@@ -949,9 +959,15 @@ void VectorTileRenderer::rebuildBatches()
     m_backgroundFirst = 0;
     m_backgroundCount = 0;
 
-    m_coordinateMode = m_camera && m_camera->isOrthographic()
-        ? CoordinateMode::Screen
-        : CoordinateMode::Mercator;
+    if (m_camera && m_camera->isOrthographic()) {
+        m_coordinateMode = CoordinateMode::Screen;
+    }
+    else if (m_camera && m_camera->isTerrain3DView()) {
+        m_coordinateMode = CoordinateMode::Terrain3D;
+    }
+    else {
+        m_coordinateMode = CoordinateMode::Mercator;
+    }
     m_fillViewportWidth = m_camera ? m_camera->getViewportWidth() : 0;
     m_fillViewportHeight = m_camera ? m_camera->getViewportHeight() : 0;
 
@@ -1093,6 +1109,11 @@ void VectorTileRenderer::rebuildBatches()
     }
 
     m_lineRenderer->setVertices(m_lineVertices);
+    FrameProfiler::recordCount(QStringLiteral("vectorTiles.lineVertices"), m_lineVertices.size());
+    FrameProfiler::recordCount(QStringLiteral("vectorTiles.fillVertices"), m_fillUploadVertices.size());
+    FrameProfiler::recordCount(QStringLiteral("vectorTiles.fillDraws"), m_fillDraws.size());
+    FrameProfiler::recordCount(QStringLiteral("vectorTiles.backgroundInstances"), m_backgroundInstances.size());
+
     m_fillBufferDirty = true;
     m_backgroundInstanceBufferDirty = true;
     if (m_camera) {
@@ -1126,6 +1147,23 @@ void VectorTileRenderer::bindFillProgram(QOpenGLShaderProgram* program, LineBatc
             "u_pixelsPerMercator",
             static_cast<float>(GIS::EARTH_RADIUS / m_camera->getResolution()));
     }
+    else if (mode == CoordinateMode::Terrain3D) {
+        program->setUniformValue(
+            "u_centerMercator",
+            QVector2D(
+                static_cast<float>(m_camera->getCenterMercator().x()),
+                static_cast<float>(m_camera->getCenterMercator().y())));
+        program->setUniformValue("u_pixelsPerMeter", static_cast<float>(1.0 / m_camera->getResolution()));
+        program->setUniformValue("u_earthRadius", static_cast<float>(GIS::EARTH_RADIUS));
+        program->setUniformValue("u_pitchRadians", qDegreesToRadians(m_camera->terrainPitchDegrees()));
+        program->setUniformValue(
+            "u_screenAnchor",
+            QVector2D(
+                static_cast<float>(m_camera->terrainScreenAnchor().x()),
+                static_cast<float>(m_camera->terrainScreenAnchor().y())));
+        program->setUniformValue("u_focalPixels", static_cast<float>(m_camera->terrainFocalPixels()));
+        program->setUniformValue("u_viewDistanceMeters", static_cast<float>(m_camera->terrainViewDistanceMeters()));
+    }
 }
 
 void VectorTileRenderer::drawInstancedBackground()
@@ -1154,12 +1192,24 @@ void VectorTileRenderer::drawInstancedBackground()
 
     f->glBindVertexArray(m_backgroundVao);
     if (m_backgroundInstanceBufferDirty) {
-        f->glBindBuffer(GL_ARRAY_BUFFER, m_backgroundInstanceVbo);
-        f->glBufferData(
-            GL_ARRAY_BUFFER,
-            m_backgroundInstances.size() * static_cast<qsizetype>(sizeof(BackgroundInstance)),
+        FrameProfiler::Scope uploadScope(QStringLiteral("upload.vectorBackgroundInstances"));
+        FrameProfiler::recordCount(QStringLiteral("upload.vectorBackgroundInstances.instances"), m_backgroundInstances.size());
+        FrameProfiler::recordCount(
+            QStringLiteral("upload.vectorBackgroundInstances.bytes"),
+            m_backgroundInstances.size() * static_cast<qsizetype>(sizeof(BackgroundInstance)));
+        const StreamingBuffer::UploadResult upload = m_backgroundInstanceBuffer.upload(
             m_backgroundInstances.constData(),
+            m_backgroundInstances.size() * static_cast<qsizetype>(sizeof(BackgroundInstance)),
             GL_DYNAMIC_DRAW);
+        if (!upload.ok) {
+            f->glBindVertexArray(0);
+            m_mercatorBackgroundProgram.release();
+            return;
+        }
+        if (upload.bufferRecreated) {
+            setupBackgroundInstanceArray();
+            f->glBindVertexArray(m_backgroundVao);
+        }
         m_backgroundInstanceBufferDirty = false;
     }
     f->glDrawArraysInstanced(
@@ -1167,6 +1217,8 @@ void VectorTileRenderer::drawInstancedBackground()
         0,
         6,
         static_cast<GLsizei>(m_backgroundInstances.size()));
+    FrameProfiler::recordCount(QStringLiteral("draw.calls"));
+    FrameProfiler::recordCount(QStringLiteral("draw.vectorBackground.instances"), m_backgroundInstances.size());
     f->glBindVertexArray(0);
     m_mercatorBackgroundProgram.release();
 }
@@ -1180,9 +1232,13 @@ void VectorTileRenderer::drawFillBatch()
     if (!context)
         return;
 
-    QOpenGLShaderProgram* windingProgram = m_coordinateMode == CoordinateMode::Mercator
-        ? &m_mercatorFillProgram
-        : &m_screenFillProgram;
+    QOpenGLShaderProgram* windingProgram = &m_screenFillProgram;
+    if (m_coordinateMode == CoordinateMode::Mercator) {
+        windingProgram = &m_mercatorFillProgram;
+    }
+    else if (m_coordinateMode == CoordinateMode::Terrain3D) {
+        windingProgram = &m_terrainFillProgram;
+    }
     if (!windingProgram->isLinked() || !m_screenFillProgram.isLinked())
         return;
 
@@ -1201,13 +1257,25 @@ void VectorTileRenderer::drawFillBatch()
     }
 
     f->glBindVertexArray(m_fillVao);
-    f->glBindBuffer(GL_ARRAY_BUFFER, m_fillVbo);
     if (m_fillBufferDirty) {
-        f->glBufferData(
-            GL_ARRAY_BUFFER,
-            m_fillUploadVertices.size() * static_cast<qsizetype>(sizeof(LineBatchRenderer::LineVertex)),
+        FrameProfiler::Scope uploadScope(QStringLiteral("upload.vectorFillBatch"));
+        FrameProfiler::recordCount(QStringLiteral("upload.vectorFillBatch.vertices"), m_fillUploadVertices.size());
+        FrameProfiler::recordCount(
+            QStringLiteral("upload.vectorFillBatch.bytes"),
+            m_fillUploadVertices.size() * static_cast<qsizetype>(sizeof(LineBatchRenderer::LineVertex)));
+        const StreamingBuffer::UploadResult upload = m_fillBuffer.upload(
             m_fillUploadVertices.constData(),
+            m_fillUploadVertices.size() * static_cast<qsizetype>(sizeof(LineBatchRenderer::LineVertex)),
             GL_DYNAMIC_DRAW);
+        if (!upload.ok) {
+            f->glBindVertexArray(0);
+            glDepthMask(GL_TRUE);
+            return;
+        }
+        if (upload.bufferRecreated) {
+            setupFillVertexArray();
+            f->glBindVertexArray(m_fillVao);
+        }
         m_fillBufferDirty = false;
     }
 
@@ -1217,6 +1285,8 @@ void VectorTileRenderer::drawFillBatch()
             GL_TRIANGLES,
             static_cast<GLint>(m_backgroundFirst),
             static_cast<GLsizei>(m_backgroundCount));
+        FrameProfiler::recordCount(QStringLiteral("draw.calls"));
+        FrameProfiler::recordCount(QStringLiteral("draw.vectorFill.vertices"), m_backgroundCount);
     }
 
     bool stencilEnabled = false;
@@ -1254,6 +1324,8 @@ void VectorTileRenderer::drawFillBatch()
             GL_TRIANGLES,
             static_cast<GLint>(draw.windingFirst),
             static_cast<GLsizei>(draw.windingCount));
+        FrameProfiler::recordCount(QStringLiteral("draw.calls"));
+        FrameProfiler::recordCount(QStringLiteral("draw.vectorFill.vertices"), draw.windingCount);
 
         glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
         glStencilMask(0x00);
@@ -1265,6 +1337,8 @@ void VectorTileRenderer::drawFillBatch()
             GL_TRIANGLES,
             static_cast<GLint>(draw.coverFirst),
             static_cast<GLsizei>(draw.coverCount));
+        FrameProfiler::recordCount(QStringLiteral("draw.calls"));
+        FrameProfiler::recordCount(QStringLiteral("draw.vectorFill.vertices"), draw.coverCount);
     }
 
     glStencilMask(0xff);
@@ -1289,11 +1363,18 @@ void VectorTileRenderer::render()
         return;
 
     updateVisibleTiles();
-    const bool orthographic = m_camera->isOrthographic();
-    if (!m_hasBatchCameraState || orthographic != m_batchWasOrthographic) {
+    CoordinateMode currentMode = CoordinateMode::Mercator;
+    if (m_camera->isOrthographic()) {
+        currentMode = CoordinateMode::Screen;
+    }
+    else if (m_camera->isTerrain3DView()) {
+        currentMode = CoordinateMode::Terrain3D;
+    }
+
+    if (!m_hasBatchCameraState || currentMode != m_coordinateMode) {
         m_batchesDirty = true;
     }
-    else if (orthographic
+    else if (currentMode == CoordinateMode::Screen
         && (m_camera->getCenterMercator() != m_batchCenterMercator
             || m_camera->getResolution() != m_batchResolution)) {
         m_batchesDirty = true;

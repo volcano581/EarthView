@@ -1,5 +1,6 @@
 #include "TileRenderer.h"
 #include "Camera.h"
+#include "FrameProfiler.h"
 #include "ShaderUtils.h"
 #include "TMSLoader.h"
 #include <QDebug>
@@ -48,7 +49,6 @@ TileRenderer::TileRenderer(Camera* camera, TmsLoader* tileLoader, QObject* paren
     : QObject(parent)
     , m_camera(camera)
     , m_tileLoader(tileLoader)
-    , m_vbo(0)
     , m_vao(0)
     , m_gpuResourcesInitialized(false)
 {
@@ -63,9 +63,7 @@ TileRenderer::~TileRenderer()
     QOpenGLContext* context = QOpenGLContext::currentContext();
     QOpenGLExtraFunctions* f = context ? context->extraFunctions() : nullptr;
     if (f) {
-        if (m_vbo) {
-            f->glDeleteBuffers(1, &m_vbo);
-        }
+        m_vertexBuffer.destroy();
         if (m_vao) {
             f->glDeleteVertexArrays(1, &m_vao);
         }
@@ -90,9 +88,18 @@ void TileRenderer::initializeGpuResources()
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
     f->initializeOpenGLFunctions();
     f->glGenVertexArrays(1, &m_vao);
-    f->glGenBuffers(1, &m_vbo);
+    if (!m_vertexBuffer.initialize(GL_ARRAY_BUFFER))
+        return;
+
+    setupVertexArray();
+    m_gpuResourcesInitialized = true;
+}
+
+void TileRenderer::setupVertexArray()
+{
+    QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
     f->glBindVertexArray(m_vao);
-    f->glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
+    f->glBindBuffer(GL_ARRAY_BUFFER, m_vertexBuffer.id());
     f->glEnableVertexAttribArray(0);
     f->glVertexAttribPointer(
         0,
@@ -111,8 +118,6 @@ void TileRenderer::initializeGpuResources()
         reinterpret_cast<void*>(offsetof(TileVertex, texCoord)));
     f->glBindBuffer(GL_ARRAY_BUFFER, 0);
     f->glBindVertexArray(0);
-
-    m_gpuResourcesInitialized = true;
 }
 
 void TileRenderer::render()
@@ -186,15 +191,31 @@ void TileRenderer::render()
         QVector<TileVertex> vertices;
 
         if (!m_camera->isOrthographic()) {
-            QPointF topLeft = m_camera->mercatorToScreen(tile.mercatorBounds.topLeft());
-            QPointF bottomRight = m_camera->mercatorToScreen(tile.mercatorBounds.bottomRight());
+            QPointF topLeft;
+            QPointF topRight;
+            QPointF bottomRight;
+            QPointF bottomLeft;
+            if (m_camera->isTerrain3DView()) {
+                if (!m_camera->projectMercatorToScreen(tile.mercatorBounds.topLeft(), &topLeft)
+                    || !m_camera->projectMercatorToScreen(QPointF(tile.mercatorBounds.right(), tile.mercatorBounds.top()), &topRight)
+                    || !m_camera->projectMercatorToScreen(tile.mercatorBounds.bottomRight(), &bottomRight)
+                    || !m_camera->projectMercatorToScreen(QPointF(tile.mercatorBounds.left(), tile.mercatorBounds.bottom()), &bottomLeft)) {
+                    continue;
+                }
+            }
+            else {
+                topLeft = m_camera->mercatorToScreen(tile.mercatorBounds.topLeft());
+                bottomRight = m_camera->mercatorToScreen(tile.mercatorBounds.bottomRight());
+                topRight = QPointF(bottomRight.x(), topLeft.y());
+                bottomLeft = QPointF(topLeft.x(), bottomRight.y());
+            }
             vertices.reserve(6);
             appendQuad(
                 vertices,
                 topLeft,
-                QPointF(bottomRight.x(), topLeft.y()),
+                topRight,
                 bottomRight,
-                QPointF(topLeft.x(), bottomRight.y()),
+                bottomLeft,
                 0.0f,
                 0.0f,
                 1.0f,
@@ -248,13 +269,20 @@ void TileRenderer::render()
         if (vertices.isEmpty())
             continue;
 
-        f->glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
-        f->glBufferData(
-            GL_ARRAY_BUFFER,
-            vertices.size() * static_cast<qsizetype>(sizeof(TileVertex)),
+        const StreamingBuffer::UploadResult upload = m_vertexBuffer.upload(
             vertices.constData(),
+            vertices.size() * static_cast<qsizetype>(sizeof(TileVertex)),
             GL_STREAM_DRAW);
+        if (!upload.ok)
+            continue;
+        if (upload.bufferRecreated) {
+            setupVertexArray();
+            f->glBindVertexArray(m_vao);
+        }
         f->glDrawArrays(GL_TRIANGLES, 0, vertices.size());
+        FrameProfiler::recordCount(QStringLiteral("draw.calls"));
+        FrameProfiler::recordCount(QStringLiteral("draw.rasterTiles.tiles"));
+        FrameProfiler::recordCount(QStringLiteral("draw.rasterTiles.vertices"), vertices.size());
     }
 
     m_tileProgram.release();

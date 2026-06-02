@@ -950,9 +950,6 @@ CMakeFiles/EarthView.dir/main.cpp.obj: \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qvarlengtharray.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qalloc.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/qguiapplication_platform.h \
-  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QByteArray \
-  C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/QSurfaceFormat \
-  C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/qsurfaceformat.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QCoreApplication \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QDebug \
   G:/Projects/EarthView/EarthView/MainWindow.h \
@@ -970,4 +967,8 @@ CMakeFiles/EarthView.dir/main.cpp.obj: \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/qfontinfo.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/qfontvariableaxis.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtWidgets/qsizepolicy.h \
-  C:/Qt/6.11.0/llvm-mingw_64/include/QtWidgets/qtabwidget.h
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtWidgets/qtabwidget.h \
+  G:/Projects/EarthView/EarthView/OpenGLRuntime.h \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/QSurfaceFormat \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/qsurfaceformat.h \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QString

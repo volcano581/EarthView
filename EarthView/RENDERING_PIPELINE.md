@@ -6,7 +6,8 @@ borders, grids, and overlays into OpenGL draw calls, and it calls out the
 benefits and tradeoffs of each major rendering feature.
 
 The current renderer is a Qt 6 desktop renderer built around `QOpenGLWidget`
-and an OpenGL 3.3 core profile. The central coordinator is `MapWidget`, while
+and a core-profile OpenGL context. Hardware rendering requests OpenGL 4.5,
+while software/compatibility fallback uses OpenGL 3.3. The central coordinator is `MapWidget`, while
 specialized renderer classes own source-specific batching, shader programs,
 and GPU resources.
 
@@ -19,6 +20,7 @@ QOpenGLWidget paint event
   -> clear color/depth/stencil buffers
   -> optional orthographic globe backdrop
   -> raster tile renderer
+  -> optional DEM terrain overlay
   -> vector MBTiles renderer
   -> shared border/grid line batch renderer
   -> city marker renderer
@@ -37,6 +39,8 @@ The major rendering participants are:
 | `TmsLoader`          | Raster URL/MBTiles tile discovery, network loading, active tile cache.        |
 | `TileRenderer`       | Draws raster tile textures.                                                   |
 | `TextureManager`     | OpenGL texture creation, mipmaps, cache eviction.                             |
+| `DemLoader`          | GeoTIFF DEM catalog discovery, metadata probing, and tile image loading.      |
+| `TerrainRenderer`    | DEM mesh rendering with GPU height texture sampling.                          |
 | `MbTilesReader`      | SQLite MBTiles reads and minimal MVT protobuf decoding.                       |
 | `VectorTileRenderer` | Vector MBTiles fill, line, label, and base land rendering.                    |
 | `LineBatchRenderer`  | Shared colored-line rendering for borders, grids, and vector linework.        |
@@ -51,7 +55,7 @@ The major rendering participants are:
 `main.cpp` and `MapWidget` request:
 
 ```text
-OpenGL profile: 3.3 core
+OpenGL profile: 4.5 core on hardware, 3.3 core for software/forced fallback
 Depth buffer:   24 bits
 Stencil buffer: 8 bits
 Swap interval:  0
@@ -64,7 +68,8 @@ increment/decrement to preserve non-zero winding behavior.
 
 Benefits:
 
-- OpenGL 3.3 core keeps the renderer widely supported.
+- OpenGL 4.5 enables DSA and persistent mapped streaming buffers where useful.
+- The 3.3 fallback keeps the renderer widely supported.
 - The stencil buffer gives robust polygon fill behavior without pulling in a
 tessellation dependency.
 - A consistent `QSurfaceFormat` prevents accidental fallback to a surface that
@@ -125,6 +130,7 @@ context is current:
 - `GridRenderer`
 - `CityRenderer`
 - `VectorTileRenderer`
+- `TerrainRenderer`
 - `LineBatchRenderer`
 - `TextRenderer`
 
@@ -140,12 +146,13 @@ before a valid context exists.
 2. Update FPS counter.
 3. Draw the orthographic globe backdrop when enabled.
 4. Render raster imagery tiles.
-5. Render vector MBTiles.
-6. Render border and grid lines through a shared line batch.
-7. Render city markers.
-8. Rebuild cached labels when dirty.
-9. Draw scale bar geometry.
-10. Render all text labels through one text atlas.
+5. Render the DEM terrain overlay when enabled.
+6. Render vector MBTiles.
+7. Render border and grid lines through a shared line batch.
+8. Render city markers.
+9. Rebuild cached labels when dirty.
+10. Draw scale bar geometry.
+11. Render all text labels through one text atlas.
 
 Benefits:
 
@@ -255,6 +262,112 @@ Costs and risks:
 - Raster tile rendering still issues one draw call per visible tile.
 - Globe mode creates CPU-side subdivision geometry per tile per frame.
 - Texture state changes can dominate when many raster tiles are visible.
+
+## Elevation And Terrain Pipeline
+
+DEM data is loaded from the configured GeoTIFF directory:
+
+```text
+http://200.0.0.23:8123/elevation/alldem/dem90tif/
+```
+
+Catalog discovery prefers the available VRT index binaries:
+
+```text
+http://200.0.0.23:8123/elevation/alldem/indexes/7th/alldem90.vrt.index.bin
+http://200.0.0.23:8123/elevation/alldem/indexes/10th/alldem90.vrt.index.bin
+```
+
+`DemLoader` extracts embedded `.tif` and `.tiff` references from those index
+payloads and resolves them against the GeoTIFF directory. If the index files
+cannot be read or do not expose TIFF references, it falls back to the server
+directory listing. It then probes the first 64 KiB of each TIFF with an HTTP
+range request and parses classic GeoTIFF tags for image size, model pixel
+scale, and model tiepoints. Those tags produce geographic bounds, which are
+converted to the internal Mercator coordinate space for camera visibility
+tests.
+
+For local verification, `Data/DEM` can mirror the server hierarchy:
+
+```text
+Data/DEM/DEM90TIF/*.tif
+Data/DEM/indexes/7th/alldem90.vrt.index.bin
+Data/DEM/indexes/10th/alldem90.vrt.index.bin
+```
+
+When that mirror exists, the loader reads the local index sidecars and local
+sample tiles first, while keeping the web URL as the canonical tile URL. This
+allows a single local TIFF, such as `N18.tif`, to exercise catalog discovery,
+GeoTIFF metadata parsing, tile decode, texture upload, and terrain rendering
+without requiring the live server during development. The remote path remains
+the production source.
+
+Some GeoTIFF files store their image file directory near the end of the file.
+For those, the remote metadata path uses a second HTTP range request around
+the TIFF IFD after reading the header offset, instead of downloading the whole
+tile only to discover bounds.
+
+Visible DEM tiles are then downloaded and decoded as elevation samples when
+the TIFF is an uncompressed single-band DEM. Float32, signed integer, and
+unsigned integer sample formats are supported. `TerrainRenderer` uploads those
+samples into an `GL_R32F` height texture, tracks per-tile min/max elevations,
+and drops CPU-side samples after upload. If sample decoding fails, it falls
+back to Qt image decoding.
+
+The `3D` button overlaid on the map toggles between plain Mercator and tilted
+terrain view. Enabling it switches out of orthographic globe mode when needed,
+turns on the DEM loader, and renders a Google Earth-style pitched terrain
+surface. The terrain shader samples the height texture in the vertex shader,
+applies vertical exaggeration, projects the mesh through the shared terrain
+camera, and shades the surface by elevation and local slope. A thin wireframe
+pass can reveal the mesh structure.
+
+Terrain geometry is a cached per-tile subdivision mesh:
+
+- Mesh vertices stay in Mercator coordinates.
+- Each tile mesh is uploaded once with `GL_STATIC_DRAW`.
+- The shader performs per-frame camera and height projection.
+- Loader visibility updates are driven by camera/catalog changes, not by the
+draw loop.
+- The `Terrain` toolbar/menu action toggles the loader and renderer together.
+- The map-overlay `3D` button toggles the terrain camera. Plain view does not
+draw the DEM mesh, which keeps normal map FPS on the fast path.
+- Raster tile quads, vector lines/fills, border lines, grid lines, city markers,
+and label anchors all use the same terrain camera projection when 3D view is
+active.
+
+Keyboard terrain controls:
+
+| Key | Action |
+| --- | ------ |
+| `[` | Decrease pitch. |
+| `]` | Increase pitch. |
+| `Page Up` | Increase vertical exaggeration. |
+| `Page Down` | Decrease vertical exaggeration. |
+
+Benefits:
+
+- DEM images are fetched only for visible tiles after lightweight metadata
+probing.
+- Local `Data/DEM` mirrors can verify the full elevation flow with one sample
+tile.
+- Height lookup happens on the GPU through the same texture that drives
+terrain displacement and coloring.
+- Static per-tile meshes remove the previous per-frame mesh rebuild and VBO
+upload cost.
+
+Costs and risks:
+
+- Index discovery assumes the `.vrt.index.bin` payload exposes TIFF path strings.
+- Directory discovery is only a fallback and requires the DEM server to expose
+an HTML listing.
+- The metadata probe currently supports classic GeoTIFF headers, not BigTIFF.
+- Terrain mesh vertices are generated on the render thread once per tile.
+- Orthographic globe mode remains a separate globe projection. The 3D terrain
+button intentionally returns to Mercator before enabling tilted terrain.
+- Lines and labels are projected into the tilted terrain view, but they are
+billboard/overlay geometry rather than fully height-sampled road or text
+draping.
 
 ## Vector MBTiles Pipeline
 
@@ -643,6 +756,7 @@ across the orthographic globe.
 | `solid_2d.vert` / `solid_2d.frag`                    | Simple overlay and globe backdrop shapes.      |
 | `point_marker.vert` / `point_marker.frag`            | City markers.                                  |
 | `mercator_line.vert` / `solid_2d.frag`               | Legacy/direct border line path.                |
+| `terrain_height.vert` / `terrain_height.frag`        | DEM height texture sampling and terrain tint.  |
 
 
 Benefits:
@@ -698,6 +812,7 @@ The current order is:
 clear
 globe backdrop
 raster imagery
+terrain overlay
 vector land background
 vector fills
 vector linework
@@ -735,10 +850,16 @@ Fast paths:
 - Vector fill buffers upload only when dirty.
 - Text atlas uploads only when label hash changes.
 - Raster textures are cached with mipmaps.
+- DEM height textures and terrain meshes are uploaded once per loaded elevation
+tile.
+- DEM terrain draw and loading are skipped while the map is in plain Mercator
+view.
 
 Costly paths:
 
 - Raster tiles still draw one tile at a time.
+- DEM terrain meshes are CPU-expanded once per loaded tile.
+- 3D wireframe draws a second terrain pass.
 - Vector polygon stencil fill uses multiple passes per style/color group.
 - Globe mode projects many vertices on the CPU.
 - MBTiles tile reads are synchronous.
@@ -778,10 +899,11 @@ When a layer fails to render:
 3. Confirm `Camera::getTileRange()` is not returning an excessive range.
 4. Confirm raster tiles have a texture ID or pending image.
 5. Confirm vector tiles decode to non-empty layers.
-6. Confirm the stencil buffer exists for polygon fills.
-7. Check shader load messages from `ShaderUtils`.
-8. Check dirty flags if stale geometry appears.
-9. Check OpenGL state interactions if later passes disappear.
+6. Confirm DEM catalog listing and GeoTIFF metadata probes succeed.
+7. Confirm the stencil buffer exists for polygon fills.
+8. Check shader load messages from `ShaderUtils`.
+9. Check dirty flags if stale geometry appears.
+10. Check OpenGL state interactions if later passes disappear.
 
 When performance drops:
 
@@ -791,4 +913,3 @@ When performance drops:
 4. Check MBTiles synchronous read volume.
 5. Check globe mode subdivision and CPU projection cost.
 6. Check draw-call count from raster tiles and stencil fill groups.
-

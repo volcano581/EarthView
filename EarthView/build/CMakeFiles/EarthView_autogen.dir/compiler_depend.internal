@@ -67,6 +67,7 @@ G:/Projects/EarthView/EarthView/build/EarthView_autogen/timestamp
  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QVariant
  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QVector
  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/Qt
+ C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QtGlobal
  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/q17memory.h
  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/q20bit.h
  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/q20functional.h
@@ -1374,6 +1375,10 @@ G:/Projects/EarthView/EarthView/build/EarthView_autogen/timestamp
  G:/Projects/EarthView/EarthView/CityRenderer.cpp
  G:/Projects/EarthView/EarthView/CityRenderer.h
  G:/Projects/EarthView/EarthView/Constants.h
+ G:/Projects/EarthView/EarthView/DemLoader.cpp
+ G:/Projects/EarthView/EarthView/DemLoader.h
+ G:/Projects/EarthView/EarthView/FrameProfiler.cpp
+ G:/Projects/EarthView/EarthView/FrameProfiler.h
  G:/Projects/EarthView/EarthView/GridRenderer.cpp
  G:/Projects/EarthView/EarthView/GridRenderer.h
  G:/Projects/EarthView/EarthView/LineBatchRenderer.cpp
@@ -1386,10 +1391,16 @@ G:/Projects/EarthView/EarthView/build/EarthView_autogen/timestamp
  G:/Projects/EarthView/EarthView/MbTilesReader.h
  G:/Projects/EarthView/EarthView/MercatorProjection.cpp
  G:/Projects/EarthView/EarthView/MercatorProjection.h
+ G:/Projects/EarthView/EarthView/OpenGLRuntime.cpp
+ G:/Projects/EarthView/EarthView/OpenGLRuntime.h
  G:/Projects/EarthView/EarthView/ShaderUtils.cpp
  G:/Projects/EarthView/EarthView/ShaderUtils.h
+ G:/Projects/EarthView/EarthView/StreamingBuffer.cpp
+ G:/Projects/EarthView/EarthView/StreamingBuffer.h
  G:/Projects/EarthView/EarthView/TMSLoader.cpp
  G:/Projects/EarthView/EarthView/TMSLoader.h
+ G:/Projects/EarthView/EarthView/TerrainRenderer.cpp
+ G:/Projects/EarthView/EarthView/TerrainRenderer.h
  G:/Projects/EarthView/EarthView/TextRenderer.cpp
  G:/Projects/EarthView/EarthView/TextRenderer.h
  G:/Projects/EarthView/EarthView/TextureManager.cpp

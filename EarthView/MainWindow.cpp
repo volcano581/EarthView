@@ -17,6 +17,7 @@
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QNetworkRequest>
+#include <QSignalBlocker>
 #include <QToolBar>
 #include <QStatusBar>
 #include <QLabel>
@@ -592,6 +593,12 @@ void MainWindow::setupUI()
     citiesVisibleAction->setToolTip("Show or hide city and settlement labels.");
     toolbar->addAction(citiesVisibleAction);
 
+    QAction* terrainVisibleAction = new QAction("Terrain", this);
+    terrainVisibleAction->setCheckable(true);
+    terrainVisibleAction->setChecked(true);
+    terrainVisibleAction->setToolTip("Show or hide DEM terrain overlay.");
+    toolbar->addAction(terrainVisibleAction);
+
     QAction* wrapLongitudeAction = new QAction("Wrap Longitude", this);
     wrapLongitudeAction->setCheckable(true);
     wrapLongitudeAction->setToolTip("Repeat imagery horizontally instead of constraining longitude to +/-180 degrees.");
@@ -611,6 +618,7 @@ void MainWindow::setupUI()
     viewMenu->addAction(bordersVisibleAction);
     viewMenu->addAction(gridVisibleAction);
     viewMenu->addAction(citiesVisibleAction);
+    viewMenu->addAction(terrainVisibleAction);
     viewMenu->addSeparator();
     viewMenu->addAction(wrapLongitudeAction);
     viewMenu->addAction(globeViewAction);
@@ -656,6 +664,11 @@ void MainWindow::setupUI()
         statusBar()->showMessage(visible ? "Cities shown" : "Cities hidden", 2000);
         });
 
+    connect(terrainVisibleAction, &QAction::toggled, this, [this](bool visible) {
+        m_mapWidget->setTerrainVisible(visible);
+        statusBar()->showMessage(visible ? "Terrain shown" : "Terrain hidden", 2000);
+        });
+
     connect(wrapLongitudeAction, &QAction::toggled, this, [this](bool enabled) {
         m_mapWidget->camera()->setHorizontalWrapEnabled(enabled);
         statusBar()->showMessage(
@@ -668,6 +681,11 @@ void MainWindow::setupUI()
             enabled ? Camera::ProjectionMode::Orthographic : Camera::ProjectionMode::Mercator);
         statusBar()->showMessage(enabled ? "Orthographic globe view enabled" : "Mercator map view enabled", 2000);
         });
+
+    connect(m_mapWidget->camera(), &Camera::projectionModeChanged, this, [globeViewAction](Camera::ProjectionMode mode) {
+        QSignalBlocker blocker(globeViewAction);
+        globeViewAction->setChecked(mode == Camera::ProjectionMode::Orthographic);
+    });
 
     // Connect camera for status updates
     connect(m_mapWidget->camera(), &Camera::cameraChanged, [this]() {

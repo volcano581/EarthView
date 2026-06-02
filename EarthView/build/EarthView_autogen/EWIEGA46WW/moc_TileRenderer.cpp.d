@@ -1,6 +1,7 @@
 G:/Projects/EarthView/EarthView/build/EarthView_autogen/EWIEGA46WW/moc_TileRenderer.cpp: G:/Projects/EarthView/EarthView/TileRenderer.h \
   G:/Projects/EarthView/EarthView/build/EarthView_autogen/moc_predefs.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QObject \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QtGlobal \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/q17memory.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/q20bit.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/q20functional.h \
@@ -909,4 +910,5 @@ G:/Projects/EarthView/EarthView/build/EarthView_autogen/EWIEGA46WW/moc_TileRende
   C:/Qt/Tools/llvm-mingw1706_64/include/sys/timeb.h \
   C:/Qt/Tools/llvm-mingw1706_64/include/time.h \
   C:/Qt/Tools/llvm-mingw1706_64/lib/clang/17/include/stdarg.h \
-  C:/Qt/Tools/llvm-mingw1706_64/lib/clang/17/include/vadefs.h
+  C:/Qt/Tools/llvm-mingw1706_64/lib/clang/17/include/vadefs.h \
+  G:/Projects/EarthView/EarthView/StreamingBuffer.h

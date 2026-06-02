@@ -4,6 +4,7 @@
 
 #include "LineBatchRenderer.h"
 #include "MbTilesReader.h"
+#include "StreamingBuffer.h"
 #include "TMSLoader.h"
 #include "TextRenderer.h"
 #include <QColor>
@@ -90,11 +91,12 @@ private:
     LineBatchRenderer* m_lineRenderer;
     QOpenGLShaderProgram m_screenFillProgram;
     QOpenGLShaderProgram m_mercatorFillProgram;
+    QOpenGLShaderProgram m_terrainFillProgram;
     QOpenGLShaderProgram m_mercatorBackgroundProgram;
-    GLuint m_fillVbo;
+    StreamingBuffer m_fillBuffer;
     GLuint m_fillVao;
     GLuint m_backgroundQuadVbo;
-    GLuint m_backgroundInstanceVbo;
+    StreamingBuffer m_backgroundInstanceBuffer;
     GLuint m_backgroundVao;
     qsizetype m_backgroundFirst;
     qsizetype m_backgroundCount;

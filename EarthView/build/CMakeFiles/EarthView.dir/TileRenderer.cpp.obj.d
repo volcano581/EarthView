@@ -1,10 +1,10 @@
 CMakeFiles/EarthView.dir/TileRenderer.cpp.obj: \
   G:/Projects/EarthView/EarthView/TileRenderer.cpp \
   G:/Projects/EarthView/EarthView/TileRenderer.h \
-  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QObject \
-  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qobject.h \
-  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qobjectdefs.h \
-  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qnamespace.h \
+  G:/Projects/EarthView/EarthView/StreamingBuffer.h \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/QOpenGLFunctions \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/qopenglfunctions.h \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/qtguiglobal.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qglobal.h \
   C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/type_traits \
   C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/__assert \
@@ -709,6 +709,13 @@ CMakeFiles/EarthView.dir/TileRenderer.cpp.obj: \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qtresource.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qttranslation.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qversiontagging.h \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/qtgui-config.h \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/qtguiexports.h \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/qopengl.h \
+  C:/Qt/Tools/llvm-mingw1706_64/include/GL/gl.h \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/qopenglext.h \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/qopenglcontext.h \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qnamespace.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qcompare.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qstdlibdetection.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qcomparehelpers.h \
@@ -808,6 +815,8 @@ CMakeFiles/EarthView.dir/TileRenderer.cpp.obj: \
   C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/__functional/pointer_to_unary_function.h \
   C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/__functional/unary_negate.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qtmetamacros.h \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qobject.h \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qobjectdefs.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qobjectdefs_impl.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qfunctionaltools_impl.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qstring.h \
@@ -892,15 +901,6 @@ CMakeFiles/EarthView.dir/TileRenderer.cpp.obj: \
   C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/__chrono/year_month_day.h \
   C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/__chrono/year_month_weekday.h \
   C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/__chrono/literals.h \
-  C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/QOpenGLFunctions \
-  C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/qopenglfunctions.h \
-  C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/qtguiglobal.h \
-  C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/qtgui-config.h \
-  C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/qtguiexports.h \
-  C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/qopengl.h \
-  C:/Qt/Tools/llvm-mingw1706_64/include/GL/gl.h \
-  C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/qopenglext.h \
-  C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/qopenglcontext.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qset.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qhash.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qnativeinterface.h \
@@ -924,6 +924,8 @@ CMakeFiles/EarthView.dir/TileRenderer.cpp.obj: \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/qopenglcontext_platform.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/qwindowdefs.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/qwindowdefs_win.h \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QtGlobal \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QObject \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtOpenGL/QOpenGLShaderProgram \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtOpenGL/qopenglshaderprogram.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtOpenGL/qtopenglglobal.h \
@@ -944,8 +946,11 @@ CMakeFiles/EarthView.dir/TileRenderer.cpp.obj: \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QRectF \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QRect \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/QMatrix4x4 \
-  G:/Projects/EarthView/EarthView/ShaderUtils.h \
+  G:/Projects/EarthView/EarthView/FrameProfiler.h \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QElapsedTimer \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qelapsedtimer.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QString \
+  G:/Projects/EarthView/EarthView/ShaderUtils.h \
   G:/Projects/EarthView/EarthView/TMSLoader.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtNetwork/QNetworkAccessManager \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtNetwork/qnetworkaccessmanager.h \

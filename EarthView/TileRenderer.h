@@ -2,6 +2,7 @@
 #ifndef TILERENDERER_H
 #define TILERENDERER_H
 
+#include "StreamingBuffer.h"
 #include <QObject>
 #include <QOpenGLFunctions>
 #include <QOpenGLShaderProgram>
@@ -29,12 +30,13 @@ public:
 
 private:
     void initializeGpuResources();
+    void setupVertexArray();
 
 private:
     Camera* m_camera;
     TmsLoader* m_tileLoader;
     QOpenGLShaderProgram m_tileProgram;
-    GLuint m_vbo;
+    StreamingBuffer m_vertexBuffer;
     GLuint m_vao;
     bool m_gpuResourcesInitialized;
 };

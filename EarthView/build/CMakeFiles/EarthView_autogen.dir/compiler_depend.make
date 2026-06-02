@@ -66,6 +66,7 @@ EarthView_autogen/timestamp: C:/Program\ Files/CMake/bin/cmake.exe \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QVariant \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QVector \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/Qt \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QtGlobal \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/q17memory.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/q20bit.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/q20functional.h \
@@ -1373,6 +1374,10 @@ EarthView_autogen/timestamp: C:/Program\ Files/CMake/bin/cmake.exe \
   G:/Projects/EarthView/EarthView/CityRenderer.cpp \
   G:/Projects/EarthView/EarthView/CityRenderer.h \
   G:/Projects/EarthView/EarthView/Constants.h \
+  G:/Projects/EarthView/EarthView/DemLoader.cpp \
+  G:/Projects/EarthView/EarthView/DemLoader.h \
+  G:/Projects/EarthView/EarthView/FrameProfiler.cpp \
+  G:/Projects/EarthView/EarthView/FrameProfiler.h \
   G:/Projects/EarthView/EarthView/GridRenderer.cpp \
   G:/Projects/EarthView/EarthView/GridRenderer.h \
   G:/Projects/EarthView/EarthView/LineBatchRenderer.cpp \
@@ -1385,10 +1390,16 @@ EarthView_autogen/timestamp: C:/Program\ Files/CMake/bin/cmake.exe \
   G:/Projects/EarthView/EarthView/MbTilesReader.h \
   G:/Projects/EarthView/EarthView/MercatorProjection.cpp \
   G:/Projects/EarthView/EarthView/MercatorProjection.h \
+  G:/Projects/EarthView/EarthView/OpenGLRuntime.cpp \
+  G:/Projects/EarthView/EarthView/OpenGLRuntime.h \
   G:/Projects/EarthView/EarthView/ShaderUtils.cpp \
   G:/Projects/EarthView/EarthView/ShaderUtils.h \
+  G:/Projects/EarthView/EarthView/StreamingBuffer.cpp \
+  G:/Projects/EarthView/EarthView/StreamingBuffer.h \
   G:/Projects/EarthView/EarthView/TMSLoader.cpp \
   G:/Projects/EarthView/EarthView/TMSLoader.h \
+  G:/Projects/EarthView/EarthView/TerrainRenderer.cpp \
+  G:/Projects/EarthView/EarthView/TerrainRenderer.h \
   G:/Projects/EarthView/EarthView/TextRenderer.cpp \
   G:/Projects/EarthView/EarthView/TextRenderer.h \
   G:/Projects/EarthView/EarthView/TextureManager.cpp \
@@ -1765,6 +1776,8 @@ C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/Qt:
 
 C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qtcore-config.h:
 
+C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QtGlobal:
+
 C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qprocessordetection.h:
 
 C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/q17memory.h:
@@ -1782,6 +1795,8 @@ C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/q20memory.h:
 C:/Qt/6.11.0/llvm-mingw_64/lib/cmake/Qt6Sql/Qt6QODBCDriverPluginAdditionalTargetInfo.cmake:
 
 C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qsize.h:
+
+G:/Projects/EarthView/EarthView/TerrainRenderer.cpp:
 
 C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/__type_traits/is_compound.h:
 
@@ -2609,6 +2624,8 @@ C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/__algorithm/shift_right.h:
 
 C:/Qt/6.11.0/llvm-mingw_64/lib/cmake/Qt6Network/Qt6NetworkTargets-relwithdebinfo.cmake:
 
+G:/Projects/EarthView/EarthView/StreamingBuffer.cpp:
+
 C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/cassert:
 
 C:/Qt/6.11.0/llvm-mingw_64/include/QtNetwork/qtnetworkexports.h:
@@ -3011,6 +3028,8 @@ C:/Qt/6.11.0/llvm-mingw_64/lib/cmake/Qt6Network/Qt6QSchannelBackendPluginConfig.
 
 C:/Qt/6.11.0/llvm-mingw_64/lib/cmake/Qt6Network/Qt6QSchannelBackendPluginTargets.cmake:
 
+G:/Projects/EarthView/EarthView/DemLoader.cpp:
+
 C:/Qt/6.11.0/llvm-mingw_64/lib/cmake/Qt6Network/Qt6QTlsBackendCertOnlyPluginTargetsPrecheck.cmake:
 
 C:/Qt/6.11.0/llvm-mingw_64/lib/cmake/Qt6Network/Qt6QTlsBackendOpenSSLPluginAdditionalTargetInfo.cmake:
@@ -3368,6 +3387,8 @@ C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/__algorithm/pstl_backends/cpu_backe
 C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/__algorithm/pstl_backends/cpu_backends/for_each.h:
 
 C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/__algorithm/pstl_backends/cpu_backends/merge.h:
+
+G:/Projects/EarthView/EarthView/DemLoader.h:
 
 C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/__algorithm/pstl_backends/cpu_backends/thread.h:
 
@@ -4057,6 +4078,8 @@ C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/__type_traits/result_of.h:
 
 C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/__type_traits/unwrap_ref.h:
 
+G:/Projects/EarthView/EarthView/FrameProfiler.h:
+
 C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/__type_traits/void_t.h:
 
 C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/__utility/as_const.h:
@@ -4171,6 +4194,8 @@ G:/Projects/EarthView/EarthView/CityLoader.h:
 
 G:/Projects/EarthView/EarthView/Constants.h:
 
+G:/Projects/EarthView/EarthView/FrameProfiler.cpp:
+
 G:/Projects/EarthView/EarthView/GridRenderer.h:
 
 G:/Projects/EarthView/EarthView/LineBatchRenderer.h:
@@ -4185,11 +4210,19 @@ G:/Projects/EarthView/EarthView/MbTilesReader.h:
 
 G:/Projects/EarthView/EarthView/MercatorProjection.cpp:
 
+G:/Projects/EarthView/EarthView/OpenGLRuntime.cpp:
+
+G:/Projects/EarthView/EarthView/OpenGLRuntime.h:
+
 G:/Projects/EarthView/EarthView/ShaderUtils.cpp:
+
+G:/Projects/EarthView/EarthView/StreamingBuffer.h:
 
 G:/Projects/EarthView/EarthView/TMSLoader.cpp:
 
 G:/Projects/EarthView/EarthView/TMSLoader.h:
+
+G:/Projects/EarthView/EarthView/TerrainRenderer.h:
 
 G:/Projects/EarthView/EarthView/TextRenderer.cpp:
 

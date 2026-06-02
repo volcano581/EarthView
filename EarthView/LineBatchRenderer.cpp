@@ -1,18 +1,19 @@
 #include "LineBatchRenderer.h"
 #include "Camera.h"
 #include "Constants.h"
+#include "FrameProfiler.h"
 #include "ShaderUtils.h"
 
 #include <QDebug>
 #include <QOpenGLContext>
 #include <QOpenGLExtraFunctions>
 #include <QVector2D>
+#include <QtMath>
 #include <cstddef>
 
 LineBatchRenderer::LineBatchRenderer(Camera* camera, QObject* parent)
     : QObject(parent)
     , m_camera(camera)
-    , m_vbo(0)
     , m_vao(0)
     , m_vertexCount(0)
     , m_initialized(false)
@@ -28,9 +29,7 @@ LineBatchRenderer::~LineBatchRenderer()
     QOpenGLContext* context = QOpenGLContext::currentContext();
     QOpenGLExtraFunctions* f = context ? context->extraFunctions() : nullptr;
     if (f) {
-        if (m_vbo) {
-            f->glDeleteBuffers(1, &m_vbo);
-        }
+        m_vertexBuffer.destroy();
         if (m_vao) {
             f->glDeleteVertexArrays(1, &m_vao);
         }
@@ -84,13 +83,30 @@ void LineBatchRenderer::initializeGpuResources()
         return;
     }
 
+    if (!ShaderUtils::loadProgram(
+            &m_terrainProgram,
+            QStringLiteral("colored_terrain.vert"),
+            QStringLiteral("colored_line.frag"),
+            &errorMessage)) {
+        qWarning() << errorMessage;
+        return;
+    }
+
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
     f->initializeOpenGLFunctions();
     f->glGenVertexArrays(1, &m_vao);
-    f->glGenBuffers(1, &m_vbo);
+    if (!m_vertexBuffer.initialize(GL_ARRAY_BUFFER))
+        return;
 
+    setupVertexArray();
+    m_initialized = true;
+}
+
+void LineBatchRenderer::setupVertexArray()
+{
+    QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
     f->glBindVertexArray(m_vao);
-    f->glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
+    f->glBindBuffer(GL_ARRAY_BUFFER, m_vertexBuffer.id());
     f->glEnableVertexAttribArray(0);
     f->glVertexAttribPointer(
         0,
@@ -109,8 +125,6 @@ void LineBatchRenderer::initializeGpuResources()
         reinterpret_cast<void*>(offsetof(LineVertex, color)));
     f->glBindBuffer(GL_ARRAY_BUFFER, 0);
     f->glBindVertexArray(0);
-
-    m_initialized = true;
 }
 
 void LineBatchRenderer::setVertices(const QVector<LineVertex>& vertices)
@@ -119,14 +133,21 @@ void LineBatchRenderer::setVertices(const QVector<LineVertex>& vertices)
     if (!m_initialized)
         return;
 
-    QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
-    f->glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
-    f->glBufferData(
-        GL_ARRAY_BUFFER,
-        vertices.size() * static_cast<qsizetype>(sizeof(LineVertex)),
+    FrameProfiler::Scope uploadScope(QStringLiteral("upload.lineBatch"));
+    FrameProfiler::recordCount(QStringLiteral("upload.lineBatch.vertices"), vertices.size());
+    FrameProfiler::recordCount(
+        QStringLiteral("upload.lineBatch.bytes"),
+        vertices.size() * static_cast<qsizetype>(sizeof(LineVertex)));
+
+    const StreamingBuffer::UploadResult upload = m_vertexBuffer.upload(
         vertices.constData(),
+        vertices.size() * static_cast<qsizetype>(sizeof(LineVertex)),
         GL_DYNAMIC_DRAW);
-    f->glBindBuffer(GL_ARRAY_BUFFER, 0);
+    if (!upload.ok)
+        return;
+    if (upload.bufferRecreated) {
+        setupVertexArray();
+    }
 
     m_vertexCount = vertices.size();
 }
@@ -140,9 +161,13 @@ void LineBatchRenderer::render(CoordinateMode mode, float lineWidth)
     if (!m_initialized)
         return;
 
-    QOpenGLShaderProgram* program = mode == CoordinateMode::Mercator
-        ? &m_mercatorProgram
-        : &m_screenProgram;
+    QOpenGLShaderProgram* program = &m_screenProgram;
+    if (mode == CoordinateMode::Mercator) {
+        program = &m_mercatorProgram;
+    }
+    else if (mode == CoordinateMode::Terrain3D) {
+        program = &m_terrainProgram;
+    }
     if (!program->isLinked())
         return;
 
@@ -169,9 +194,28 @@ void LineBatchRenderer::render(CoordinateMode mode, float lineWidth)
             "u_pixelsPerMercator",
             static_cast<float>(GIS::EARTH_RADIUS / m_camera->getResolution()));
     }
+    else if (mode == CoordinateMode::Terrain3D) {
+        program->setUniformValue(
+            "u_centerMercator",
+            QVector2D(
+                static_cast<float>(m_camera->getCenterMercator().x()),
+                static_cast<float>(m_camera->getCenterMercator().y())));
+        program->setUniformValue("u_pixelsPerMeter", static_cast<float>(1.0 / m_camera->getResolution()));
+        program->setUniformValue("u_earthRadius", static_cast<float>(GIS::EARTH_RADIUS));
+        program->setUniformValue("u_pitchRadians", qDegreesToRadians(m_camera->terrainPitchDegrees()));
+        program->setUniformValue(
+            "u_screenAnchor",
+            QVector2D(
+                static_cast<float>(m_camera->terrainScreenAnchor().x()),
+                static_cast<float>(m_camera->terrainScreenAnchor().y())));
+        program->setUniformValue("u_focalPixels", static_cast<float>(m_camera->terrainFocalPixels()));
+        program->setUniformValue("u_viewDistanceMeters", static_cast<float>(m_camera->terrainViewDistanceMeters()));
+    }
 
     f->glBindVertexArray(m_vao);
     f->glDrawArrays(GL_LINES, 0, m_vertexCount);
+    FrameProfiler::recordCount(QStringLiteral("draw.calls"));
+    FrameProfiler::recordCount(QStringLiteral("draw.lineBatch.vertices"), m_vertexCount);
     f->glBindVertexArray(0);
     program->release();
 }

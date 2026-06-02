@@ -865,33 +865,27 @@ CMakeFiles/EarthView.dir/CityRenderer.cpp.obj: \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QVector \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qvector.h \
   G:/Projects/EarthView/EarthView/TextRenderer.h \
-  C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/QColor \
-  C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/qcolor.h \
+  G:/Projects/EarthView/EarthView/StreamingBuffer.h \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/QOpenGLFunctions \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/qopenglfunctions.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/qtguiglobal.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/qtgui-config.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/qtguiexports.h \
-  C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/qrgb.h \
-  C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/qrgba64.h \
-  C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/QFont \
-  C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/qfont.h \
-  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qendian.h \
-  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qfloat16.h \
-  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qmath.h \
-  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qtformat_impl.h \
-  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qshareddata.h \
-  C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/qwindowdefs.h \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/qopengl.h \
+  C:/Qt/Tools/llvm-mingw1706_64/include/GL/gl.h \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/qopenglext.h \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/qopenglcontext.h \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qobject.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qobjectdefs.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qobjectdefs_impl.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qfunctionaltools_impl.h \
-  C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/qwindowdefs_win.h \
-  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QMargins \
-  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qmargins.h \
-  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QObject \
-  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qobject.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qscopedpointer.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qmetatype.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qdatastream.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qiodevicebase.h \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qfloat16.h \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qmath.h \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qtformat_impl.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qiterable.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qtaggedpointer.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qmetacontainer.h \
@@ -919,12 +913,6 @@ CMakeFiles/EarthView.dir/CityRenderer.cpp.obj: \
   C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/__chrono/year_month_day.h \
   C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/__chrono/year_month_weekday.h \
   C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/__chrono/literals.h \
-  C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/QOpenGLFunctions \
-  C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/qopenglfunctions.h \
-  C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/qopengl.h \
-  C:/Qt/Tools/llvm-mingw1706_64/include/GL/gl.h \
-  C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/qopenglext.h \
-  C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/qopenglcontext.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qset.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qhash.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qnativeinterface.h \
@@ -935,6 +923,7 @@ CMakeFiles/EarthView.dir/CityRenderer.cpp.obj: \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qtextstream.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qcontiguouscache.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qsharedpointer.h \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qshareddata.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qsharedpointer_impl.h \
   C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/set \
   C:/Qt/Tools/llvm-mingw1706_64/include/c++/v1/unordered_set \
@@ -943,6 +932,19 @@ CMakeFiles/EarthView.dir/CityRenderer.cpp.obj: \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qvarlengtharray.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qalloc.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/qopenglcontext_platform.h \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/qwindowdefs.h \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/qwindowdefs_win.h \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QtGlobal \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/QColor \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/qcolor.h \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/qrgb.h \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/qrgba64.h \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/QFont \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/qfont.h \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qendian.h \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QMargins \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qmargins.h \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QObject \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtOpenGL/QOpenGLShaderProgram \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtOpenGL/qopenglshaderprogram.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtOpenGL/qtopenglglobal.h \
@@ -955,12 +957,16 @@ CMakeFiles/EarthView.dir/CityRenderer.cpp.obj: \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/qvector4d.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/qmatrix4x4.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/qgenericmatrix.h \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QRect \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QRectF \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QSize \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/Qt \
   G:/Projects/EarthView/EarthView/Camera.h \
-  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QRect \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/QMatrix4x4 \
   G:/Projects/EarthView/EarthView/Constants.h \
+  G:/Projects/EarthView/EarthView/FrameProfiler.h \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QElapsedTimer \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qelapsedtimer.h \
   G:/Projects/EarthView/EarthView/ShaderUtils.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtWidgets/QApplication \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtWidgets/qapplication.h \

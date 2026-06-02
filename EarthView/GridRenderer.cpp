@@ -1,6 +1,7 @@
 #include "GridRenderer.h"
 #include "Camera.h"
 #include "Constants.h"
+#include "FrameProfiler.h"
 #include "MercatorProjection.h"
 #include "ShaderUtils.h"
 #include <QApplication>
@@ -132,6 +133,33 @@ void GridRenderer::appendMercatorLines(QVector<LineBatchRenderer::LineVertex>& v
     int firstCopy = 0;
     int lastCopy = 0;
     visibleWorldCopyRange(m_camera, &firstCopy, &lastCopy);
+
+    if (m_camera->isTerrain3DView()) {
+        for (int copy = firstCopy; copy <= lastCopy; ++copy) {
+            const double lonOffsetDegrees = copy * 360.0;
+
+            for (double lon = startLon; lon <= 180.0 + 0.001; lon += step) {
+                QPointF previous = MercatorProjection::latLonToMercator(-85.0, lon + lonOffsetDegrees);
+                for (double lat = -84.0; lat <= 85.0 + 0.001; lat += 1.0) {
+                    const QPointF current = MercatorProjection::latLonToMercator(lat, lon + lonOffsetDegrees);
+                    LineBatchRenderer::appendSegment(vertices, previous, current, gridColor);
+                    previous = current;
+                }
+            }
+
+            const double lonStart = -180.0 + lonOffsetDegrees;
+            const double lonEnd = 180.0 + lonOffsetDegrees;
+            for (double lat = startLat; lat <= 80.0 + 0.001; lat += step) {
+                QPointF previous = MercatorProjection::latLonToMercator(lat, lonStart);
+                for (double lon = lonStart + 1.0; lon <= lonEnd + 0.001; lon += 1.0) {
+                    const QPointF current = MercatorProjection::latLonToMercator(lat, lon);
+                    LineBatchRenderer::appendSegment(vertices, previous, current, gridColor);
+                    previous = current;
+                }
+            }
+        }
+        return;
+    }
 
     for (int copy = firstCopy; copy <= lastCopy; ++copy) {
         const double lonOffsetDegrees = copy * 360.0;
@@ -310,6 +338,8 @@ void GridRenderer::render()
         vertices.constData(),
         GL_STREAM_DRAW);
     f->glDrawArrays(GL_LINES, 0, vertices.size());
+    FrameProfiler::recordCount(QStringLiteral("draw.calls"));
+    FrameProfiler::recordCount(QStringLiteral("draw.gridLines.vertices"), vertices.size());
     f->glBindVertexArray(0);
     m_lineProgram.release();
 }

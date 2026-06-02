@@ -24,6 +24,9 @@ class CityRenderer;
 class TextRenderer;
 class LineBatchRenderer;
 class VectorTileRenderer;
+class DemLoader;
+class TerrainRenderer;
+class QToolButton;
 
 /**
  * @brief MapWidget is the main OpenGL rendering widget
@@ -51,6 +54,8 @@ public:
     void setBordersVisible(bool visible);
     void setGridVisible(bool visible);
     void setCitiesVisible(bool visible);
+    void setTerrainVisible(bool visible);
+    void setTerrain3DViewEnabled(bool enabled);
 
     // Accessors
     Camera* camera() const { return m_camera; }
@@ -58,6 +63,8 @@ public:
     bool areBordersVisible() const { return m_bordersVisible; }
     bool isGridVisible() const { return m_gridVisible; }
     bool areCitiesVisible() const { return m_citiesVisible; }
+    bool isTerrainVisible() const { return m_terrainVisible; }
+    bool isTerrain3DViewEnabled() const;
 
 protected:
     void initializeGL() override;
@@ -78,6 +85,7 @@ protected:
     void drawGlobeBackdrop();
     void drawScaleBarOverlay();
     void initializeShapeResources();
+    void positionOverlayControls();
 
 private slots:
     void onCameraChanged();
@@ -90,8 +98,11 @@ private:
     GridRenderer* m_gridRenderer;
     CityRenderer* m_cityRenderer;
     VectorTileRenderer* m_vectorTileRenderer;
+    DemLoader* m_demLoader;
+    TerrainRenderer* m_terrainRenderer;
     LineBatchRenderer* m_lineBatchRenderer;
     TextRenderer* m_textRenderer;
+    QToolButton* m_view3DButton;
     QVector<LineBatchRenderer::LineVertex> m_cachedLineVertices;
     QVector<TextRenderer::Label> m_cachedMapLabels;
     LineBatchRenderer::CoordinateMode m_lineBatchMode;
@@ -102,6 +113,7 @@ private:
     bool m_bordersVisible;
     bool m_gridVisible;
     bool m_citiesVisible;
+    bool m_terrainVisible;
     QList<TmsLoader::TileSourceLayer> m_tileSourceLayers;
     QString m_pendingBorderFilePath;
     QString m_pendingCitiesDirectoryPath;

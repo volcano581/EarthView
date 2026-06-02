@@ -61,6 +61,7 @@ private:
     QVector<BorderPolygon> m_borders;
     QOpenGLShaderProgram m_mercatorLineProgram;
     QOpenGLShaderProgram m_screenLineProgram;
+    QOpenGLShaderProgram m_terrainLineProgram;
     GLuint m_staticVbo;
     GLuint m_staticVao;
     GLuint m_dynamicVbo;

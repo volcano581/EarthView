@@ -30,13 +30,18 @@ set(SOURCES
     Camera.cpp
     CityLoader.cpp
     CityRenderer.cpp
+    DemLoader.cpp
+    FrameProfiler.cpp
     GridRenderer.cpp
     LineBatchRenderer.cpp
     MainWindow.cpp
     MapWidget.cpp
     MbTilesReader.cpp
     MercatorProjection.cpp
+    OpenGLRuntime.cpp
     ShaderUtils.cpp
+    StreamingBuffer.cpp
+    TerrainRenderer.cpp
     TextRenderer.cpp
     TextureManager.cpp
     TileRenderer.cpp
@@ -49,14 +54,19 @@ set(HEADERS
     Camera.h
     CityLoader.h
     CityRenderer.h
+    DemLoader.h
     GridRenderer.h
     LineBatchRenderer.h
     MainWindow.h
     MapWidget.h
     MbTilesReader.h
     Constants.h
+    FrameProfiler.h
     MercatorProjection.h
+    OpenGLRuntime.h
     ShaderUtils.h
+    StreamingBuffer.h
+    TerrainRenderer.h
     TextRenderer.h
     TextureManager.h
     TileRenderer.h
@@ -70,13 +80,17 @@ set(SHADERS
     shaders/textured_quad.frag
     shaders/colored_2d.vert
     shaders/colored_mercator.vert
+    shaders/colored_terrain.vert
     shaders/instanced_rect_mercator.vert
     shaders/colored_line.frag
     shaders/solid_2d.vert
     shaders/solid_2d.frag
     shaders/mercator_line.vert
+    shaders/terrain_line.vert
     shaders/point_marker.vert
     shaders/point_marker.frag
+    shaders/terrain_height.vert
+    shaders/terrain_height.frag
 )
 
 add_executable(${PROJECT_NAME}

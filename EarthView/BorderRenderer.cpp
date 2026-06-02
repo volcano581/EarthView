@@ -1,5 +1,6 @@
 #include "BorderRenderer.h"
 #include "Camera.h"
+#include "FrameProfiler.h"
 #include "MercatorProjection.h"
 #include "Constants.h"
 #include "ShaderUtils.h"
@@ -11,6 +12,7 @@
 #include <QVector2D>
 #include <QVector4D>
 #include <QString>
+#include <QtMath>
 #include <cmath>
 #include <cstring>
 #include <cstddef>
@@ -324,6 +326,15 @@ void BorderRenderer::initializeGpuResources()
         return;
     }
 
+    if (!ShaderUtils::loadProgram(
+            &m_terrainLineProgram,
+            QStringLiteral("terrain_line.vert"),
+            QStringLiteral("solid_2d.frag"),
+            &errorMessage)) {
+        qWarning() << errorMessage;
+        return;
+    }
+
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
     f->initializeOpenGLFunctions();
     f->glGenVertexArrays(1, &m_staticVao);
@@ -479,7 +490,10 @@ void BorderRenderer::uploadMercatorVertices()
 
 void BorderRenderer::renderMercator()
 {
-    if (!m_mercatorLineProgram.isLinked())
+    QOpenGLShaderProgram* program = m_camera->isTerrain3DView()
+        ? &m_terrainLineProgram
+        : &m_mercatorLineProgram;
+    if (!program->isLinked())
         return;
 
     uploadMercatorVertices();
@@ -501,31 +515,47 @@ void BorderRenderer::renderMercator()
         lastCopy = static_cast<int>(std::floor((extent.right() - GIS::MIN_MERCATOR_X) / worldWidth));
     }
 
-    m_mercatorLineProgram.bind();
-    m_mercatorLineProgram.setUniformValue(
+    program->bind();
+    program->setUniformValue(
         "u_viewportSize",
         QVector2D(
             static_cast<float>(m_camera->getViewportWidth()),
             static_cast<float>(m_camera->getViewportHeight())));
-    m_mercatorLineProgram.setUniformValue(
+    program->setUniformValue(
         "u_centerMercator",
         QVector2D(
             static_cast<float>(m_camera->getCenterMercator().x()),
             static_cast<float>(m_camera->getCenterMercator().y())));
-    m_mercatorLineProgram.setUniformValue(
-        "u_pixelsPerMercator",
-        static_cast<float>(GIS::EARTH_RADIUS / m_camera->getResolution()));
-    m_mercatorLineProgram.setUniformValue("u_color", QVector4D(0.2f, 0.2f, 0.8f, 0.8f));
+    if (m_camera->isTerrain3DView()) {
+        program->setUniformValue("u_pixelsPerMeter", static_cast<float>(1.0 / m_camera->getResolution()));
+        program->setUniformValue("u_earthRadius", static_cast<float>(GIS::EARTH_RADIUS));
+        program->setUniformValue("u_pitchRadians", qDegreesToRadians(m_camera->terrainPitchDegrees()));
+        program->setUniformValue(
+            "u_screenAnchor",
+            QVector2D(
+                static_cast<float>(m_camera->terrainScreenAnchor().x()),
+                static_cast<float>(m_camera->terrainScreenAnchor().y())));
+        program->setUniformValue("u_focalPixels", static_cast<float>(m_camera->terrainFocalPixels()));
+        program->setUniformValue("u_viewDistanceMeters", static_cast<float>(m_camera->terrainViewDistanceMeters()));
+    }
+    else {
+        program->setUniformValue(
+            "u_pixelsPerMercator",
+            static_cast<float>(GIS::EARTH_RADIUS / m_camera->getResolution()));
+    }
+    program->setUniformValue("u_color", QVector4D(0.2f, 0.2f, 0.8f, 0.8f));
 
     f->glBindVertexArray(m_staticVao);
     for (int copy = firstCopy; copy <= lastCopy; ++copy) {
-        m_mercatorLineProgram.setUniformValue(
+        program->setUniformValue(
             "u_worldOffset",
             static_cast<float>(copy * worldWidth));
         f->glDrawArrays(GL_LINES, 0, m_staticVertexCount);
+        FrameProfiler::recordCount(QStringLiteral("draw.calls"));
+        FrameProfiler::recordCount(QStringLiteral("draw.borders.vertices"), m_staticVertexCount);
     }
     f->glBindVertexArray(0);
-    m_mercatorLineProgram.release();
+    program->release();
 }
 
 bool BorderRenderer::orthographicCacheMatchesCamera() const
@@ -605,6 +635,8 @@ void BorderRenderer::renderOrthographic()
 
     f->glBindVertexArray(m_dynamicVao);
     f->glDrawArrays(GL_LINES, 0, m_dynamicVertexCount);
+    FrameProfiler::recordCount(QStringLiteral("draw.calls"));
+    FrameProfiler::recordCount(QStringLiteral("draw.borders.vertices"), m_dynamicVertexCount);
     f->glBindVertexArray(0);
     m_screenLineProgram.release();
 }

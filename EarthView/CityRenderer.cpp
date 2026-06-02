@@ -1,6 +1,7 @@
 #include "CityRenderer.h"
 #include "Camera.h"
 #include "Constants.h"
+#include "FrameProfiler.h"
 #include "ShaderUtils.h"
 #include <QApplication>
 #include <QDebug>
@@ -232,6 +233,8 @@ void CityRenderer::renderMarkers()
         vertices.constData(),
         GL_STREAM_DRAW);
     f->glDrawArrays(GL_POINTS, 0, vertices.size());
+    FrameProfiler::recordCount(QStringLiteral("draw.calls"));
+    FrameProfiler::recordCount(QStringLiteral("draw.cityMarkers.vertices"), vertices.size());
     f->glBindVertexArray(0);
     m_markerProgram.release();
     glDisable(GL_PROGRAM_POINT_SIZE);

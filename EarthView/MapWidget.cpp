@@ -6,7 +6,11 @@
 #include "GridRenderer.h"
 #include "CityRenderer.h"
 #include "VectorTileRenderer.h"
+#include "DemLoader.h"
+#include "TerrainRenderer.h"
 #include "Constants.h"
+#include "FrameProfiler.h"
+#include "OpenGLRuntime.h"
 #include "ShaderUtils.h"
 #include <QCoreApplication>
 #include <QDebug>
@@ -18,6 +22,8 @@
 #include <QFont>
 #include <QFontMetrics>
 #include <QSurfaceFormat>
+#include <QSignalBlocker>
+#include <QToolButton>
 #include <QtGlobal>
 #include <QVector2D>
 #include <QVector4D>
@@ -147,6 +153,32 @@ QString defaultCitiesDirectoryPath()
 
     return QDir::current().filePath(relativePath);
 }
+
+QString defaultDemBaseUrl()
+{
+    return QStringLiteral("http://200.0.0.23:8123/elevation/alldem/dem90tif/");
+}
+
+QString defaultDemIndexBaseUrl()
+{
+    return QStringLiteral("http://200.0.0.23:8123/elevation/alldem/indexes/");
+}
+
+QString defaultLocalDemMirrorPath()
+{
+    const QStringList candidates = {
+        QDir::current().absoluteFilePath(QStringLiteral("Data/DEM")),
+        QDir(QCoreApplication::applicationDirPath()).absoluteFilePath(QStringLiteral("../Data/DEM")),
+        QDir(QCoreApplication::applicationDirPath()).absoluteFilePath(QStringLiteral("Data/DEM"))
+    };
+
+    for (const QString& candidate : candidates) {
+        if (QDir(candidate).exists()) {
+            return QDir(candidate).absolutePath();
+        }
+    }
+    return QString();
+}
 }
 
 MapWidget::MapWidget(QWidget* parent)
@@ -158,14 +190,18 @@ MapWidget::MapWidget(QWidget* parent)
     , m_gridRenderer(nullptr)
     , m_cityRenderer(nullptr)
     , m_vectorTileRenderer(nullptr)
+    , m_demLoader(new DemLoader(m_camera, this))
+    , m_terrainRenderer(nullptr)
     , m_lineBatchRenderer(nullptr)
     , m_textRenderer(nullptr)
+    , m_view3DButton(new QToolButton(this))
     , m_lineBatchMode(LineBatchRenderer::CoordinateMode::Mercator)
     , m_isPanning(false)
     , m_texturesVisible(true)
     , m_bordersVisible(true)
     , m_gridVisible(true)
     , m_citiesVisible(true)
+    , m_terrainVisible(true)
     , m_solidProgram(nullptr)
     , m_shapeVbo(0)
     , m_shapeVao(0)
@@ -173,17 +209,38 @@ MapWidget::MapWidget(QWidget* parent)
     , m_lineBatchDirty(true)
     , m_mapLabelsDirty(true)
 {
-    QSurfaceFormat format = QSurfaceFormat::defaultFormat();
-    format.setRenderableType(QSurfaceFormat::OpenGL);
-    format.setVersion(3, 3);
-    format.setProfile(QSurfaceFormat::CoreProfile);
-    format.setDepthBufferSize(24);
-    format.setStencilBufferSize(8);
-    format.setSwapInterval(0);
-    setFormat(format);
+    setFormat(OpenGLRuntime::defaultSurfaceFormat());
 
     setFocusPolicy(Qt::StrongFocus);
     setMouseTracking(true);
+
+    m_view3DButton->setText(QStringLiteral("3D"));
+    m_view3DButton->setCheckable(true);
+    m_view3DButton->setAutoRaise(true);
+    m_view3DButton->setToolTip(QStringLiteral("Toggle tilted 3D terrain view."));
+    m_view3DButton->setCursor(Qt::ArrowCursor);
+    m_view3DButton->setStyleSheet(QStringLiteral(
+        "QToolButton {"
+        "background: rgba(12, 18, 24, 190);"
+        "color: rgb(235, 245, 250);"
+        "border: 1px solid rgba(210, 230, 240, 120);"
+        "border-radius: 4px;"
+        "padding: 5px 11px;"
+        "font-weight: 700;"
+        "}"
+        "QToolButton:checked {"
+        "background: rgba(35, 111, 178, 225);"
+        "border-color: rgba(235, 248, 255, 180);"
+        "}"
+        "QToolButton:hover {"
+        "background: rgba(30, 54, 70, 215);"
+        "}"));
+    connect(m_view3DButton, &QToolButton::toggled, this, &MapWidget::setTerrain3DViewEnabled);
+    connect(m_camera, &Camera::terrain3DChanged, this, [this](bool enabled) {
+        QSignalBlocker blocker(m_view3DButton);
+        m_view3DButton->setChecked(enabled);
+    });
+    positionOverlayControls();
 
     m_updateTimer = new QTimer(this);
     m_updateTimer->setTimerType(Qt::PreciseTimer);
@@ -196,6 +253,12 @@ MapWidget::MapWidget(QWidget* parent)
     connect(m_camera, &Camera::cameraChanged, this, &MapWidget::onCameraChanged);
     connect(m_tileLoader, &TmsLoader::tileLoaded, this, QOverload<>::of(&MapWidget::update));
     connect(m_tileLoader, &TmsLoader::tileFailed, this, QOverload<>::of(&MapWidget::update));
+    connect(m_demLoader, &DemLoader::catalogUpdated, this, QOverload<>::of(&MapWidget::update));
+    connect(m_demLoader, &DemLoader::demTileLoaded, this, QOverload<>::of(&MapWidget::update));
+    connect(m_demLoader, &DemLoader::demTileFailed, this, QOverload<>::of(&MapWidget::update));
+    m_demLoader->setIndexBaseUrl(defaultDemIndexBaseUrl());
+    m_demLoader->setLocalMirrorPath(defaultLocalDemMirrorPath());
+    m_demLoader->setBaseUrl(defaultDemBaseUrl());
 }
 
 MapWidget::~MapWidget()
@@ -206,9 +269,11 @@ MapWidget::~MapWidget()
     delete m_gridRenderer;
     delete m_cityRenderer;
     delete m_vectorTileRenderer;
+    delete m_terrainRenderer;
     delete m_lineBatchRenderer;
     delete m_textRenderer;
     delete m_tileLoader;
+    delete m_demLoader;
     if (m_shapeResourcesInitialized) {
         QOpenGLContext* current = QOpenGLContext::currentContext();
         QOpenGLExtraFunctions* f = current ? current->extraFunctions() : nullptr;
@@ -350,6 +415,22 @@ void MapWidget::setCitiesVisible(bool visible)
     update();
 }
 
+void MapWidget::setTerrainVisible(bool visible)
+{
+    if (m_terrainVisible == visible)
+        return;
+
+    m_terrainVisible = visible;
+    m_demLoader->setEnabled(visible);
+    if (!visible && m_camera && m_camera->isTerrain3DEnabled()) {
+        m_camera->setTerrain3DEnabled(false);
+    }
+    if (m_terrainRenderer) {
+        m_terrainRenderer->setEnabled(visible);
+    }
+    update();
+}
+
 void MapWidget::initializeShapeResources()
 {
     if (m_shapeResourcesInitialized)
@@ -388,6 +469,19 @@ void MapWidget::initializeShapeResources()
     m_shapeResourcesInitialized = true;
 }
 
+void MapWidget::positionOverlayControls()
+{
+    if (!m_view3DButton)
+        return;
+
+    const QSize size = m_view3DButton->sizeHint();
+    m_view3DButton->resize(qMax(54, size.width()), qMax(30, size.height()));
+    m_view3DButton->move(
+        qMax(8, width() - m_view3DButton->width() - 12),
+        12);
+    m_view3DButton->raise();
+}
+
 void MapWidget::initializeGL()
 {
     initializeOpenGLFunctions();
@@ -397,6 +491,7 @@ void MapWidget::initializeGL()
                  << actualFormat.majorVersion() << "." << actualFormat.minorVersion()
                  << "profile" << actualFormat.profile()
                  << "renderer" << reinterpret_cast<const char*>(glGetString(GL_RENDERER));
+        qDebug().noquote() << "OpenGL capabilities:" << OpenGLRuntime::capabilitySummary(context());
     }
 
     // Create tile renderer after OpenGL context is ready
@@ -405,6 +500,8 @@ void MapWidget::initializeGL()
     m_gridRenderer = new GridRenderer(m_camera, this);
     m_cityRenderer = new CityRenderer(m_camera, this);
     m_vectorTileRenderer = new VectorTileRenderer(m_camera, this);
+    m_terrainRenderer = new TerrainRenderer(m_camera, m_demLoader, this);
+    m_terrainRenderer->setEnabled(m_terrainVisible);
     m_vectorTileRenderer->setTileSourceLayers(m_tileSourceLayers);
     m_vectorTileRenderer->setEnabled(m_texturesVisible);
     m_lineBatchRenderer = new LineBatchRenderer(m_camera, this);
@@ -423,6 +520,9 @@ void MapWidget::initializeGL()
     if (m_texturesVisible) {
         m_tileLoader->updateVisibleTiles();
     }
+    if (m_terrainVisible && m_camera->isTerrain3DView()) {
+        m_demLoader->updateVisibleTiles();
+    }
     invalidateLineBatch();
     invalidateMapLabels();
 
@@ -436,35 +536,51 @@ void MapWidget::resizeGL(int w, int h)
 {
     m_camera->setViewportSize(w, h);
     glViewport(0, 0, w, h);
+    positionOverlayControls();
     invalidateLineBatch();
     invalidateMapLabels();
 }
 
 void MapWidget::paintGL()
 {
+    FrameProfiler::beginFrame();
+
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
     m_fpsCounter.frameRendered();
 
     if (m_camera->isOrthographic()) {
+        FrameProfiler::Scope drawScope(QStringLiteral("draw.globeBackdrop"));
         drawGlobeBackdrop();
     }
 
     // Render TMS tiles
     if (m_texturesVisible && m_tileRenderer) {
+        FrameProfiler::Scope drawScope(QStringLiteral("draw.rasterTiles"));
         m_tileRenderer->render();
     }
+    if (m_terrainVisible && m_camera->isTerrain3DView() && m_terrainRenderer) {
+        FrameProfiler::Scope drawScope(QStringLiteral("draw.terrain"));
+        m_terrainRenderer->render();
+    }
     if (m_texturesVisible && m_vectorTileRenderer) {
+        FrameProfiler::Scope drawScope(QStringLiteral("draw.vectorTiles"));
         m_vectorTileRenderer->render();
     }
 
-    if (((m_bordersVisible && m_borderRenderer) || (m_gridVisible && m_gridRenderer))
-        && m_lineBatchRenderer) {
+    if (m_bordersVisible && m_borderRenderer) {
+        FrameProfiler::Scope drawScope(QStringLiteral("draw.borders"));
+        m_borderRenderer->render();
+    }
+
+    if (m_gridVisible && m_gridRenderer && m_lineBatchRenderer) {
+        FrameProfiler::Scope drawScope(QStringLiteral("draw.gridLines"));
         rebuildLineBatchIfNeeded();
         m_lineBatchRenderer->render(m_lineBatchMode);
     }
 
     if (m_citiesVisible && m_cityRenderer) {
+        FrameProfiler::Scope drawScope(QStringLiteral("draw.cityMarkers"));
         m_cityRenderer->renderMarkers();
     }
 
@@ -474,12 +590,18 @@ void MapWidget::paintGL()
     QVector<TextRenderer::Label> textLabels = m_cachedMapLabels;
     appendFpsOverlay(textLabels);
     appendScaleBarOverlay(textLabels);
-    drawScaleBarOverlay();
+    {
+        FrameProfiler::Scope drawScope(QStringLiteral("draw.scaleBar"));
+        drawScaleBarOverlay();
+    }
     if (m_textRenderer) {
+        FrameProfiler::Scope drawScope(QStringLiteral("draw.text"));
         m_textRenderer->render(textLabels);
     }
 
     glEnable(GL_DEPTH_TEST);
+
+    FrameProfiler::endFrame();
 }
 
 void MapWidget::mousePressEvent(QMouseEvent* event)
@@ -543,14 +665,65 @@ void MapWidget::keyPressEvent(QKeyEvent* event)
         m_camera->setCenter(QPointF(0, 0));
         m_camera->setZoomLevel(2.0);
         break;
+    case Qt::Key_BracketLeft:
+        if (m_terrainRenderer) {
+            m_terrainRenderer->setPitchDegrees(m_terrainRenderer->pitchDegrees() - 4.0f);
+        }
+        break;
+    case Qt::Key_BracketRight:
+        if (m_terrainRenderer) {
+            m_terrainRenderer->setPitchDegrees(m_terrainRenderer->pitchDegrees() + 4.0f);
+        }
+        break;
+    case Qt::Key_PageDown:
+        if (m_terrainRenderer) {
+            m_terrainRenderer->setVerticalExaggeration(m_terrainRenderer->verticalExaggeration() - 0.5f);
+        }
+        break;
+    case Qt::Key_PageUp:
+        if (m_terrainRenderer) {
+            m_terrainRenderer->setVerticalExaggeration(m_terrainRenderer->verticalExaggeration() + 0.5f);
+        }
+        break;
     default:
         QOpenGLWidget::keyPressEvent(event);
     }
     update();
 }
 
+void MapWidget::setTerrain3DViewEnabled(bool enabled)
+{
+    if (enabled && !m_terrainVisible) {
+        setTerrainVisible(true);
+    }
+
+    if (m_camera) {
+        m_camera->setTerrain3DEnabled(enabled);
+    }
+
+    if (m_view3DButton && m_view3DButton->isChecked() != enabled) {
+        QSignalBlocker blocker(m_view3DButton);
+        m_view3DButton->setChecked(enabled);
+    }
+
+    if (enabled && m_terrainVisible && m_demLoader) {
+        m_demLoader->updateVisibleTiles();
+    }
+    invalidateLineBatch();
+    invalidateMapLabels();
+    update();
+}
+
+bool MapWidget::isTerrain3DViewEnabled() const
+{
+    return m_camera && m_camera->isTerrain3DEnabled();
+}
+
 void MapWidget::onCameraChanged()
 {
+    if (m_terrainVisible && m_camera->isTerrain3DView() && m_demLoader) {
+        m_demLoader->updateVisibleTiles();
+    }
     invalidateLineBatch();
     invalidateMapLabels();
     update();
@@ -572,22 +745,22 @@ void MapWidget::rebuildLineBatchIfNeeded()
         return;
 
     m_cachedLineVertices.clear();
-    m_lineBatchMode = m_camera->isOrthographic()
-        ? LineBatchRenderer::CoordinateMode::Screen
-        : LineBatchRenderer::CoordinateMode::Mercator;
+    if (m_camera->isOrthographic()) {
+        m_lineBatchMode = LineBatchRenderer::CoordinateMode::Screen;
+    }
+    else if (m_camera->isTerrain3DView()) {
+        m_lineBatchMode = LineBatchRenderer::CoordinateMode::Terrain3D;
+    }
+    else {
+        m_lineBatchMode = LineBatchRenderer::CoordinateMode::Mercator;
+    }
 
     if (m_lineBatchMode == LineBatchRenderer::CoordinateMode::Mercator) {
-        if (m_bordersVisible && m_borderRenderer) {
-            m_borderRenderer->appendMercatorLines(m_cachedLineVertices);
-        }
         if (m_gridVisible && m_gridRenderer) {
             m_gridRenderer->appendMercatorLines(m_cachedLineVertices);
         }
     }
     else {
-        if (m_bordersVisible && m_borderRenderer) {
-            m_borderRenderer->appendScreenLines(m_cachedLineVertices);
-        }
         if (m_gridVisible && m_gridRenderer) {
             m_gridRenderer->appendScreenLines(m_cachedLineVertices);
         }
@@ -729,6 +902,8 @@ void MapWidget::drawScaleBarOverlay()
         GL_STREAM_DRAW);
     m_solidProgram->setUniformValue("u_color", QVector4D(0.0f, 0.0f, 0.0f, 0.55f));
     f->glDrawArrays(GL_TRIANGLES, 0, backgroundVertices.size());
+    FrameProfiler::recordCount(QStringLiteral("draw.calls"));
+    FrameProfiler::recordCount(QStringLiteral("draw.scaleBar.vertices"), backgroundVertices.size());
 
     glLineWidth(2.0f);
     f->glBufferData(
@@ -738,6 +913,8 @@ void MapWidget::drawScaleBarOverlay()
         GL_STREAM_DRAW);
     m_solidProgram->setUniformValue("u_color", QVector4D(0.92f, 0.98f, 1.0f, 0.95f));
     f->glDrawArrays(GL_LINES, 0, lineVertices.size());
+    FrameProfiler::recordCount(QStringLiteral("draw.calls"));
+    FrameProfiler::recordCount(QStringLiteral("draw.scaleBar.vertices"), lineVertices.size());
 
     f->glBindVertexArray(0);
     m_solidProgram->release();
@@ -792,6 +969,8 @@ void MapWidget::drawGlobeBackdrop()
         GL_STREAM_DRAW);
     m_solidProgram->setUniformValue("u_color", QVector4D(0.03f, 0.08f, 0.13f, 1.0f));
     f->glDrawArrays(GL_TRIANGLE_FAN, 0, fanVertices.size());
+    FrameProfiler::recordCount(QStringLiteral("draw.calls"));
+    FrameProfiler::recordCount(QStringLiteral("draw.globeBackdrop.vertices"), fanVertices.size());
 
     glLineWidth(2.0f);
     f->glBufferData(
@@ -801,6 +980,8 @@ void MapWidget::drawGlobeBackdrop()
         GL_STREAM_DRAW);
     m_solidProgram->setUniformValue("u_color", QVector4D(0.65f, 0.85f, 1.0f, 0.8f));
     f->glDrawArrays(GL_LINE_LOOP, 0, outlineVertices.size());
+    FrameProfiler::recordCount(QStringLiteral("draw.calls"));
+    FrameProfiler::recordCount(QStringLiteral("draw.globeBackdrop.vertices"), outlineVertices.size());
 
     f->glBindVertexArray(0);
     m_solidProgram->release();

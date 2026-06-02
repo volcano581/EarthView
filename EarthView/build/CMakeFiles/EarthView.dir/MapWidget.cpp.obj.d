@@ -1006,6 +1006,8 @@ CMakeFiles/EarthView.dir/MapWidget.cpp.obj: \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QTimer \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/qtimer.h \
   G:/Projects/EarthView/EarthView/LineBatchRenderer.h \
+  G:/Projects/EarthView/EarthView/StreamingBuffer.h \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QtGlobal \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/QColor \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QPointF \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QVector \
@@ -1065,6 +1067,10 @@ CMakeFiles/EarthView.dir/MapWidget.cpp.obj: \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QStringList \
   G:/Projects/EarthView/EarthView/VectorTileRenderer.h \
   G:/Projects/EarthView/EarthView/MbTilesReader.h \
+  G:/Projects/EarthView/EarthView/DemLoader.h \
+  G:/Projects/EarthView/EarthView/TerrainRenderer.h \
+  G:/Projects/EarthView/EarthView/FrameProfiler.h \
+  G:/Projects/EarthView/EarthView/OpenGLRuntime.h \
   G:/Projects/EarthView/EarthView/ShaderUtils.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QCoreApplication \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QDebug \
@@ -1099,6 +1105,9 @@ CMakeFiles/EarthView.dir/MapWidget.cpp.obj: \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QFileInfo \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/QOpenGLContext \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/QFontMetrics \
-  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QtGlobal \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtCore/QSignalBlocker \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtWidgets/QToolButton \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtWidgets/qtoolbutton.h \
+  C:/Qt/6.11.0/llvm-mingw_64/include/QtWidgets/qabstractbutton.h \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/QVector2D \
   C:/Qt/6.11.0/llvm-mingw_64/include/QtGui/QVector4D

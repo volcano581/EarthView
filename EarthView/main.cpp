@@ -1,49 +1,25 @@
 #include <QApplication>
-#include <QByteArray>
-#include <QSurfaceFormat>
 #include <QCoreApplication>
 #include <QDebug>
 #include "MainWindow.h"
-
-namespace {
-QSurfaceFormat earthViewOpenGLFormat()
-{
-    QSurfaceFormat format = QSurfaceFormat::defaultFormat();
-    format.setRenderableType(QSurfaceFormat::OpenGL);
-    format.setVersion(3, 3);
-    format.setProfile(QSurfaceFormat::CoreProfile);
-    format.setDepthBufferSize(24);
-    format.setStencilBufferSize(8);
-    format.setSwapInterval(0);
-    return format;
-}
-
-bool environmentFlagEnabled(const char* name)
-{
-    const QByteArray value = qgetenv(name).trimmed().toLower();
-    return value == "1" || value == "true" || value == "yes" || value == "on";
-}
-
-bool softwareOpenGLRequested()
-{
-    return environmentFlagEnabled("EARTHVIEW_FORCE_SOFTWARE_OPENGL")
-        || qgetenv("QT_OPENGL").trimmed().toLower() == "software";
-}
-}
+#include "OpenGLRuntime.h"
 
 int main(int argc, char* argv[])
 {
-    if (softwareOpenGLRequested()) {
+    if (OpenGLRuntime::softwareOpenGLRequested()) {
         QCoreApplication::setAttribute(Qt::AA_UseSoftwareOpenGL);
     }
 
-    QSurfaceFormat::setDefaultFormat(earthViewOpenGLFormat());
+    QSurfaceFormat::setDefaultFormat(OpenGLRuntime::defaultSurfaceFormat());
 
     QApplication app(argc, argv);
 
     qDebug() << "Requested OpenGL format:" << QSurfaceFormat::defaultFormat();
-    if (softwareOpenGLRequested()) {
+    if (OpenGLRuntime::softwareOpenGLRequested()) {
         qDebug() << "Software OpenGL rendering requested.";
+    }
+    if (OpenGLRuntime::forceOpenGL33Requested()) {
+        qDebug() << "OpenGL 3.3 compatibility context requested.";
     }
 
     MainWindow window;
