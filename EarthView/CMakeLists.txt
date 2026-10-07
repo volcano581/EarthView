@@ -149,6 +149,23 @@ if(WIN32)
     endif()
 endif()
 
+# Offscreen snapshot tool (roadmap M0.3): same sources as the app, without main/MainWindow.
+option(EARTHVIEW_BUILD_SNAPSHOT "Build the earthview_snapshot offscreen render tool" ON)
+if(EARTHVIEW_BUILD_SNAPSHOT)
+    set(SNAPSHOT_SOURCES ${SOURCES})
+    list(REMOVE_ITEM SNAPSHOT_SOURCES main.cpp MainWindow.cpp MapViewWindow.cpp)
+    set(SNAPSHOT_HEADERS ${HEADERS})
+    list(REMOVE_ITEM SNAPSHOT_HEADERS MainWindow.h MapViewWindow.h)
+    add_executable(earthview_snapshot tools/earthview_snapshot.cpp ${SNAPSHOT_SOURCES} ${SNAPSHOT_HEADERS})
+    get_target_property(EARTHVIEW_LINK_LIBS ${PROJECT_NAME} LINK_LIBRARIES)
+    target_link_libraries(earthview_snapshot PRIVATE ${EARTHVIEW_LINK_LIBS})
+    add_custom_command(TARGET earthview_snapshot POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_CURRENT_SOURCE_DIR}/shaders"
+            "$<TARGET_FILE_DIR:earthview_snapshot>/shaders"
+    )
+endif()
+
 option(EARTHVIEW_BUILD_TESTS "Build EarthView unit tests" ON)
 if(EARTHVIEW_BUILD_TESTS AND TARGET Qt6::Test)
     enable_testing()

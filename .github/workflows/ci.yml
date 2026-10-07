@@ -12,7 +12,7 @@ jobs:
       - name: Install Qt 6 and build tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake ninja-build qt6-base-dev libqt6opengl6-dev libgl1-mesa-dev zlib1g-dev
+          sudo apt-get install -y cmake ninja-build qt6-base-dev libqt6opengl6-dev libgl1-mesa-dev zlib1g-dev xvfb
       - name: Configure
         run: cmake -S EarthView -B out -G Ninja -DEARTHVIEW_DEPLOY_QT=OFF
       - name: Build
@@ -21,3 +21,15 @@ jobs:
         run: ctest --test-dir out --output-on-failure
         env:
           QT_QPA_PLATFORM: offscreen
+      - name: Snapshot smoke render
+        working-directory: out
+        env:
+          EARTHVIEW_FORCE_SOFTWARE_OPENGL: "1"
+        run: |
+          xvfb-run -a ./earthview_snapshot --mode mercator --lat 30 --lon 70 --zoom 3 -o snapshot-mercator.png
+          xvfb-run -a ./earthview_snapshot --mode orthographic --lat 30 --lon 70 --zoom 2 -o snapshot-orthographic.png
+      - name: Upload snapshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: snapshots
+          path: out/snapshot-*.png
