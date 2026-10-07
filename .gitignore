@@ -369,3 +369,8 @@ EarthView/build/
 [Bb]uild/
 cmake-build-*/
 CMakeUserPresets.json
+
+# Elevation data (large; keep local)
+*.dt0
+*.dt1
+*.dt2

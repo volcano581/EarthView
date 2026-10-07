@@ -1,0 +1,7 @@
+{
+  "name": "earthview-osgearth-spike",
+  "version-string": "0.1",
+  "dependencies": [
+    "osgearth"
+  ]
+}

@@ -1,0 +1,54 @@
+<!--
+  osgEarth spike map. Paths are resolved relative to this file, so the
+  build copies it next to the exe; pass an explicit path on the command
+  line to use the copy in the source tree instead.
+
+  Fully offline: comment out the OSM layer and enable the MBTiles layer.
+-->
+<map name="EarthView osgEarth spike" version="3">
+
+    <!-- Online raster (same default as EarthView's TmsLoader). Respect the
+         OSM tile usage policy; for real use point this at your own TMS server. -->
+    <XYZImage name="OpenStreetMap">
+        <url>https://tile.openstreetmap.org/{z}/{x}/{y}.png</url>
+        <profile>spherical-mercator</profile>
+        <attribution>&#169;OpenStreetMap contributors</attribution>
+    </XYZImage>
+
+    <!-- Offline raster: any EarthView raster MBTiles file.
+    <MBTilesImage name="Local imagery">
+        <filename>D:/Source/EarthView1/EarthView/Data/OSM/imagery.mbtiles</filename>
+    </MBTilesImage>
+    -->
+
+    <!-- Coarse 90 m DEM (global fallback, listed first = lower priority). -->
+    <GDALElevation name="DEM90">
+        <url>D:/Source/EarthView1/EarthView/Data/DEM/DEM90TIF/N18.tif</url>
+    </GDALElevation>
+
+    <!-- SRTM 1-arc-second DTED2, 34 tiles N30-N34 / E066-E077, mosaicked by
+         dted_1arc.vrt (relative paths to the .dt2 files next to it).
+         For faster zoomed-out loading, build overviews once:
+           gdaladdo -ro dted_1arc.vrt 2 4 8 16 32 64 -->
+    <GDALElevation name="SRTM 1arc DTED2">
+        <url>D:/Source/EarthView1/EarthView/Data/DEM/dted_1arc.vrt</url>
+    </GDALElevation>
+
+    <!-- Vector overlay straight from EarthView's shapefile, clamped to terrain. -->
+    <FeatureModel name="Country borders">
+        <OGRFeatures>
+            <url>D:/Source/EarthView1/EarthView/Data/Borders/World_Countries_Generalized.shp</url>
+        </OGRFeatures>
+        <styles>
+            <style type="text/css">
+                default {
+                    stroke: #ffd24a;
+                    stroke-width: 2px;
+                    altitude-clamping: terrain-drape;
+                    render-lighting: false;
+                }
+            </style>
+        </styles>
+    </FeatureModel>
+
+</map>
