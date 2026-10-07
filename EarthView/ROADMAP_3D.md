@@ -52,19 +52,19 @@ Windows Qt paths (`C:/Qt/6.11.0/llvm-mingw_64`). Consequences:
 
 ## 1. Milestone overview
 
-| #  | Milestone                                   | Depends on | Size | Visual check |
-| -- | ------------------------------------------- | ---------- | ---- | ------------ |
-| M0 | Repo hygiene, cross-platform build, CI, tests | —        | S    | no  |
-| M1 | Geodesy + Camera3D + RTE math               | M0         | M    | no  |
-| M2 | Scene3D skeleton wired into MapWidget       | M1         | M    | yes |
-| M3 | Globe quadtree tiling + frustum/SSE LOD     | M1         | L    | yes |
-| M4 | DEM-displaced terrain (skirts, normals)     | M3         | L    | yes |
-| M5 | Imagery draping (TMS/MBTiles on terrain)    | M4         | M    | yes |
-| M6 | Vectors, borders, grid, cities, labels in 3D| M5         | L    | yes |
-| M7 | Lighting, sky/atmosphere, fog               | M4         | M    | yes |
-| M8 | Entities: glTF models, picking              | M2, M4     | L    | yes |
-| M9 | Stealth-view controller + cleanup of old 3D | M6, M8     | M    | yes |
-| M10| Performance pass + Doctrine integration API | all        | M    | yes |
+| #  | Milestone                                   | Depends on | Size | Visual check | Status |
+| -- | ------------------------------------------- | ---------- | ---- | ------------ | ------ |
+| M0 | Repo hygiene, cross-platform build, CI, tests | —        | S    | no  | **Done** (M0.1 `2cda9e8`, M0.2+M0.3 merged `5682f87`) |
+| M1 | Geodesy + Camera3D + RTE math               | M0         | M    | no  | |
+| M2 | Scene3D skeleton wired into MapWidget       | M1         | M    | yes | |
+| M3 | Globe quadtree tiling + frustum/SSE LOD     | M1         | L    | yes | |
+| M4 | DEM-displaced terrain (skirts, normals)     | M3         | L    | yes | |
+| M5 | Imagery draping (TMS/MBTiles on terrain)    | M4         | M    | yes | |
+| M6 | Vectors, borders, grid, cities, labels in 3D| M5         | L    | yes | |
+| M7 | Lighting, sky/atmosphere, fog               | M4         | M    | yes | |
+| M8 | Entities: glTF models, picking              | M2, M4     | L    | yes | |
+| M9 | Stealth-view controller + cleanup of old 3D | M6, M8     | M    | yes | |
+| M10| Performance pass + Doctrine integration API | all        | M    | yes | |
 
 S ≈ 1 agent session, M ≈ 2–3, L ≈ 4–6 sessions. M7 and M8 can run in parallel with M5/M6.
 
@@ -72,20 +72,23 @@ S ≈ 1 agent session, M ≈ 2–3, L ≈ 4–6 sessions. M7 and M8 can run in p
 
 ## 2. Tasks
 
+Agents: trust the Status column / DONE markers; do not redo finished tasks. Update the
+marker for your task in the same PR that completes it.
+
 ### M0 — Foundation
 
-**M0.1 Repo hygiene**
+**M0.1 Repo hygiene** — DONE (`2cda9e8`). Build output is untracked; ignore rules live in the repo-root `.gitignore` (`[Bb]uild/`, `x64/`, `[Oo]ut/`, `*.user`, `.vs/`).
 - Add `build/`, `x64/`, `*.user` to `.gitignore`; `git rm -r --cached build x64`.
 - Acceptance: `git status` clean after a fresh build.
 
-**M0.2 Cross-platform CMake + tests**
+**M0.2 Cross-platform CMake + tests** — DONE (merged in `5682f87`)
 - Make the Qt prefix logic in `CMakeLists.txt` optional (only apply Windows paths if they exist — already partly true; ensure Linux `find_package(Qt6)` works).
 - Guard `windeployqt` with `if(WIN32)`.
 - Add `tests/` with Qt Test + `enable_testing()`; first test: `MercatorProjection` round-trips.
 - Add `.github/workflows/ci.yml`: Ubuntu, install Qt6, build, `ctest`.
 - Acceptance: `cmake -B out && cmake --build out && ctest --test-dir out` passes on Linux.
 
-**M0.3 Offscreen smoke-render harness (optional but recommended)**
+**M0.3 Offscreen smoke-render harness** — DONE (`EarthView/tools/earthview_snapshot.cpp`, merged in `5682f87`)
 - Small executable `earthview_snapshot` that creates a `QOffscreenSurface` + FBO, renders one frame of a given mode/camera, writes PNG. Used by later milestones for CI artifacts.
 
 ### M1 — Geodesy and camera math
