@@ -36,11 +36,13 @@ D:\deploy\osgearth_spike\
 when they are not already set, so no launcher script is needed. Copy the folder to the
 offline machine and run `bin\osgearth_spike.exe`.
 
-Data is **not** part of the install — copy it separately and keep `spike.earth` paths valid:
+Data is **not** part of the install — copy it separately and keep the paths in
+`spike.earth` and `osm_style.json` valid:
 - `EarthView\Data\DEM\` (`*.dt2` + `dted_1arc.vrt`; the `.dt2` files are not in git)
 - `EarthView\Data\Borders\`
-- an imagery MBTiles file — in `spike.earth`, comment out the online `XYZImage` (OSM) layer
-  and enable the `MBTilesImage` layer, otherwise imagery stays blank offline.
+- the OpenMapTiles vector file `osm-2020-02-10-v3.11_asia_pakistan.mbtiles` (path in
+  `osm_style.json` → `sources.openmaptiles.url`). Imagery is rendered from it, so no
+  network is needed.
 
 ---
 

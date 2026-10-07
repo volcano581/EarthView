@@ -1,0 +1,64 @@
+{
+  "version": 8,
+  "name": "EarthView spike - OpenMapTiles (offline)",
+  "sources": {
+    "openmaptiles": {
+      "type": "vector",
+      "url": "D:/Source/cgf-engine/doctrine/data/earthview/OSM/osm-2020-02-10-v3.11_asia_pakistan.mbtiles"
+    }
+  },
+  "layers": [
+    { "id": "background", "type": "background",
+      "paint": { "background-color": "#efe9de" } },
+
+    { "id": "landcover-wood", "type": "fill", "source": "openmaptiles", "source-layer": "landcover",
+      "filter": ["==", "class", "wood"],
+      "paint": { "fill-color": "#c4dcae" } },
+    { "id": "landcover-grass", "type": "fill", "source": "openmaptiles", "source-layer": "landcover",
+      "filter": ["==", "class", "grass"],
+      "paint": { "fill-color": "#d8e8c0" } },
+    { "id": "landcover-farmland", "type": "fill", "source": "openmaptiles", "source-layer": "landcover",
+      "filter": ["==", "class", "farmland"],
+      "paint": { "fill-color": "#ece8c8" } },
+    { "id": "landcover-sand", "type": "fill", "source": "openmaptiles", "source-layer": "landcover",
+      "filter": ["==", "class", "sand"],
+      "paint": { "fill-color": "#f2e4b8" } },
+    { "id": "landcover-ice", "type": "fill", "source": "openmaptiles", "source-layer": "landcover",
+      "filter": ["==", "class", "ice"],
+      "paint": { "fill-color": "#f4f8fb" } },
+
+    { "id": "landuse-residential", "type": "fill", "source": "openmaptiles", "source-layer": "landuse",
+      "filter": ["==", "class", "residential"],
+      "paint": { "fill-color": "#e2dbd0" } },
+    { "id": "park", "type": "fill", "source": "openmaptiles", "source-layer": "park",
+      "paint": { "fill-color": "#cfe3b4" } },
+
+    { "id": "water", "type": "fill", "source": "openmaptiles", "source-layer": "water",
+      "paint": { "fill-color": "#a9cbe8" } },
+    { "id": "waterway", "type": "line", "source": "openmaptiles", "source-layer": "waterway",
+      "paint": { "line-color": "#a9cbe8", "line-width": 1.5 } },
+
+    { "id": "building", "type": "fill", "source": "openmaptiles", "source-layer": "building",
+      "paint": { "fill-color": "#d3c9bc" } },
+
+    { "id": "road-minor", "type": "line", "source": "openmaptiles", "source-layer": "transportation",
+      "filter": ["in", "class", "minor", "service", "track"],
+      "paint": { "line-color": "#ffffff", "line-width": 1.0 } },
+    { "id": "road-secondary-tertiary", "type": "line", "source": "openmaptiles", "source-layer": "transportation",
+      "filter": ["in", "class", "secondary", "tertiary"],
+      "paint": { "line-color": "#fbf3c4", "line-width": 1.8 } },
+    { "id": "road-primary-trunk", "type": "line", "source": "openmaptiles", "source-layer": "transportation",
+      "filter": ["in", "class", "primary", "trunk"],
+      "paint": { "line-color": "#f6d48c", "line-width": 2.5 } },
+    { "id": "road-motorway", "type": "line", "source": "openmaptiles", "source-layer": "transportation",
+      "filter": ["==", "class", "motorway"],
+      "paint": { "line-color": "#e9a46a", "line-width": 3.0 } },
+    { "id": "rail", "type": "line", "source": "openmaptiles", "source-layer": "transportation",
+      "filter": ["==", "class", "rail"],
+      "paint": { "line-color": "#9a9a9a", "line-width": 1.2 } },
+
+    { "id": "boundary-admin", "type": "line", "source": "openmaptiles", "source-layer": "boundary",
+      "filter": ["<=", "admin_level", 4],
+      "paint": { "line-color": "#9e7fa8", "line-width": 1.5 } }
+  ]
+}

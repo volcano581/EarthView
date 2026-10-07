@@ -21,10 +21,13 @@ target_link_libraries(osgearth_spike PRIVATE
     ${OPENSCENEGRAPH_LIBRARIES}
     osgEarth::osgEarth)
 
-# Copy the earth file next to the exe.
-add_custom_command(TARGET osgearth_spike POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        ${CMAKE_CURRENT_SOURCE_DIR}/spike.earth $<TARGET_FILE_DIR:osgearth_spike>/spike.earth)
+# Copy the earth file and its map style next to the exe.
+set(SPIKE_MAP_FILES spike.earth osm_style.json)
+foreach(mapFile IN LISTS SPIKE_MAP_FILES)
+    add_custom_command(TARGET osgearth_spike POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            ${CMAKE_CURRENT_SOURCE_DIR}/${mapFile} $<TARGET_FILE_DIR:osgearth_spike>/${mapFile})
+endforeach()
 
 # ---------------------------------------------------------------------------
 # Offline deployment: `cmake --install build --config Release --prefix <dir>`
@@ -37,7 +40,7 @@ add_custom_command(TARGET osgearth_spike POST_BUILD
 include(GNUInstallDirs)
 
 install(TARGETS osgearth_spike RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
-install(FILES spike.earth DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(FILES ${SPIKE_MAP_FILES} DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 # Qt DLLs and plugins (windeployqt under the hood).
 qt_generate_deploy_app_script(

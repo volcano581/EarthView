@@ -3,19 +3,28 @@
   build copies it next to the exe; pass an explicit path on the command
   line to use the copy in the source tree instead.
 
-  Fully offline: comment out the OSM layer and enable the MBTiles layer.
+  Fully offline by default: imagery is rendered on the fly from the
+  OpenMapTiles vector MBTiles (Pakistan) that EarthView/Doctrine already use.
 -->
 <map name="EarthView osgEarth spike" version="3">
 
-    <!-- Online raster (same default as EarthView's TmsLoader). Respect the
-         OSM tile usage policy; for real use point this at your own TMS server. -->
+    <!-- Offline imagery: vector MBTiles rasterised per tile with a MapBox GL
+         style. Path to the .mbtiles file is set in osm_style.json ("sources").
+         Only fill/line layers are styled (no labels, so no glyph/sprite files). -->
+    <MapBoxGLImage name="OSM vector (offline)">
+        <url>osm_style.json</url>
+    </MapBoxGLImage>
+
+    <!-- Online raster alternative (same default as EarthView's TmsLoader).
+         Respect the OSM tile usage policy.
     <XYZImage name="OpenStreetMap">
         <url>https://tile.openstreetmap.org/{z}/{x}/{y}.png</url>
         <profile>spherical-mercator</profile>
         <attribution>&#169;OpenStreetMap contributors</attribution>
     </XYZImage>
+    -->
 
-    <!-- Offline raster: any EarthView raster MBTiles file.
+    <!-- Offline raster alternative: any raster (PNG/JPEG) MBTiles file.
     <MBTilesImage name="Local imagery">
         <filename>D:/Source/EarthView1/EarthView/Data/OSM/imagery.mbtiles</filename>
     </MBTilesImage>

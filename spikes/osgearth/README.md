@@ -5,7 +5,10 @@ acceptable 3D / stealth view with our own data? Decide **before roadmap mileston
 (see `EarthView/ROADMAP_3D.md`).
 
 It loads `spike.earth`:
-- OSM raster tiles (online) or a local raster MBTiles file (offline, commented out)
+- Offline imagery rendered from the OpenMapTiles **vector** MBTiles (Pakistan) through
+  osgEarth's MapBoxGL layer and `osm_style.json` (fills and lines only, no labels). The
+  .mbtiles path is set in `osm_style.json`; online OSM and raster MBTiles alternatives are
+  commented out in `spike.earth`.
 - SRTM 1-arc-second DTED2 (34 tiles, N30–N34 / E066–E077) through the mosaic
   `EarthView/Data/DEM/dted_1arc.vrt`, over the 90 m GeoTIFF `DEM90TIF/N18.tif`
 - EarthView's country-border shapefile draped on terrain
@@ -56,7 +59,8 @@ Without code you can also try the earth file in osgEarth's own viewer:
 | ----- | ------- |
 | DEM | Terrain relief matches the region; no cracks or holes between tiles |
 | Imagery | Sharp imagery draped on terrain, no seams, smooth level-of-detail transitions |
-| Offline | Works with the network unplugged using local MBTiles + DEM |
+| Offline | Works with the network unplugged (vector MBTiles + DTED) |
+| Vector imagery | Roads/water/landcover legible when draped; tile build time acceptable while flying |
 | Borders | Shapefile lines follow the terrain without flicker |
 | Close-up | With **F**, terrain near the camera is stable (no z-fighting or jitter) |
 | Entity | Cone moves smoothly; tethered camera follows without wobble |
