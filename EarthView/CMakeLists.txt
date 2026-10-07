@@ -22,6 +22,7 @@ elseif(EXISTS "C:/Qtfull/6.11.0/llvm-mingw_64")
 endif()
 
 find_package(Qt6 REQUIRED COMPONENTS Core Widgets Network OpenGL OpenGLWidgets Sql)
+find_package(Qt6 QUIET COMPONENTS Test)
 find_package(Qt6ZlibPrivate QUIET)
 
 set(SOURCES
@@ -113,6 +114,10 @@ target_link_libraries(${PROJECT_NAME}
 
 if(TARGET Qt6::ZlibPrivate)
     target_link_libraries(${PROJECT_NAME} PRIVATE Qt6::ZlibPrivate)
+else()
+    # Distro Qt builds use the system zlib and do not export Qt6::ZlibPrivate.
+    find_package(ZLIB REQUIRED)
+    target_link_libraries(${PROJECT_NAME} PRIVATE ZLIB::ZLIB)
 endif()
 
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
@@ -142,4 +147,10 @@ if(WIN32)
             )
         endif()
     endif()
+endif()
+
+option(EARTHVIEW_BUILD_TESTS "Build EarthView unit tests" ON)
+if(EARTHVIEW_BUILD_TESTS AND TARGET Qt6::Test)
+    enable_testing()
+    add_subdirectory(tests)
 endif()

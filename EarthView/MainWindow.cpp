@@ -354,7 +354,7 @@ QList<TmsLoader::TileSourceLayer> readEarthLayers(const QString& filePath)
                     currentLayer.maxZoom = zoom;
             }
         }
-        else if (xml.isEndElement() && xml.name() == "image") {
+        else if (xml.isEndElement() && xml.name() == QLatin1String("image")) {
             if (insideImage && !skipCurrentImage && !currentLayer.urlTemplate.isEmpty()) {
                 if (currentLayer.name.isEmpty()) {
                     currentLayer.name = QFileInfo(currentLayer.urlTemplate).baseName();
