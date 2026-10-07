@@ -1,5 +1,7 @@
 # EarthView 3D Renderer — Roadmap for Agent Handoff
 
+> Execution status, change log, decisions and open issues: **[3D_PROGRESS.md](3D_PROGRESS.md)**.
+
 This document is written to be handed to cloud AI coding agents (Claude Code on the web /
 `claude --remote`), one milestone task at a time. Each task is self-contained: an agent
 should be able to read **this file + the files listed in the task** and finish it in a single
@@ -55,7 +57,7 @@ Windows Qt paths (`C:/Qt/6.11.0/llvm-mingw_64`). Consequences:
 | #  | Milestone                                   | Depends on | Size | Visual check | Status |
 | -- | ------------------------------------------- | ---------- | ---- | ------------ | ------ |
 | M0 | Repo hygiene, cross-platform build, CI, tests | —        | S    | no  | **Done** (M0.1 `2cda9e8`, M0.2+M0.3 merged `5682f87`) |
-| M1 | Geodesy + Camera3D + RTE math               | M0         | M    | no  | |
+| M1 | Geodesy + Camera3D + RTE math               | M0         | M    | no  | In review (`3d/m1-geodesy`) |
 | M2 | Scene3D skeleton wired into MapWidget       | M1         | M    | yes | |
 | M3 | Globe quadtree tiling + frustum/SSE LOD     | M1         | L    | yes | |
 | M4 | DEM-displaced terrain (skirts, normals)     | M3         | L    | yes | |
