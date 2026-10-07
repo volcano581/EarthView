@@ -365,3 +365,7 @@ MigrationBackup/
 FodyWeavers.xsd
 3rdParty/
 EarthView/build/
+# CMake build output
+[Bb]uild/
+cmake-build-*/
+CMakeUserPresets.json
