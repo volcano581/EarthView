@@ -10,6 +10,26 @@
 #include <osgEarth/Common>
 #include <osgEarth/Registry>
 
+namespace {
+void setEnvIfUnset(const char* name, const QString& path)
+{
+    if (qEnvironmentVariableIsEmpty(name) && QDir(path).exists())
+        qputenv(name, QDir::toNativeSeparators(path).toLocal8Bit());
+}
+
+// Point OSG, GDAL and PROJ at the folders laid out by `cmake --install`
+// (bin/osgPlugins-*, share/gdal, share/proj) so the app runs offline with
+// no environment setup. Explicitly set variables always win.
+void configureDeployedRuntime()
+{
+    const QDir appDir(QCoreApplication::applicationDirPath());
+    setEnvIfUnset("OSG_LIBRARY_PATH", appDir.absolutePath());
+    setEnvIfUnset("GDAL_DATA", appDir.absoluteFilePath("../share/gdal"));
+    setEnvIfUnset("PROJ_DATA", appDir.absoluteFilePath("../share/proj"));
+    setEnvIfUnset("PROJ_LIB", appDir.absoluteFilePath("../share/proj"));
+}
+}
+
 int main(int argc, char** argv)
 {
     // osgEarth needs a compatibility-profile context with the vcpkg OSG build.
@@ -34,6 +54,7 @@ int main(int argc, char** argv)
     const QString earthFile = parser.positionalArguments().value(
         0, QDir(QCoreApplication::applicationDirPath()).filePath("spike.earth"));
 
+    configureDeployedRuntime();
     osgEarth::initialize();
 
     QMainWindow window;

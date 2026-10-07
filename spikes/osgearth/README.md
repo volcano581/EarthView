@@ -13,7 +13,7 @@ It loads `spike.earth`:
 It also adds a sky with sun lighting, a logarithmic depth buffer, and a test entity (red
 cone) circling 300 m above the ground with chase and close tethered cameras.
 
-This is separate from the EarthView build: osgEarth from vcpkg is built with MSVC, so the
+This is separate from the EarthView build: osgEarth from vcpkg is built with MSVC (VS 2026), so the
 spike uses the Qt `msvc2022_64` kit, not llvm-mingw.
 
 ## Build (Windows)
@@ -24,10 +24,10 @@ git clone https://github.com/microsoft/vcpkg C:\vcpkg
 C:\vcpkg\bootstrap-vcpkg.bat
 ```
 
-Configure and build from a "x64 Native Tools Command Prompt for VS 2022":
+Configure and build from a "x64 Native Tools Command Prompt for VS 2026":
 ```
 cd D:\Source\EarthView1\spikes\osgearth
-cmake -B build -G "Visual Studio 17 2022" -A x64 -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DCMAKE_PREFIX_PATH=C:/Qt/6.11.0/msvc2022_64
+cmake -B build -G "Visual Studio 18 2026" -A x64 -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DCMAKE_PREFIX_PATH=C:/Qt/6.11.0/msvc2022_64
 cmake --build build --config Release
 ```
 
@@ -40,6 +40,9 @@ build\Release\osgearth_spike.exe --lat 33.70 --lon 73.05
 If the plugin folder differs, find `osgdb_earth.dll` under `build\vcpkg_installed` and point
 `OSG_LIBRARY_PATH` at its folder. The default `--lat 33.70 --lon 73.05` lies inside the
 DTED coverage (tile `n33_e073`); any point in N30–N34 / E066–E077 works.
+
+For a self-contained folder (offline machines) use `cmake --install`; see
+[OFFLINE_BUILD.md](OFFLINE_BUILD.md), which also covers building on an air-gapped machine.
 
 Controls: left-drag rotate, right-drag zoom, middle-drag pan, wheel zoom,
 **T** chase entity, **F** close "stealth" tether, **U** untether, **H** home.
