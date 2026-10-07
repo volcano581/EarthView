@@ -5,6 +5,8 @@ EarthView is a Qt 6 / OpenGL map rendering engine (C++17) in `EarthView/`. Its 2
 Active work: building a real 3D globe / stealth-view renderer. **The plan is
 `EarthView/ROADMAP_3D.md` — read it before starting any 3D task and implement only the
 milestone task you were given.**
+Progress is tracked in `EarthView/3D_PROGRESS.md` — read its status board before starting
+(do not redo `Merged` tasks) and update it in your PR (see rule 9).
 
 Further docs: `EarthView/DEVELOPERS_GUIDE.md`, `EarthView/RENDERING_PIPELINE.md`.
 
@@ -51,3 +53,8 @@ Software GL for smoke runs: `QT_QPA_PLATFORM=offscreen EARTHVIEW_FORCE_SOFTWARE_
    lines. Description includes: summary, files changed, how to verify visually on Windows,
    known limitations. Cloud agents cannot see rendered output — say explicitly what you
    could not verify.
+9. **Tracking:** every PR for the 3D work updates `EarthView/3D_PROGRESS.md` in the same
+   PR: set your row on the status board, add a change-log entry at the top using the
+   template there, record new design decisions and open issues/tech debt, and mark visual
+   checks `pending (Windows)` — never claim checks you could not run. Also set your task's
+   Status in `ROADMAP_3D.md`.
