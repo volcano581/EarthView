@@ -100,14 +100,16 @@ Status values: `Not started` · `In progress` · `In review` · `Changes request
 - **Tests:** `tst_mapconfig` (10 cases), `tst_entitydiff` (7 cases); Linux ctest 5/5 pass.
   `GlobeView3D.cpp`, the viewer and the moc output were syntax-checked on Linux against
   the osgEarth 3.8.1 source headers and OSG 3.6.5 (no errors/warnings); not linked on Linux.
-- **Verified:** Linux CI ✓ · Windows CI ✓ (VS 2026 / MSVC 14.51, osgEarth 3.8.1 via vcpkg; all targets link, ctest 5/5 with Qt 6.8.3 — re-run with Qt 6.11 after review round 1) ·
+- **Verified:** Linux CI ✓ · Windows CI ✓ (VS 2026 / MSVC 14.51, osgEarth 3.8.1 via vcpkg; all targets link, ctest 5/5 with Qt 6.8.3; after review round 1: Qt **6.11.0** + C++20, all targets link, ctest 6/6) ·
   Visual check pending (Windows): run `earthview3d_viewer --view home|chase|stealth --snapshot`.
 - **Review round 1 (owner, Windows run with Qt 6.11):** fixed
   1. Qt kit selection: llvm-mingw fallbacks only `if(MINGW)` and only without an explicit
      `CMAKE_PREFIX_PATH`; MSVC appends `msvc2022_64` as a low-priority fallback;
      `EARTHVIEW_QT_PREFIX` still wins.
   2. C++20 when `MSVC` (Qt 6.11 moc output fails in C++17 with MSVC); Windows CI pinned to
-     **Qt 6.11.0** to match developer machines and the host (D-015, D-016).
+     **Qt 6.11.0** to match developer machines and the host (D-015, D-016). aqtinstall 3.3.0
+     cannot install Qt ≥ 6.11 on Windows, so CI uses aqtinstall master (pinned commit) until
+     3.4 is released.
   3. Maps did not load from the build tree: osgDB reads `OSG_LIBRARY_PATH` when its DLL
      loads, before `main()`. New `earthview3d::configureRuntime(RuntimePaths)` adds the
      plugin folder to `osgDB::Registry`'s library path list and sets GDAL/PROJ data
@@ -277,7 +279,7 @@ Status values: `Not started` · `In progress` · `In review` · `Changes request
 | I-016 | Conquer test uses the spike's vcpkg tree via `DOCTRINE_OSGEARTH_PREFIX` and online OSM imagery; replace with a pinned manifest (O3) and offline imagery (O8). Pinned manifest now at the repo root (`vcpkg.json`, E1); offline imagery still open (E6). | E1/E6 | Partly resolved (E1) |
 | I-006 | `spike.earth` / `osm_style.json` use absolute `D:/Source/...` data paths. The library's map (`Data/maps/earthview.earth`, E1) uses relative paths; the spike files go away in E2. | S1 / E2 | Partly resolved (E1) |
 | I-017 | Linux CI does not build `earthview3d` yet (roadmap: "once green"). Cloud containers cannot build osgEarth through vcpkg either: the environment's network policy blocks `sqlite.org` (sqlite3 source). Add a cached Linux vcpkg job after E1. | E1 follow-up | Open |
-| I-019 | Developer machine with **VS 2022** + Qt 6.11 + C++20: QtTest headers hit an MSVC internal compiler error (`qrangemodel_impl.h(991): C1001`). Windows CI (VS 2026) shows whether newer MSVC is affected; if so, document the minimum compiler. | E1 | Open |
+| I-019 | **VS 2022** + Qt 6.11 + C++20: QtTest headers hit an MSVC internal compiler error (`qrangemodel_impl.h(991): C1001`). Windows CI with **VS 2026 (MSVC 14.51)** compiles all six test suites fine, so the minimum compiler for Qt 6.11 builds is VS 2026. Developer machines on VS 2022 must upgrade (and rebuild vcpkg packages, I-009). | E1 | Open (documented) |
 | I-018 | `MapConfig.cacheDir` is applied through `OSGEARTH_CACHE_PATH` before the widget's first `osgEarth::initialize()`; it is ignored if the host initialised osgEarth earlier or set the variable itself. Verify the cache fills on Windows (E6 owns caching). | E6 | Open |
 
 ---

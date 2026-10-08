@@ -54,7 +54,8 @@ cmake --build build-msvc --config Release
 build-msvc\earthview3d\Release\earthview3d_viewer.exe --view stealth --snapshot stealth.png --after 30
 ```
 `VCPKG_MANIFEST_DIR` is needed because the CMake source dir (`EarthView/`) is not the repo
-root. MSVC builds use C++20 (Qt 6.11 moc output needs it, D-016). The library finds the
+root. MSVC builds use C++20 (Qt 6.11 moc output needs it, D-016); use **VS 2026** —
+VS 2022 hits an internal compiler error in Qt 6.11's QtTest headers (I-019). The library finds the
 vcpkg OSG plugins and GDAL/PROJ data of the build tree by itself; Qt DLLs come from
 `windeployqt` or `PATH`. Deployment for other machines is roadmap E7.
 
