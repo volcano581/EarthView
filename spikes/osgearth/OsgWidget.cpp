@@ -68,6 +68,13 @@ OsgWidget::~OsgWidget()
 void OsgWidget::initializeGL()
 {
     m_window->setDefaultFboId(defaultFramebufferObject());
+
+    // osgEarth's shaders need generic vertex attributes and matrix uniforms. A normal
+    // viewer gets these from GL3RealizeOperation; an embedded window is never realized.
+    osg::State* state = m_window->getState();
+    state->setUseVertexAttributeAliasing(true);
+    state->setUseModelViewAndProjectionUniforms(true);
+
     buildScene();
 }
 
@@ -102,11 +109,14 @@ void OsgWidget::buildScene()
     m_manip = new EarthManipulator();
     m_manip->getSettings()->setTetherMode(EarthManipulator::TETHER_CENTER_AND_HEADING);
     m_manip->getSettings()->setMinMaxDistance(10.0, 4.0e7);
+    // Without this, home() frames the whole scene bound, which the sky dome makes huge.
+    m_manip->setHomeViewpoint(homeViewpoint());
     m_viewer->setCameraManipulator(m_manip.get());
     m_viewer->setSceneData(sky.get());
 
     updateEntity();
-    goHome();
+    // goHome() runs after the first frame: before that the manipulator has not attached
+    // to the MapNode yet and silently drops the viewpoint.
 }
 
 osg::Node* OsgWidget::createEntityModel() const
@@ -131,10 +141,15 @@ void OsgWidget::updateEntity()
     const double lon = m_lon + (east / (kEarthRadius * std::cos(latRad))) * 180.0 / kPi;
 
     const SpatialReference* srs = m_mapNode->getMapSRS()->getGeographicSRS();
+    // The terrain only exists after the first frame, and getHeight() fails until the
+    // tile under the entity is loaded; keep the last good height meanwhile.
     double groundMsl = 0.0;
-    m_mapNode->getTerrain()->getHeight(srs, lon, lat, &groundMsl);
+    if (Terrain* terrain = m_mapNode->getTerrain()) {
+        if (terrain->getHeight(srs, lon, lat, &groundMsl))
+            m_groundMsl = groundMsl;
+    }
 
-    m_entity->setPosition(GeoPoint(srs, lon, lat, groundMsl + kHeightAboveGroundMeters, ALTMODE_ABSOLUTE));
+    m_entity->setPosition(GeoPoint(srs, lon, lat, m_groundMsl + kHeightAboveGroundMeters, ALTMODE_ABSOLUTE));
 
     // Velocity direction of the circle; heading is clockwise from north.
     const double heading = std::atan2(std::cos(t), -std::sin(t));
@@ -151,15 +166,20 @@ void OsgWidget::tether(double rangeMeters, double pitchDeg)
     m_manip->setViewpoint(vp, 1.5);
 }
 
-void OsgWidget::goHome()
+Viewpoint OsgWidget::homeViewpoint() const
 {
-    m_manip->clearViewpoint();
     Viewpoint vp;
     vp.focalPoint() = GeoPoint(m_mapNode->getMapSRS()->getGeographicSRS(), m_lon, m_lat, 0.0, ALTMODE_ABSOLUTE);
     vp.heading() = Angle(0.0, Units::DEGREES);
     vp.pitch() = Angle(-35.0, Units::DEGREES);
     vp.range() = Distance(25000.0, Units::METERS);
-    m_manip->setViewpoint(vp, 2.0);
+    return vp;
+}
+
+void OsgWidget::goHome()
+{
+    m_manip->clearViewpoint();
+    m_manip->setViewpoint(homeViewpoint(), 0.0);
 }
 
 void OsgWidget::resizeGL(int w, int h)
@@ -179,6 +199,25 @@ void OsgWidget::paintGL()
     if (m_mapNode.valid())
         updateEntity();
     m_viewer->frame();
+
+    if (!m_homeApplied && m_mapNode.valid()) {
+        m_homeApplied = true;
+        goHome();
+    }
+}
+
+QString OsgWidget::viewpointDescription() const
+{
+    if (!m_manip.valid())
+        return QString();
+    osg::Vec3d eye, center, up;
+    m_viewer->getCamera()->getViewMatrixAsLookAt(eye, center, up);
+    double zNear = 0.0, zFar = 0.0, fovy = 0.0, aspect = 0.0;
+    m_viewer->getCamera()->getProjectionMatrixAsPerspective(fovy, aspect, zNear, zFar);
+    return QStringLiteral("%1 | eye distance from Earth centre %2 km | near %3 far %4")
+        .arg(QString::fromStdString(m_manip->getViewpoint().toString()))
+        .arg(eye.length() / 1000.0, 0, 'f', 1)
+        .arg(zNear).arg(zFar);
 }
 
 osgGA::EventQueue* OsgWidget::eventQueue() const

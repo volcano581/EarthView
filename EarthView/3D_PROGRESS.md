@@ -58,7 +58,7 @@ Status values: `Not started` · `In progress` · `In review` · `Changes request
 | M8 | Entities (glTF), picking | Not started | | | | |
 | M9 | Stealth-view controllers + remove old pseudo-3D | Not started | | | | |
 | M10 | Performance + Doctrine integration API | Not started | | | | |
-| S1 | osgEarth evaluation spike (`spikes/osgearth`) | In progress (not built yet) | master | — | `241c108`, `21e600c` | pending (Windows) |
+| S1 | osgEarth evaluation spike (`spikes/osgearth`) | In progress (built and run; offline imagery and chase view open) | master | — | `241c108`, `21e600c`, this commit | partial ✓ (2026-10-08) |
 
 **Go/no-go gate:** decide custom renderer vs osgEarth **before M3 starts**, using the spike
 checklist in `spikes/osgearth/README.md`. Record the outcome under Decisions (D-007).
@@ -66,6 +66,23 @@ checklist in `spikes/osgearth/README.md`. Record the outcome under Decisions (D-
 ---
 
 ## Change log (newest first)
+
+### 2026-10-08 — S1: osgEarth spike first build and run  (In progress)
+- **Branch / PR:** master (direct)
+- **Author:** Claude Code (local Windows session)
+- **Environment:** osgEarth 3.8.1, OSG 3.6.5, GDAL 3.12.4 from vcpkg; built with VS 2022
+  Enterprise (the plan says VS 2026 — see I-009); Qt 6.11 `msvc2022_64`; NVIDIA RTX 3050 Ti,
+  GL 4.6 compatibility profile.
+- **Fixes:** crash from null `MapNode::getTerrain()` before the first frame; enabled
+  vertex-attribute aliasing + matrix uniforms on the embedded window (osgEarth shaders);
+  registered the home viewpoint with `EarthManipulator` (camera was framing the sky dome);
+  corrected the borders shapefile path. Added `--view home|chase|stealth`,
+  `--snapshot <png> --after <sec>` and a viewpoint printout for automated checks.
+- **Results:** install step produces a working self-contained folder; DTED terrain, imagery
+  draping (online OSM), sky and the stealth view (`F`) render correctly. Offline imagery
+  from the vector MBTiles does not work (I-007); chase view (`T`) is broken (I-008).
+- **Verified:** Windows build ✓ · Visual check partial ✓ (snapshots of home/chase/stealth)
+- **Follow-ups:** I-007, I-008, I-009, I-010, I-011.
 
 ### 2026-10-07 — M1: WGS84 geodesy, Camera3D, RTE math  (Merged 2026-10-08, `23dcfe4`)
 - **Branch / PR:** `3d/m1-geodesy` / [#3](https://github.com/volcano581/EarthView/pull/3) — commit `1ad4ce8`
@@ -135,8 +152,13 @@ checklist in `spikes/osgearth/README.md`. Record the outcome under Decisions (D-
 | I-001 | `Camera3D::frustumContains()` rebuilds all planes on every call; M3 tile culling must compute planes once per frame and reuse them. | M3 | Open |
 | I-002 | ~~M1 did not set its roadmap status marker; reviewer updates on merge.~~ Marker set in #3. | M1 merge | Closed (#3) |
 | I-003 | `DemLoader` only scans `*.tif/*.tiff`; DTED (`.dt2`) / VRT support via GDAL needed for the custom terrain path (osgEarth reads them already). | M4 | Open |
-| I-004 | osgEarth spike unbuilt; MapBoxGL rendering of vector MBTiles (path syntax, blend2d/protobuf features) unverified. | S1 | Open |
+| I-004 | ~~osgEarth spike unbuilt.~~ Built and run 2026-10-08; MapBoxGL result tracked in I-007. | S1 | Closed (2026-10-08) |
 | I-005 | ~~M0.3 snapshot tool not yet run on Windows.~~ Run on Windows 2026-10-08 (GPU, not llvmpipe): both modes render correctly (grid, borders, city labels/dots; orthographic shows curved graticule). | M0.3 | Closed (2026-10-08) |
+| I-007 | Offline imagery: osgEarth `MapBoxGLImage` renders nothing (even a background-only style); `OGRFeatures` on the vector MBTiles hangs (GDAL scans the whole file). Options: pre-render a raster MBTiles from the vector tiles, obtain satellite/raster imagery, or debug the MapBoxGL layer in osgEarth source. | S1 | Open |
+| I-008 | Spike chase view (`T`, 600 m, −15°): lower half of the frame black with a red/yellow band — camera under terrain or captured mid-fly-to. Stealth view (`F`) is fine. | S1 | Open |
+| I-009 | Spike was configured with VS 2022 Enterprise, not VS 2026 as in `OFFLINE_BUILD.md`; the vcpkg binary cache is keyed by compiler, so feeder and offline machines must use the same one. | S1 | Open |
+| I-010 | Spike deploy folder lacks the MSVC runtime DLLs (vcruntime/msvcp) and osgEarth's data folder (moon texture); `DEM90TIF/N18.tif` covers 55–56°E, 18–19°N, not the area of interest. | S1 | Open |
+| I-011 | osgEarth logs "GDAL_DATA environment variable is not set" before `main()` sets it; check GDAL/PROJ actually find the deployed `share/` data. | S1 | Open |
 | I-006 | `spike.earth` / `osm_style.json` use absolute `D:/Source/...` data paths; offline machines need the same layout or edited paths. | S1 | Open |
 
 ---
@@ -148,5 +170,6 @@ Record each manual Windows check (build + visual) here; cloud agents cannot do t
 | Date | Commit / branch | Check | Result | By |
 | ---- | --------------- | ----- | ------ | -- |
 | 2026-10-07 | `3d/m1-geodesy` `1ad4ce8` | llvm-mingw build of app + ctest (3 suites) | Pass | review |
+| 2026-10-08 | master (S1 spike) | MSVC build, `cmake --install`, home/chase/stealth snapshots with DTED + online OSM | Partial — stealth ✓, chase ✗, offline vector imagery ✗ | Claude Code |
 | 2026-10-08 | `3d/m1-geodesy` `5529c47` (post-master-merge) | llvm-mingw build of app + ctest (3 suites: `tst_mercatorprojection`, `tst_geodesy`, `tst_camera3d`) | Pass | Claude Code |
 | 2026-10-08 | `3d/m1-geodesy` `5529c47` | `earthview_snapshot` run on Windows (real GPU), `--mode mercator` and `--mode orthographic` | Pass — both PNGs render grid/borders/city labels correctly; closes I-005 | Claude Code |

@@ -10,7 +10,12 @@
 
     <!-- Offline imagery: vector MBTiles rasterised per tile with a MapBox GL
          style. Path to the .mbtiles file is set in osm_style.json ("sources").
-         Only fill/line layers are styled (no labels, so no glyph/sprite files). -->
+         Only fill/line layers are styled (no labels, so no glyph/sprite files).
+         KNOWN ISSUE (osgEarth 3.8.1 from vcpkg, 2026-10-08): this layer renders
+         nothing, not even a background-only style. Reading the same file through
+         <OGRFeatures> + <FeatureImage> hangs while GDAL scans it. Until fixed, use
+         the online XYZImage layer below or a raster MBTiles file. -->
+
     <MapBoxGLImage name="OSM vector (offline)">
         <url>osm_style.json</url>
     </MapBoxGLImage>
@@ -46,7 +51,7 @@
     <!-- Vector overlay straight from EarthView's shapefile, clamped to terrain. -->
     <FeatureModel name="Country borders">
         <OGRFeatures>
-            <url>D:/Source/EarthView1/EarthView/Data/Borders/World_Countries_Generalized.shp</url>
+            <url>D:/Source/EarthView1/EarthView/Data/Borders/World_Countries_Generalized_Shapefile/World_Countries_Generalized.shp</url>
         </OGRFeatures>
         <styles>
             <style type="text/css">

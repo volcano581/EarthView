@@ -71,6 +71,23 @@ Without code you can also try the earth file in osgEarth's own viewer:
 If most checks pass, replace roadmap M3–M7 with "integrate osgEarth" and keep M8 (entities
 feed from Doctrine) and M9 (camera controllers) on top of it.
 
-## Status
-Written but not yet compiled: osgEarth wasn't installed on the machine that wrote it, so
-expect minor API fixes (osgEarth 3.x) on the first build.
+Automated snapshot (saves a frame and exits; prints the camera viewpoint to stderr):
+`osgearth_spike.exe [earthfile] --view home|chase|stealth --snapshot out.png --after 30`
+
+## Status (2026-10-08, osgEarth 3.8.1, OSG 3.6.5, GDAL 3.12.4, RTX 3050 Ti)
+
+| Check | Result |
+| ----- | ------ |
+| Build + `cmake --install` deploy folder | ✓ (built with VS 2022; MSVC runtime DLLs not deployed) |
+| DTED 1″ terrain via VRT | ✓ relief of the Margalla Hills visible in stealth view |
+| Imagery draping (online OSM XYZ) | ✓ |
+| Offline imagery from vector MBTiles (MapBoxGL) | ✗ layer renders nothing, even a background-only style |
+| Vector MBTiles via OGR + FeatureImage | ✗ hangs while GDAL scans the file |
+| Country borders shapefile | ✓ opens (not in view at the default location) |
+| Sky, sun, stars, haze | ✓ (moon texture missing: osgEarth data folder not deployed) |
+| Stealth view (`F`) | ✓ |
+| Chase view (`T`) | ✗ lower half black with red/yellow band — camera under terrain or mid-transition |
+
+Fixes made during the first run: null terrain at startup (crash), vertex-attribute aliasing
+for the embedded window (osgEarth shaders), home viewpoint registered with the
+manipulator (camera framed the sky dome), borders shapefile path.
