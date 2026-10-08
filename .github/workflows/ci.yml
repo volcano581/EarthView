@@ -61,6 +61,9 @@ jobs:
           version: '6.11.0'
           arch: win64_msvc2022_64
           cache: true
+          # aqtinstall 3.3.0 (latest release) cannot find Qt >= 6.11 on Windows (packages moved to
+          # per-compiler extension repositories); master has the fix (#1000). Drop once 3.4 ships.
+          aqtsource: 'git+https://github.com/miurahr/aqtinstall.git@076e1659807d0b362a3ed684d54c2e9c775eb9c7'
 
       - name: MSVC developer environment
         uses: ilammy/msvc-dev-cmd@v1
