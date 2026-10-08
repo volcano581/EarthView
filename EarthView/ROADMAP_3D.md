@@ -57,7 +57,7 @@ Windows Qt paths (`C:/Qt/6.11.0/llvm-mingw_64`). Consequences:
 | #  | Milestone                                   | Depends on | Size | Visual check | Status |
 | -- | ------------------------------------------- | ---------- | ---- | ------------ | ------ |
 | M0 | Repo hygiene, cross-platform build, CI, tests | —        | S    | no  | **Done** (M0.1 `2cda9e8`, M0.2+M0.3 merged `5682f87`) |
-| M1 | Geodesy + Camera3D + RTE math               | M0         | M    | no  | In review (`3d/m1-geodesy`, [#3](https://github.com/volcano581/EarthView/pull/3)) |
+| M1 | Geodesy + Camera3D + RTE math               | M0         | M    | no  | **Done** ([#3](https://github.com/volcano581/EarthView/pull/3), merged `23dcfe4`) |
 | M2 | Scene3D skeleton wired into MapWidget       | M1         | M    | yes | |
 | M3 | Globe quadtree tiling + frustum/SSE LOD     | M1         | L    | yes | |
 | M4 | DEM-displaced terrain (skirts, normals)     | M3         | L    | yes | |

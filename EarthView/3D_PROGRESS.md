@@ -4,7 +4,7 @@ Single source of truth for **what has actually changed** in EarthView for 3D ren
 The plan lives in [ROADMAP_3D.md](ROADMAP_3D.md); this file records execution: who did
 what, in which PR/commit, how it was verified, and what is still open.
 
-Last updated: 2026-10-07
+Last updated: 2026-10-08
 
 ---
 
@@ -48,7 +48,7 @@ Status values: `Not started` · `In progress` · `In review` · `Changes request
 | M0.1 | Repo hygiene (untrack build output) | Merged | — (direct) | — | `2cda9e8` | n.a. |
 | M0.2 | Cross-platform CMake, Qt Test, Linux CI | Merged | `3d/m0-build-ci` | — | `5682f87` | n.a. |
 | M0.3 | Offscreen snapshot tool | Merged | `3d/m0-snapshot` | — | `5682f87` | pending (Windows) |
-| M1 | Geodesy + Camera3D + RTE math | In review | `3d/m1-geodesy` | [#3](https://github.com/volcano581/EarthView/pull/3) | — | n.a. |
+| M1 | Geodesy + Camera3D + RTE math | Merged | `3d/m1-geodesy` | [#3](https://github.com/volcano581/EarthView/pull/3) | `23dcfe4` | n.a. |
 | M2 | Scene3D skeleton in MapWidget | Not started | | | | |
 | M3 | Globe quadtree + frustum/SSE LOD | Not started | | | | |
 | M4 | DEM terrain (skirts, normals, DTED via GDAL) | Not started | | | | |
@@ -67,7 +67,7 @@ checklist in `spikes/osgearth/README.md`. Record the outcome under Decisions (D-
 
 ## Change log (newest first)
 
-### 2026-10-07 — M1: WGS84 geodesy, Camera3D, RTE math  (In review)
+### 2026-10-07 — M1: WGS84 geodesy, Camera3D, RTE math  (Merged 2026-10-08, `23dcfe4`)
 - **Branch / PR:** `3d/m1-geodesy` / [#3](https://github.com/volcano581/EarthView/pull/3) — commit `1ad4ce8`
 - **Author:** cloud agent
 - **Changes:** new static lib `earthview_scene3d` (no Qt dependency):
@@ -136,7 +136,7 @@ checklist in `spikes/osgearth/README.md`. Record the outcome under Decisions (D-
 | I-002 | ~~M1 did not set its roadmap status marker; reviewer updates on merge.~~ Marker set in #3. | M1 merge | Closed (#3) |
 | I-003 | `DemLoader` only scans `*.tif/*.tiff`; DTED (`.dt2`) / VRT support via GDAL needed for the custom terrain path (osgEarth reads them already). | M4 | Open |
 | I-004 | osgEarth spike unbuilt; MapBoxGL rendering of vector MBTiles (path syntax, blend2d/protobuf features) unverified. | S1 | Open |
-| I-005 | M0.3 snapshot tool not yet run on Windows. (It is in Linux CI: `ci.yml` renders both modes and uploads the `snapshots` artifact.) | M0.3 | Open |
+| I-005 | ~~M0.3 snapshot tool not yet run on Windows.~~ Run on Windows 2026-10-08 (GPU, not llvmpipe): both modes render correctly (grid, borders, city labels/dots; orthographic shows curved graticule). | M0.3 | Closed (2026-10-08) |
 | I-006 | `spike.earth` / `osm_style.json` use absolute `D:/Source/...` data paths; offline machines need the same layout or edited paths. | S1 | Open |
 
 ---
@@ -148,3 +148,5 @@ Record each manual Windows check (build + visual) here; cloud agents cannot do t
 | Date | Commit / branch | Check | Result | By |
 | ---- | --------------- | ----- | ------ | -- |
 | 2026-10-07 | `3d/m1-geodesy` `1ad4ce8` | llvm-mingw build of app + ctest (3 suites) | Pass | review |
+| 2026-10-08 | `3d/m1-geodesy` `5529c47` (post-master-merge) | llvm-mingw build of app + ctest (3 suites: `tst_mercatorprojection`, `tst_geodesy`, `tst_camera3d`) | Pass | Claude Code |
+| 2026-10-08 | `3d/m1-geodesy` `5529c47` | `earthview_snapshot` run on Windows (real GPU), `--mode mercator` and `--mode orthographic` | Pass — both PNGs render grid/borders/city labels correctly; closes I-005 | Claude Code |
