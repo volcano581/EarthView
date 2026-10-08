@@ -52,7 +52,7 @@ Status values: `Not started` · `In progress` · `In review` · `Changes request
 | M2–M10 | Custom renderer milestones | Dropped (D-007) | | | | |
 | T1 | Local Doctrine integration test (Conquer, branch `earthview-3d-test`) | Done (local) | — | — | `1fd3d89` (Conquer) | ✓ (2026-10-08) |
 | O0–O11 | Earlier osgEarth plan | Superseded by E1–E10 + L1 (D-012) | | | | |
-| E1 | `earthview3d` library + vcpkg manifest + Windows CI | Not started | | | | |
+| E1 | `earthview3d` library + vcpkg manifest + Windows CI | In review | `3d/e1-earthview3d` | PR_LINK | — | pending (Windows) |
 | E2 | `earthview3d_demo` with synthetic host feed | Not started | | | | |
 | E3 | Entity layer (models, labels, LOD, picking) | Not started | | | | |
 | E4 | Camera controllers + HUD | Not started | | | | |
@@ -70,6 +70,39 @@ Status values: `Not started` · `In progress` · `In review` · `Changes request
 ---
 
 ## Change log (newest first)
+
+### 2026-10-08 — E1: `earthview3d` library, vcpkg manifest, Windows CI  (In review)
+- **Branch / PR:** `3d/e1-earthview3d` / PR_LINK — merge —
+- **Author:** cloud agent
+- **Changes:**
+  - `earthview3d/reference/GlobeView3D.*` moved to `earthview3d/src/GlobeView3D.cpp` +
+    `include/earthview3d/GlobeView3D.h`; namespace `earthview3d`; **pimpl** — public headers
+    include only Qt/STL (`EntityState3D.h`, `MapConfig.h`, `EntityDiff.h`, `GlobeView3D.h`).
+    All eight embedded-widget rules kept (listed in `earthview3d/README.md`).
+  - `DOCTRINE_3D_LOGDEPTH`/`DOCTRINE_3D_NO_SKY` → `EARTHVIEW3D_LOGDEPTH`/`EARTHVIEW3D_NO_SKY`.
+  - `MapConfig` (earth file, data root, cache dir, sky on/off + time; JSON loading,
+    path resolution, validation) replaces the hard-coded earth-file path and sky date.
+  - `EntityDiff`: GL-free add/update/remove logic split out of `setEntities()`; id 0
+    ignored, first entry wins on duplicate ids. `EntityState3D` gains `visible` (contract §2).
+  - The widget calls `osgEarth::initialize()` itself; `cacheDir` → `OSGEARTH_CACHE_PATH`.
+  - CMake: `earthview3d_core` (Qt Core, always built) + `earthview3d` and
+    `earthview3d_viewer` when `EARTHVIEW_BUILD_3D` (default ON only if osgEarth is found).
+  - `earthview3d_viewer`: the `spikes/osgearth` app ported onto the library (home/chase/
+    stealth, `--snapshot`); the spike itself stays until E2 retires it.
+  - Earth file template `Data/maps/earthview.earth` (from `spike.earth`): paths relative to
+    the earth file, no `D:/` paths; dropped the off-area `DEM90TIF/N18.tif` layer (I-010).
+  - `vcpkg.json` at the repo root (osgEarth, baseline `2cfff9c`, same as the spike).
+  - CI: new `windows` job — MSVC (Ninja), Qt 6.8.3 `msvc2022_64`, vcpkg at the baseline,
+    binary cache in `actions/cache` (full on success, partial on failure); build + `ctest`.
+- **Existing files touched:** `EarthView/CMakeLists.txt` (`add_subdirectory(earthview3d)`
+  only), `tests/CMakeLists.txt`, `.github/workflows/ci.yml`, `CLAUDE.md` (reference path),
+  `DOCTRINE_WIRING.md` (API changes), `ROADMAP_3D.md` (status). No 2D code changed.
+- **Tests:** `tst_mapconfig` (10 cases), `tst_entitydiff` (7 cases); Linux ctest 5/5 pass.
+  `GlobeView3D.cpp`, the viewer and the moc output were syntax-checked on Linux against
+  the osgEarth 3.8.1 source headers and OSG 3.6.5 (no errors/warnings); not linked on Linux.
+- **Verified:** Linux CI WINDOWS_CI_LINUX · Windows CI (MSVC build + ctest) WINDOWS_CI_WIN ·
+  Visual check pending (Windows): run `earthview3d_viewer --view home|chase|stealth --snapshot`.
+- **Follow-ups:** I-017, I-018.
 
 ### 2026-10-08 — Roadmap re-scoped to EarthView-only agent work (D-012)
 - Doctrine cannot be pushed to GitHub. `ROADMAP_3D.md` rewritten: tasks E1–E10 finish the
@@ -200,6 +233,9 @@ Status values: `Not started` · `In progress` · `In review` · `Changes request
 | D-009 | ~~aeqd projection proposal~~ Superseded: Conquer's `CoordBridge` (tangent-plane ENU at a `GeodeticOrigin`, ECEF hub) already provides lat/lon/alt in `RenderEntity`; the 3D view uses those directly. | 2026-10-08 | Conquer test |
 | D-010 | osgEarth logarithmic depth buffer is **off** by default in the embedded widget (drops near-camera terrain); use `Camera::setNearFarRatio(2e-5)`. | 2026-10-08 | Conquer test |
 | D-012 | Doctrine/Conquer stays **off GitHub**. Agents finish `earthview3d` + demo host + packaging + wiring kit in EarthView (E1–E10); final Doctrine wiring is local (L1). Only the Doctrine-free widget from the test is published (`earthview3d/reference/`). | 2026-10-08 | ROADMAP, DOCTRINE_WIRING.md |
+| D-013 | `earthview3d` = `earthview3d_core` (GL-free, Qt Core, always built and tested) + `earthview3d` (osgEarth widget, built only with `EARTHVIEW_BUILD_3D`, default ON when osgEarth is found). osgEarth/OSG include dirs and libraries are PRIVATE to `earthview3d`. | 2026-10-08 | E1 |
+| D-014 | Default map lives in the data tree: `EarthView/Data/maps/earthview.earth` with paths relative to the earth file; `MapConfig.dataRoot` = `EarthView/Data` in development. | 2026-10-08 | E1 |
+| D-015 | Windows CI: `windows-latest`, MSVC via Ninja, Qt **6.8.3** `msvc2022_64` from `install-qt-action` (developer machines keep Qt 6.11 / VS 2026), vcpkg checked out at the manifest baseline, `files` binary cache stored with `actions/cache` (vcpkg no longer supports `x-gha`). | 2026-10-08 | E1 |
 | D-011 | The integration target is **Conquer** (`D:\Source\Conquer`: Doctrine + cgf-engine + EarthView superbuild, already MSVC), not the standalone `D:\Source\cgf-engine`. 3D code lives in an isolated library so osgEarth includes never reach other TUs. | 2026-10-08 | Conquer test |
 
 ---
@@ -222,8 +258,10 @@ Status values: `Not started` · `In progress` · `In review` · `Changes request
 | I-013 | In Conquer `RenderEntity` already has EntityID, lat/lon (double), alt, heading; still missing pitch/roll and SISO kind (for models). | O5/O6 | Partly resolved |
 | I-014 | ~~No geodetic origin in Doctrine.~~ Conquer has `GeodeticOrigin` + `CoordBridge`. | O5 | Closed (Conquer) |
 | I-015 | Conquer ground units ride a flat plane at the origin altitude, ~20–24 m below the DTED surface near Islamabad; sim terrain must use the same DEM (or the 3D view keeps clamping ground units). | O5 | Open |
-| I-016 | Conquer test uses the spike's vcpkg tree via `DOCTRINE_OSGEARTH_PREFIX` and online OSM imagery; replace with a pinned manifest (O3) and offline imagery (O8). | O3/O8 | Open |
-| I-006 | `spike.earth` / `osm_style.json` use absolute `D:/Source/...` data paths; offline machines need the same layout or edited paths. | S1 | Open |
+| I-016 | Conquer test uses the spike's vcpkg tree via `DOCTRINE_OSGEARTH_PREFIX` and online OSM imagery; replace with a pinned manifest (O3) and offline imagery (O8). Pinned manifest now at the repo root (`vcpkg.json`, E1); offline imagery still open (E6). | E1/E6 | Partly resolved (E1) |
+| I-006 | `spike.earth` / `osm_style.json` use absolute `D:/Source/...` data paths. The library's map (`Data/maps/earthview.earth`, E1) uses relative paths; the spike files go away in E2. | S1 / E2 | Partly resolved (E1) |
+| I-017 | Linux CI does not build `earthview3d` yet (roadmap: "once green"). Cloud containers cannot build osgEarth through vcpkg either: the environment's network policy blocks `sqlite.org` (sqlite3 source). Add a cached Linux vcpkg job after E1. | E1 follow-up | Open |
+| I-018 | `MapConfig.cacheDir` is applied through `OSGEARTH_CACHE_PATH` before the widget's first `osgEarth::initialize()`; it is ignored if the host initialised osgEarth earlier or set the variable itself. Verify the cache fills on Windows (E6 owns caching). | E6 | Open |
 
 ---
 

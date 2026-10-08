@@ -61,7 +61,7 @@
 | M1 | Geodesy + Camera3D maths (`scene3d`) | M0 | M | no | **Done** (#3) |
 | S1 | osgEarth spike | — | M | yes | **Done** |
 | T1 | Local Doctrine integration test (Conquer) | S1 | M | yes | **Done** (local, `1fd3d89`) |
-| E1 | `earthview3d` library from the reference widget + vcpkg manifest + Windows CI | — | M | yes | |
+| E1 | `earthview3d` library from the reference widget + vcpkg manifest + Windows CI | — | M | yes | In review (`3d/e1-earthview3d`) |
 | E2 | `earthview3d_demo` app with synthetic host feed (replaces the spike app) | E1 | M | yes | |
 | E3 | Entity layer: API, model table, labels, LOD, attitude, picking + selection | E1 | L | yes | |
 | E4 | Camera controllers (orbit, chase, stealth, first-person, free-fly) + HUD | E1 | M | yes | |

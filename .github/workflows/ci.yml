@@ -4,6 +4,12 @@ on:
   push:
   pull_request:
 
+# Push and pull_request runs of one branch share a group, so a newer run replaces an older
+# one instead of building osgEarth twice in parallel (the partial vcpkg cache is kept).
+concurrency:
+  group: ci-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
 jobs:
   linux:
     runs-on: ubuntu-24.04
@@ -100,7 +106,7 @@ jobs:
           key: vcpkg-win-x64-${{ env.VCPKG_COMMIT }}-${{ hashFiles('vcpkg.json') }}-full
 
       - name: Save partial vcpkg cache
-        if: failure() && steps.vcpkg-cache.outputs.cache-hit != 'true'
+        if: (failure() || cancelled()) && steps.vcpkg-cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
         with:
           path: C:\ev-vcpkg-cache
