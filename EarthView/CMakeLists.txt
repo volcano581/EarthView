@@ -180,6 +180,10 @@ target_include_directories(earthview_scene3d
 )
 set_target_properties(earthview_scene3d PROPERTIES AUTOMOC OFF AUTOUIC OFF AUTORCC OFF)
 
+# osgEarth 3D view library (roadmap E1). The GL-free core always builds; the osgEarth
+# widget only when osgEarth is found (EARTHVIEW_BUILD_3D), so 2D-only builds are unaffected.
+add_subdirectory(earthview3d)
+
 option(EARTHVIEW_BUILD_TESTS "Build EarthView unit tests" ON)
 if(EARTHVIEW_BUILD_TESTS AND TARGET Qt6::Test)
     enable_testing()
