@@ -166,6 +166,20 @@ if(EARTHVIEW_BUILD_SNAPSHOT)
     )
 endif()
 
+# 3D globe math (roadmap M1+). Double-precision WGS84/ECEF via vendored GLM; no Qt dependency.
+add_library(earthview_scene3d STATIC
+    scene3d/Geodesy.cpp
+    scene3d/Geodesy.h
+    scene3d/Camera3D.cpp
+    scene3d/Camera3D.h
+)
+target_include_directories(earthview_scene3d
+    PUBLIC
+        "${CMAKE_CURRENT_SOURCE_DIR}/scene3d"
+        "${CMAKE_CURRENT_SOURCE_DIR}/third_party/glm"
+)
+set_target_properties(earthview_scene3d PROPERTIES AUTOMOC OFF AUTOUIC OFF AUTORCC OFF)
+
 option(EARTHVIEW_BUILD_TESTS "Build EarthView unit tests" ON)
 if(EARTHVIEW_BUILD_TESTS AND TARGET Qt6::Test)
     enable_testing()

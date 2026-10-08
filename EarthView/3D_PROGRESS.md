@@ -48,7 +48,7 @@ Status values: `Not started` · `In progress` · `In review` · `Changes request
 | M0.1 | Repo hygiene (untrack build output) | Merged | — (direct) | — | `2cda9e8` | n.a. |
 | M0.2 | Cross-platform CMake, Qt Test, Linux CI | Merged | `3d/m0-build-ci` | — | `5682f87` | n.a. |
 | M0.3 | Offscreen snapshot tool | Merged | `3d/m0-snapshot` | — | `5682f87` | pending (Windows) |
-| M1 | Geodesy + Camera3D + RTE math | In review | `3d/m1-geodesy` | open | — | n.a. |
+| M1 | Geodesy + Camera3D + RTE math | In review | `3d/m1-geodesy` | [#3](https://github.com/volcano581/EarthView/pull/3) | — | n.a. |
 | M2 | Scene3D skeleton in MapWidget | Not started | | | | |
 | M3 | Globe quadtree + frustum/SSE LOD | Not started | | | | |
 | M4 | DEM terrain (skirts, normals, DTED via GDAL) | Not started | | | | |
@@ -68,7 +68,7 @@ checklist in `spikes/osgearth/README.md`. Record the outcome under Decisions (D-
 ## Change log (newest first)
 
 ### 2026-10-07 — M1: WGS84 geodesy, Camera3D, RTE math  (In review)
-- **Branch / PR:** `3d/m1-geodesy` / open — commit `1ad4ce8`
+- **Branch / PR:** `3d/m1-geodesy` / [#3](https://github.com/volcano581/EarthView/pull/3) — commit `1ad4ce8`
 - **Author:** cloud agent
 - **Changes:** new static lib `earthview_scene3d` (no Qt dependency):
   `scene3d/Geodesy.*` (WGS84 geodetic↔ECEF with iterative Bowring, ENU frame, surface
@@ -80,7 +80,7 @@ checklist in `spikes/osgearth/README.md`. Record the outcome under Decisions (D-
   the app), `tests/CMakeLists.txt`.
 - **Tests:** `tst_geodesy` (9 cases), `tst_camera3d` (10 cases). Windows llvm-mingw:
   3/3 suites pass; EarthView app still builds.
-- **Verified:** Linux CI — check PR · Windows build ✓ (review, 2026-10-07) · Visual n.a.
+- **Verified:** Linux CI ✓ (PR run, 3/3 suites) · Windows build ✓ (review, 2026-10-07) · Visual n.a.
 - **Review notes:** maths and sign conventions checked by hand (ECEF, Bowring, ENU,
   heading/pitch/roll matrices, reversed-Z, frustum plane normals). PR exceeds the ~1500-line
   guideline only because of vendored GLM — accepted. Agent did not update the roadmap
@@ -133,10 +133,10 @@ checklist in `spikes/osgearth/README.md`. Record the outcome under Decisions (D-
 | ID | Item | Owner / task | Status |
 | -- | ---- | ------------ | ------ |
 | I-001 | `Camera3D::frustumContains()` rebuilds all planes on every call; M3 tile culling must compute planes once per frame and reuse them. | M3 | Open |
-| I-002 | M1 did not set its roadmap status marker; reviewer updates on merge. | M1 merge | Open |
+| I-002 | ~~M1 did not set its roadmap status marker; reviewer updates on merge.~~ Marker set in #3. | M1 merge | Closed (#3) |
 | I-003 | `DemLoader` only scans `*.tif/*.tiff`; DTED (`.dt2`) / VRT support via GDAL needed for the custom terrain path (osgEarth reads them already). | M4 | Open |
 | I-004 | osgEarth spike unbuilt; MapBoxGL rendering of vector MBTiles (path syntax, blend2d/protobuf features) unverified. | S1 | Open |
-| I-005 | M0.3 snapshot tool not yet run on Windows / not wired into CI artifacts. | M0.3 | Open |
+| I-005 | M0.3 snapshot tool not yet run on Windows. (It is in Linux CI: `ci.yml` renders both modes and uploads the `snapshots` artifact.) | M0.3 | Open |
 | I-006 | `spike.earth` / `osm_style.json` use absolute `D:/Source/...` data paths; offline machines need the same layout or edited paths. | S1 | Open |
 
 ---
