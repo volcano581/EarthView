@@ -1,211 +1,203 @@
-# EarthView 3D Renderer — Roadmap for Agent Handoff
+# EarthView / Doctrine 3D — Roadmap for Agent Handoff
 
 > Execution status, change log, decisions and open issues: **[3D_PROGRESS.md](3D_PROGRESS.md)**.
 
-This document is written to be handed to cloud AI coding agents (Claude Code on the web /
-`claude --remote`), one milestone task at a time. Each task is self-contained: an agent
-should be able to read **this file + the files listed in the task** and finish it in a single
-session, producing one branch / one PR.
+**Direction (2026-10-08):** the 3D / stealth view is built on **osgEarth** (D-007), embedded
+in-process in Doctrine, and Doctrine, cgf-engine and EarthView move to the **MSVC**
+toolchain (D-008). The earlier custom-renderer plan (M2–M10) is dropped; M0 and M1 are done
+and their results are kept (CI and tests; `scene3d/Geodesy` + `Camera3D` are reused for
+coordinate conversion and camera maths).
+
+The roadmap is written for cloud AI coding agents (Claude Code on the web /
+`claude --remote`), one task per session, one branch and one PR per task.
 
 ---
 
-## 0. Ground rules for every agent (paste into each task prompt)
+## 0. Ground rules for every agent
 
-1. **Do not modify the 2D path behaviour.** Mercator and Orthographic modes (`Camera`,
-   `TileRenderer`, `VectorTileRenderer`, `BorderRenderer`, `GridRenderer`, `CityRenderer`,
-   `TextRenderer`) are integrated in Doctrine and must keep working identically. New 3D work
-   lives in new files under `scene3d/`. Touching existing files is allowed only for small,
-   explicit hook points named in the task.
-2. **Do not extend the existing pseudo-3D path** (`Camera::terrainMercatorToScreen`,
+1. **Do not change 2D behaviour.** EarthView's Mercator/Orthographic map (and Doctrine's
+   2D GIS map) must look and behave the same after every task. The toolchain move (O1, O2)
+   must not change rendering.
+2. **Do not extend the old pseudo-3D path** in EarthView (`Camera::terrainMercatorToScreen`,
    `stealthViewMercatorToScreen`, `shaders/terrain_height.vert`, `colored_terrain.vert`,
-   `terrain_line.vert`). It is being replaced, not fixed. It is deleted in milestone M9.
-3. **Coordinates:** world space is WGS84 → ECEF in `double`. Anything uploaded to the GPU is
-   relative-to-eye (RTE) `float` (subtract camera ECEF position in double on CPU first, or
-   per-tile origin + camera offset). Never put absolute ECEF into a float.
-4. **Depth:** reversed-Z (`glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE)`, clear depth 0,
-   `GL_GREATER`), infinite far plane. OpenGL 4.5 core path; for the 3.3 fallback use
-   logarithmic depth in the vertex shader instead. Detect via `OpenGLRuntime`.
-5. **Math library:** add GLM (header-only, vendored under `third_party/glm` or via
-   FetchContent) and use `glm::dvec3/dmat4` for CPU world math. Qt `QMatrix4x4` is float-only
-   — do not use it for world transforms.
-6. **No build output in commits.** `build/` and `x64/` are currently tracked in git; never
-   commit changes in them (see task M0.1).
-7. **Unit tests:** every math/LOD module gets tests in `tests/` (Qt Test). Rendering code
-   that cannot be tested headlessly must at least compile and must include a debug toggle.
-8. **Each PR includes:** summary, files changed, how to verify manually on Windows, and any
-   known limitations. Keep PRs under ~1500 changed lines; split if larger.
-9. Code style: match the existing code (C++17, Qt naming, `m_` members, `#pragma once` +
-   include guards, Doxygen `@brief` on public classes).
+   `terrain_line.vert`, the `isStealthViewEnabled()`/`isTerrain3DView()` branches). It is
+   removed in O10.
+3. **osgEarth owns 3D rendering.** Do not write custom terrain, imagery, sky or LOD code;
+   configure osgEarth (earth files, layers, `Util` classes) instead. Custom OpenGL is only for
+   things osgEarth cannot do, and needs a recorded decision first.
+4. **Precision:** entity positions crossing into the 3D view are geodetic/ECEF in `double`
+   (`scene3d::Geodesy`). Never pass world positions as `float`.
+5. **One GL owner per widget.** osgEarth renders only inside its own `QOpenGLWidget`; never
+   mix osgEarth and EarthView 2D renderers in one widget/context.
+6. **Dependencies come from the pinned vcpkg manifest** (baseline in `vcpkg.json`). Do not
+   download libraries in CMake (`FetchContent` of new deps) — the product must build offline
+   (`spikes/osgearth/OFFLINE_BUILD.md`).
+7. **Tests:** non-GL logic (conversions, protocol/snapshot mapping, camera controller maths,
+   config parsing) gets Qt Test unit tests; `ctest` must pass.
+8. **Never commit build output** (`build/`, `out/`, `x64/`, `vcpkg_installed/`, `*.user`).
+9. **PRs:** under ~1500 changed lines (vendored code excepted), description with summary,
+   files changed, how to verify visually on Windows, known limitations, and what you could
+   not verify. Update `3D_PROGRESS.md` and this file's Status column in the same PR.
+10. **Style:** match existing code — C++17, Qt naming, `m_` members, `#pragma once` plus
+    include guards, Doxygen `@brief` on public classes.
 
-### Environment caveat (important)
-Cloud agents run in **Linux containers without a GPU**. The project currently hard-codes
-Windows Qt paths (`C:/Qt/6.11.0/llvm-mingw_64`). Consequences:
-
-- Agents **can** write code, compile it on Linux against Qt 6 (`apt install qt6-base-dev
-  libqt6opengl6-dev libgl-dev` or `aqtinstall`), and run unit tests (math, LOD selection,
-  tile math, parsers) — task M0.2 makes this possible.
-- Agents **cannot** visually verify rendering. Optionally they can run under
-  Mesa llvmpipe (`QT_QPA_PLATFORM=offscreen`, `EARTHVIEW_FORCE_SOFTWARE_OPENGL=1`) and
-  grab a framebuffer PNG for smoke tests (task M0.3).
-- **You (human) must do the visual check on Windows** after each rendering milestone before
-  merging. Budget for that review — it is the main bottleneck, not the agent.
+### Environment caveats
+- **Cloud agents run on Linux without a GPU.** They can build and unit-test, but cannot run
+  the MSVC build or look at rendering. Windows/MSVC builds are checked by **GitHub Actions
+  `windows-latest`** jobs (added in O1) and visual checks are done by a human on Windows.
+- **osgEarth on CI:** building osgEarth through vcpkg takes 30–60 min; CI must use the vcpkg
+  binary cache (GitHub Actions cache) — see O3.
+- **Two repos:** EarthView (`volcano581/EarthView`) and Doctrine/cgf-engine
+  (`D:\Source\cgf-engine`, **not yet under git** — O0). Tasks name which repo they change.
 
 ---
 
-## 1. Milestone overview
+## 1. Milestones
 
-| #  | Milestone                                   | Depends on | Size | Visual check | Status |
-| -- | ------------------------------------------- | ---------- | ---- | ------------ | ------ |
-| M0 | Repo hygiene, cross-platform build, CI, tests | —        | S    | no  | **Done** (M0.1 `2cda9e8`, M0.2+M0.3 merged `5682f87`) |
-| M1 | Geodesy + Camera3D + RTE math               | M0         | M    | no  | **Done** ([#3](https://github.com/volcano581/EarthView/pull/3), merged `23dcfe4`) |
-| M2 | Scene3D skeleton wired into MapWidget       | M1         | M    | yes | |
-| M3 | Globe quadtree tiling + frustum/SSE LOD     | M1         | L    | yes | |
-| M4 | DEM-displaced terrain (skirts, normals)     | M3         | L    | yes | |
-| M5 | Imagery draping (TMS/MBTiles on terrain)    | M4         | M    | yes | |
-| M6 | Vectors, borders, grid, cities, labels in 3D| M5         | L    | yes | |
-| M7 | Lighting, sky/atmosphere, fog               | M4         | M    | yes | |
-| M8 | Entities: glTF models, picking              | M2, M4     | L    | yes | |
-| M9 | Stealth-view controller + cleanup of old 3D | M6, M8     | M    | yes | |
-| M10| Performance pass + Doctrine integration API | all        | M    | yes | |
+| #   | Milestone | Repo | Depends on | Size | Visual check | Status |
+| --- | --------- | ---- | ---------- | ---- | ------------ | ------ |
+| M0  | Repo hygiene, cross-platform build, CI, tests | EarthView | — | S | no | **Done** (`2cda9e8`, `5682f87`) |
+| M1  | Geodesy + Camera3D + RTE math | EarthView | M0 | M | no | **Done** ([#3](https://github.com/volcano581/EarthView/pull/3), `23dcfe4`) |
+| S1  | osgEarth evaluation spike | EarthView | — | M | yes | **Done** — decision D-007 (open items moved to O5/O7/O8) |
+| O0  | Put Doctrine/cgf-engine under git + GitHub, add CLAUDE.md | Doctrine | — | S | no | |
+| O1  | EarthView builds with MSVC (Qt `msvc2022_64`), Windows CI | EarthView | — | S | yes (2D unchanged) | |
+| O2  | cgf-engine + Doctrine build with MSVC, Windows CI | Doctrine | O0 | M | yes (2D unchanged) | |
+| O3  | osgEarth via pinned vcpkg manifest in Doctrine, CI binary cache | Doctrine | O2 | M | no | |
+| O4  | `earthview3d` library: production osgEarth Qt widget | EarthView | O1 | M | yes | |
+| O5  | Doctrine 3D window fed by `SimRenderBridge` | Doctrine | O3, O4 | M | yes | |
+| O6  | Entity visualisation: models, symbols, labels, picking | EarthView + Doctrine | O5 | L | yes | |
+| O7  | Stealth camera controllers + HUD | EarthView | O4 | M | yes | |
+| O8  | Offline data pipeline (imagery, DEM, overlays, cache) | EarthView | O4 | M | yes | |
+| O9  | Offline packaging + air-gapped build for Doctrine | Doctrine | O3, O5 | M | yes | |
+| O10 | Remove EarthView pseudo-3D path; unify Doctrine's GIS copy | both | O5 | M | yes | |
+| O11 | Performance + polish (1k entities, multi-window) | both | O6, O7 | M | yes | |
+| M2–M10 | Custom renderer milestones | EarthView | — | — | — | **Dropped** (D-007) |
 
-S ≈ 1 agent session, M ≈ 2–3, L ≈ 4–6 sessions. M7 and M8 can run in parallel with M5/M6.
+O1 and O0 can run in parallel; O4, O7 and O8 can run in parallel once O1 is merged.
 
 ---
 
 ## 2. Tasks
 
-Agents: trust the Status column / DONE markers; do not redo finished tasks. Update the
-marker for your task in the same PR that completes it.
+Agents: trust the Status column / DONE markers; do not redo finished tasks.
 
-### M0 — Foundation
+### O0 — Doctrine under version control (human-led)
+- `git init` in `D:\Source\cgf-engine`; `.gitignore` for `build*/`, `out/`, large data
+  (`*.mbtiles`, `*.dt?`, SISO CSV if licensed), push to a private GitHub repo.
+- Add `CLAUDE.md` (rules from section 0 + Doctrine build commands) and link this roadmap.
+- Record in `3D_PROGRESS.md` where Doctrine's copy of EarthView GIS (`doctrine/src/GIS/`,
+  `cgf-engine/EarthView/`) came from and how far it has drifted (input for O10).
 
-**M0.1 Repo hygiene** — DONE (`2cda9e8`). Build output is untracked; ignore rules live in the repo-root `.gitignore` (`[Bb]uild/`, `x64/`, `[Oo]ut/`, `*.user`, `.vs/`).
-- Add `build/`, `x64/`, `*.user` to `.gitignore`; `git rm -r --cached build x64`.
-- Acceptance: `git status` clean after a fresh build.
+### O1 — EarthView on MSVC
+- Make `CMakeLists.txt` work with the Qt `msvc2022_64` kit and VS 2026 (keep llvm-mingw and
+  Linux working until O10): MSVC warning flags, `/utf-8`, `/permissive-`, `NOMINMAX`,
+  `_USE_MATH_DEFINES` where needed; zlib (`Qt6::ZlibPrivate` or vcpkg `zlib`).
+- Add a GitHub Actions `windows-latest` job: install Qt via `jurplel/install-qt-action`
+  (msvc2022_64), configure, build, `ctest`.
+- Acceptance: CI green on Linux + Windows; human compares 2D screenshots (`earthview_snapshot`
+  Mercator + Orthographic) llvm-mingw vs MSVC — identical.
 
-**M0.2 Cross-platform CMake + tests** — DONE (merged in `5682f87`)
-- Make the Qt prefix logic in `CMakeLists.txt` optional (only apply Windows paths if they exist — already partly true; ensure Linux `find_package(Qt6)` works).
-- Guard `windeployqt` with `if(WIN32)`.
-- Add `tests/` with Qt Test + `enable_testing()`; first test: `MercatorProjection` round-trips.
-- Add `.github/workflows/ci.yml`: Ubuntu, install Qt6, build, `ctest`.
-- Acceptance: `cmake -B out && cmake --build out && ctest --test-dir out` passes on Linux.
+### O2 — cgf-engine + Doctrine on MSVC
+- Same as O1 for the Doctrine repo: `DOCTRINE_QT_ROOT` defaults to `msvc2022_64`; replace
+  `FetchContent` GLM with the vcpkg port (rule 6); fix MSVC warnings/errors (`/W4`).
+- Windows CI job; all existing tests pass.
+- Acceptance: Doctrine runs with MSVC, 2D map and simulation behave as before (human check).
 
-**M0.3 Offscreen smoke-render harness** — DONE (`EarthView/tools/earthview_snapshot.cpp`, merged in `5682f87`)
-- Small executable `earthview_snapshot` that creates a `QOffscreenSurface` + FBO, renders one frame of a given mode/camera, writes PNG. Used by later milestones for CI artifacts.
+### O3 — osgEarth dependency in Doctrine
+- `vcpkg.json` manifest at the Doctrine root with `osgearth` (same `builtin-baseline` as
+  `spikes/osgearth/vcpkg.json`), `glm`, `zlib`.
+- CMake: `find_package(osgEarth CONFIG)`, OpenSceneGraph; install rules from the spike
+  (DLLs, `osgPlugins-*`, `share/gdal`, `share/proj`, **plus MSVC runtime** via
+  `InstallRequiredSystemLibraries`, **plus osgEarth data folder** for sky textures).
+- CI: cache vcpkg binaries (`VCPKG_BINARY_SOURCES` with `x-gha` or `files` + actions/cache).
+- Acceptance: CI builds and links a trivial osgEarth call; second CI run restores from cache.
 
-### M1 — Geodesy and camera math — IN REVIEW ([#3](https://github.com/volcano581/EarthView/pull/3))
-Files: new `scene3d/Geodesy.h/.cpp`, `scene3d/Camera3D.h/.cpp`, `third_party/glm`.
-- `Geodesy`: WGS84 constants; `geodeticToEcef(lat,lon,h)`, `ecefToGeodetic` (Bowring or
-  iterative), `enuFrame(lat,lon)` → `dmat3`, ellipsoid ray intersection.
-- `Camera3D`: `dvec3 position` (ECEF), `dquat orientation`, fovY, aspect, near; methods
-  `viewMatrixRTE()` (float, rotation only), `projectionReversedZ()`, `frustumPlanes()`
-  (double), `screenRay(px,py)`, `setFromGeodetic(lat,lon,h,heading,pitch,roll)`,
-  `lookAt(target)`.
-- Tests: ECEF round-trip < 1 mm, ENU orthonormal, ray-ellipsoid hits, frustum contains/excludes known points.
-- Acceptance: tests pass; no rendering code yet.
+### O4 — `earthview3d` library (osgEarth Qt widget)
+Start from `spikes/osgearth/OsgWidget.*` (already debugged on Windows). New target
+`earthview3d` in EarthView under `earthview3d/`, MSVC-only (`if(TARGET osgEarth::osgEarth)`).
+- `GlobeView3D : QOpenGLWidget` — embedded viewer with the spike's fixes (null-terrain guard,
+  vertex-attribute aliasing, home viewpoint via manipulator, per-frame FBO id, DPI).
+- Config struct: earth file path, initial viewpoint, sky on/off + date/time, log depth.
+- Public API: `setViewpoint`, `flyTo`, `viewpoint()`, `snapshot(QString)`, signal
+  `viewpointChanged`. No Doctrine types in this library.
+- Fix spike issue I-008 (chase view under terrain): enable `EarthManipulator` terrain
+  avoidance / min pitch, re-test.
+- Tests: config parsing, viewpoint ↔ `scene3d::Geodesy` conversions.
+- Acceptance: example app (spike rewritten on the library) renders home/chase/stealth
+  snapshots correctly on Windows.
 
-### M2 — Scene3D skeleton
-Files: `scene3d/Scene3D.h/.cpp`, `scene3d/RenderContext.h`; hook in `MapWidget.cpp`, `Camera.h` (add `ProjectionMode::Globe3D` only).
-- `Scene3D` owns `Camera3D`, a list of `ILayer3D { update(ctx); render(ctx); }`.
-- `MapWidget::paintGL`: if mode == Globe3D → `m_scene3d->render()` and return; else existing path untouched.
-- First layer: ellipsoid drawn as a tessellated sphere with a lat/lon checker shader (RTE). Reversed-Z setup + 3.3 log-depth fallback.
-- Input: orbit camera (drag rotates around globe, wheel zooms toward cursor ray hit).
-- MainWindow: menu/toolbar action to select Globe3D.
-- Acceptance: switching modes works both ways; 2D unchanged; visual: globe visible, no z-fighting zooming from 20,000 km to 100 m.
+### O5 — Doctrine 3D window
+- Determine what `RenderEntity::position` (`glm::vec3`) represents in Doctrine and add a
+  double-precision geodetic position (lat, lon, alt) + heading/pitch/roll + entity kind
+  (SISO enumeration) + force to the snapshot. Keep the 2D map's fields unchanged.
+- Secondary window (`MainWindow` action "3D View") hosting `GlobeView3D`; consumes
+  `SimRenderBridge::consume()` each frame; creates/updates/removes osgEarth nodes per
+  entity (`GeoTransform` + placeholder model). Entity map keyed by EntityID.
+- Tests: snapshot → geodetic conversion, add/update/remove diffing.
+- Acceptance: entities move in 3D in sync with the 2D map; closing/reopening the window works.
 
-### M3 — Quadtree tiling and LOD
-Files: `scene3d/TileQuadtree.h/.cpp`, `scene3d/TileKey.h`.
-- Tiling scheme: **Web Mercator tile keys** (so imagery/MBTiles keys map 1:1) with polar caps filled by a separate cap mesh. (Alternative geographic scheme needs reprojection — avoid.)
-- Per tile: bounding sphere/OBB in ECEF (sample corners + midpoints), geometric error = tile size / grid res.
-- Selection: frustum cull + horizon cull (ellipsoid occlusion) + screen-space error < `maxSSE` (default 2 px). Output a sorted list of tile keys, nearest first; budget max tiles/frame.
-- Request queue interface to loaders: prioritised by SSE; cancel when no longer needed.
-- Tests: selection from a fixed camera yields expected levels; no tiles behind horizon.
-- Acceptance: debug layer draws tile bounds coloured by level.
+### O6 — Entity visualisation
+- Models: per-kind model table (osgb/glTF via OSG plugins; config file mapping SISO kind →
+  model, scale, orientation offset); fallback icon/billboard when far (LOD by pixel size).
+- Labels and force colours (osgEarth `LabelNode`/`PlaceNode`); optional MIL-STD-2525 icons
+  reusing Doctrine's symbol atlas.
+- Picking (osgEarth `ObjectIndex`/`RTTPicker`) → selection shared with the 2D map.
+- Acceptance: 200 mixed entities readable at all ranges; click-select syncs both views.
 
-### M4 — Terrain
-Files: `scene3d/TerrainLayer3D.h/.cpp`, `scene3d/shaders/terrain3d.vert/.frag`; read-only use of `DemLoader`.
-- Mesh per tile: shared 65×65 grid index buffer; vertex = UV; vertex shader samples height texture, computes ECEF via tile-local origin (RTE: `tileOriginRTE + localOffset`) — precompute per-vertex local ENU offsets on CPU in double, upload float.
-- Skirts on all 4 edges to hide cracks. Normals from height texture (central differences) in shader.
-- Missing DEM → ellipsoid height 0; parent tile heights used while child loads (no holes).
-- Vertical exaggeration uniform (reuse existing UI slider value).
-- Expose `heightAt(lat,lon)` (CPU, from loaded tiles) for camera collision/clamping.
-- Acceptance: mountains correct scale vs known elevation (e.g. Everest ≈ 8848 m); no cracks; no popping holes.
+### O7 — Stealth camera controllers
+- Modes: orbit (EarthManipulator), tether/chase (follow selected entity, smoothed),
+  first-person (entity attitude), free-fly (WASD + mouse look). Terrain clearance clamp.
+- Smooth transitions; HUD overlay (heading, pitch, altitude AGL/MSL, entity name, mode).
+- Acceptance: VR-Vantage-like stealth: attach to a moving entity, look around, detach, fly.
 
-### M5 — Imagery draping
-Files: `scene3d/ImageryLayer3D` or integrate in terrain fragment shader; read-only `TMSLoader`, `TextureManager`.
-- Because tiles are Mercator-keyed, imagery tile z/x/y matches terrain tile → direct UV. When imagery is coarser, use ancestor texture with UV scale/offset.
-- Support multiple imagery layers with opacity.
-- Acceptance: imagery aligned with terrain at coastlines; no seams; MBTiles + URL sources both work.
+### O8 — Offline data pipeline
+- Imagery: produce raster MBTiles offline (decision needed: pre-render OpenMapTiles vector
+  tiles with a renderer, or source satellite/raster imagery) — closes I-007.
+- DEM: `dted_1arc.vrt` + overviews (`gdaladdo`), document adding tiles; drop irrelevant
+  `N18.tif` from the default map.
+- Overlays: borders, cities as osgEarth feature layers; grid (`GraticuleLayer`).
+- Earth file template with **relative paths** and an osgEarth cache (filesystem/sqlite).
+- Acceptance: unplug network → full map renders; second launch loads from cache.
 
-### M6 — Vector overlays and labels
-Files: `scene3d/VectorLayer3D`, `scene3d/LabelLayer3D`; refactor existing renderers only to expose geometry (lat/lon / Mercator vertex arrays), not to change 2D drawing.
-- Lines (borders, grid, vector tiles): convert to ECEF per tile chunk with RTE origin; clamp-to-ground in vertex shader by sampling terrain height texture, or render with depth bias. Screen-space width via geometry expansion.
-- Polygons (fills): drape as decal (render into the imagery texture per tile) — simplest robust approach.
-- Cities + labels: billboards placed at ECEF + terrain height, projected in shader; reuse `TextRenderer` atlas; declutter in screen space; fade by distance.
-- Acceptance: borders follow terrain without z-fighting; labels stable while orbiting.
+### O9 — Offline packaging for Doctrine
+- `cmake --install` produces a self-contained folder (Qt, osgEarth, GDAL/PROJ data, MSVC
+  runtime, osgEarth data, earth files); data package layout documented.
+- Update `OFFLINE_BUILD.md` for Doctrine (feeder/offline vcpkg caches, VS 2026 on both).
+- Acceptance: install on a clean offline Windows VM, Doctrine 2D + 3D work.
 
-### M7 — Lighting and atmosphere
-- Directional sun (configurable time/date → sun direction), Lambert + ambient on terrain.
-- Sky: atmosphere scattering approximation (Sean O'Neil / Bruneton-lite) for sky dome + ground haze; distance fog.
-- Acceptance: horizon looks correct from 2 m to orbit; toggleable.
+### O10 — Cleanup and unification
+- Delete EarthView's pseudo-3D / stealth path (Camera branches, shaders, UI actions) —
+  replaced by `earthview3d`.
+- Make Doctrine consume EarthView's 2D GIS code from one place (submodule or vcpkg overlay
+  port) instead of the copied `doctrine/src/GIS/`.
+- Acceptance: both repos build; 2D unchanged; no duplicate GIS sources.
 
-### M8 — Entities
-Files: `scene3d/EntityLayer3D`, `scene3d/GltfModel` (use **tinygltf** or **cgltf**, header-only).
-- Entity = id, geodetic position, heading/pitch/roll, model handle, scale/min-pixel-size.
-- Model matrix from ENU frame in double → RTE float.
-- Instancing for repeated models; LOD by screen size (icon/billboard when tiny).
-- Picking: render IDs to an R32UI target, or ray-cast against bounding spheres + terrain.
-- Public API: `addEntity/updateEntity/removeEntity` (thread-safe queue) — this is what Doctrine will feed.
-- Acceptance: 1,000 moving entities at 60 fps on a mid GPU; click selects entity.
-
-### M9 — Stealth view
-- Camera controllers: `OrbitController`, `FreeFlyController` (WASD + mouse look), `TetherController` (attached to entity with offset, smooth follow), `FirstPersonController` (eye at entity, uses its attitude).
-- Terrain collision (`heightAt` + min clearance). Smooth transitions between controllers.
-- HUD overlay: heading/pitch/alt, entity name.
-- **Remove** old pseudo-3D: terrain3D/stealth code paths in `Camera`, the `isStealthViewEnabled()` branches in the 8 renderers, old terrain shaders. Map existing UI actions to new controllers.
-- Acceptance: VR-Forces-like stealth: attach to entity, look around, fly free; 2D modes still pass tests.
-
-### M10 — Performance and integration
-- `FrameProfiler` integration for each layer; GPU timer queries.
-- Background mesh building (worker thread → upload on GL thread with PBO/persistent mapping via `StreamingBuffer`).
-- Memory budgets / LRU for tiles.
-- Document the Doctrine-facing API in `DEVELOPERS_GUIDE.md` and `RENDERING_PIPELINE.md`.
-- Acceptance: steady 60 fps at 1440p over mountainous terrain with imagery + 1k entities.
-
----
-
-## 3. How to run this with Claude cloud agents
-
-1. **Push the repo to GitHub** (cloud sessions clone from GitHub). Do M0.1 first, locally,
-   so the repo is small.
-2. Add a `CLAUDE.md` at repo root containing section 0 of this file (ground rules) plus build
-   commands, so every session picks it up automatically.
-3. Optionally add `.claude/settings.json` / environment setup script that installs Qt6 + GLM
-   in the cloud container (`apt-get install -y qt6-base-dev libqt6opengl6-dev libgl1-mesa-dev cmake ninja-build`).
-4. Launch **one task per session**, e.g. from claude.ai/code or `claude --remote`:
-   > Implement task **M1** from `EarthView/ROADMAP_3D.md`. Follow section 0 ground rules.
-   > Work on branch `3d/m1-geodesy`. Add unit tests, make sure `ctest` passes, open a PR.
-5. Parallelism: only run tasks in parallel when their "Depends on" are merged (e.g. M7 ∥ M5,
-   M8 ∥ M6). Never run two sessions touching `MapWidget.cpp` at once.
-6. **Review loop per PR:** read the diff, run `/code-review` on it, pull branch on Windows,
-   build, visually verify the acceptance criterion, then merge. Feed concrete failures back
-   into the same session rather than starting fresh (keeps context, saves credits).
-
-### Credit budgeting tips
-- The large tasks (M3, M4, M6, M8) are the expensive ones; split them into sub-PRs
-  (e.g. M4a mesh+heights, M4b skirts+normals, M4c parent fallback) for cheaper, more reliable sessions.
-- Write precise acceptance criteria in the prompt — vague prompts burn credits on rework.
-- Use a cheaper model for M0, tests, docs; the strongest model for M3/M4/M6 (LOD + precision are where bugs hide).
-- Expect ~25–40 sessions total including fix-up rounds.
+### O11 — Performance and polish
+- Frame-time budget with osgEarth stats; 1,000 moving entities at 60 fps on the target GPU.
+- Multiple 3D windows / viewpoints; shared-context behaviour with the 2D map window.
+- Acceptance: documented numbers in `3D_PROGRESS.md`.
 
 ---
+
+## 3. Running this with Claude cloud agents
+
+1. Each repo needs a `CLAUDE.md` with section 0 and its build commands (EarthView has one;
+   Doctrine gets one in O0).
+2. One task per session, e.g.:
+   > Implement task **O1** from `EarthView/ROADMAP_3D.md`, following `CLAUDE.md`. Branch
+   > `3d/o1-msvc`. Make Linux and Windows CI green, update `3D_PROGRESS.md`, open a PR.
+3. Review loop: CI (Linux + Windows) → `/code-review` → human Windows visual check → merge →
+   tracker updated.
+4. Tasks needing a human: O0 (repo creation), all visual checks, O8 imagery decision, O9
+   clean-VM test.
 
 ## 4. Risks
 
 | Risk | Mitigation |
 | ---- | ---------- |
-| Agents can't see rendering output | M0.3 snapshot harness + human Windows check per milestone |
-| Float precision jitter | Enforce RTE rule (section 0.3); add test that camera at 1 m altitude produces stable vertex positions |
-| Mercator tiling at poles | Polar cap meshes in M3; acceptable for a defence sim at ±85° |
-| Doctrine regression | 2D path untouched until M9; keep Mercator tests in CI |
-| Scope creep vs. adopting osgEarth/Cesium | Re-evaluate after M4: if terrain quality/perf is not acceptable, switch to a library rather than continue |
+| MSVC move breaks Doctrine/2D | O1/O2 isolated, screenshot comparison, keep llvm-mingw until O10 |
+| osgEarth CI build time | vcpkg binary cache in CI (O3) |
+| osgEarth GL state vs Qt | separate widget/context per renderer (rule 5); spike already proves embedding |
+| Offline imagery source | explicit decision in O8; vector-MBTiles rendering in osgEarth failed (I-007) |
+| Doctrine not in git | O0 first; agents cannot touch Doctrine before it |
+| LGPL obligations (osgEarth/OSG) | dynamic linking via vcpkg DLLs; ship licences in the install folder (O9) |

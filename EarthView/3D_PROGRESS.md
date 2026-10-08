@@ -49,23 +49,40 @@ Status values: `Not started` · `In progress` · `In review` · `Changes request
 | M0.2 | Cross-platform CMake, Qt Test, Linux CI | Merged | `3d/m0-build-ci` | — | `5682f87` | n.a. |
 | M0.3 | Offscreen snapshot tool | Merged | `3d/m0-snapshot` | — | `5682f87` | pending (Windows) |
 | M1 | Geodesy + Camera3D + RTE math | Merged | `3d/m1-geodesy` | [#3](https://github.com/volcano581/EarthView/pull/3) | `23dcfe4` | n.a. |
-| M2 | Scene3D skeleton in MapWidget | Not started | | | | |
-| M3 | Globe quadtree + frustum/SSE LOD | Not started | | | | |
-| M4 | DEM terrain (skirts, normals, DTED via GDAL) | Not started | | | | |
-| M5 | Imagery draping | Not started | | | | |
-| M6 | Vectors, borders, grid, cities, labels | Not started | | | | |
-| M7 | Lighting, sky, fog | Not started | | | | |
-| M8 | Entities (glTF), picking | Not started | | | | |
-| M9 | Stealth-view controllers + remove old pseudo-3D | Not started | | | | |
-| M10 | Performance + Doctrine integration API | Not started | | | | |
-| S1 | osgEarth evaluation spike (`spikes/osgearth`) | In progress (built and run; offline imagery and chase view open) | master | — | `241c108`, `21e600c`, this commit | partial ✓ (2026-10-08) |
+| M2–M10 | Custom renderer milestones | Dropped (D-007) | | | | |
+| O0 | Doctrine under git + GitHub | Not started | | | | |
+| O1 | EarthView on MSVC + Windows CI | Not started | | | | |
+| O2 | cgf-engine + Doctrine on MSVC | Not started | | | | |
+| O3 | osgEarth via vcpkg in Doctrine | Not started | | | | |
+| O4 | `earthview3d` osgEarth widget library | Not started | | | | |
+| O5 | Doctrine 3D window from SimRenderBridge | Not started | | | | |
+| O6 | Entity visualisation + picking | Not started | | | | |
+| O7 | Stealth camera controllers + HUD | Not started | | | | |
+| O8 | Offline data pipeline | Not started | | | | |
+| O9 | Offline packaging for Doctrine | Not started | | | | |
+| O10 | Remove pseudo-3D, unify GIS copy | Not started | | | | |
+| O11 | Performance + polish | Not started | | | | |
+| S1 | osgEarth evaluation spike (`spikes/osgearth`) | Done — led to D-007 | master | — | `241c108`…`0b5f729` | partial ✓ (2026-10-08) |
 
-**Go/no-go gate:** decide custom renderer vs osgEarth **before M3 starts**, using the spike
-checklist in `spikes/osgearth/README.md`. Record the outcome under Decisions (D-007).
+**Direction:** osgEarth, in-process, MSVC (D-007, D-008). Design: [OSGEARTH_INTEGRATION.md](OSGEARTH_INTEGRATION.md).
 
 ---
 
 ## Change log (newest first)
+
+### 2026-10-08 — Decision: osgEarth in-process, MSVC; roadmap and design rewritten
+- **Author:** Claude Code with the project owner
+- **Decisions:** D-007 (osgEarth), D-008 (in-process, MSVC), D-009 (proposed coordinate
+  conversion).
+- **Docs:** `ROADMAP_3D.md` rewritten (tasks O0–O11, M2–M10 dropped);
+  new `OSGEARTH_INTEGRATION.md` (architecture, threading, GL context, build, coordinates,
+  snapshot contract, API, cameras, data, deployment, tests, risks, open questions);
+  `CLAUDE.md` rules updated.
+- **Findings in Doctrine (`D:\Source\cgf-engine`):** not under git; builds with Qt
+  llvm-mingw; no compiler-specific code found; `RenderEntity` lacks EntityID/orientation/
+  kind; no geodetic scenario origin; main window uses `DoctrineViewport`, and
+  `DoctineGISMap` entity drawing is a TODO.
+- **Follow-ups:** I-012, I-013, I-014.
 
 ### 2026-10-08 — S1: osgEarth spike first build and run  (In progress)
 - **Branch / PR:** master (direct)
@@ -141,7 +158,9 @@ checklist in `spikes/osgearth/README.md`. Record the outcome under Decisions (D-
 | D-004 | Math library: GLM 1.0.1, vendored in `EarthView/third_party/glm` (offline-friendly). | 2026-10-07 | M1 |
 | D-005 | Camera conventions: camera space +X right, +Y up, −Z forward; heading clockwise from north, pitch negative = down, roll positive = bank right. | 2026-10-07 | M1 `Camera3D.h` |
 | D-006 | `earthview_scene3d` is a Qt-free static library; Qt/GL integration lives in later layers. | 2026-10-07 | M1 |
-| D-007 | Custom renderer vs osgEarth — **pending**, decide before M3 from spike results. | — | S1 |
+| D-007 | **osgEarth** provides the 3D / stealth view; the custom renderer (M2–M10) is dropped. `scene3d` (M1) is kept for conversions. | 2026-10-08 | S1, `OSGEARTH_INTEGRATION.md` |
+| D-008 | osgEarth is embedded **in-process** in Doctrine; Doctrine, cgf-engine and EarthView move to **MSVC** (VS 2026, Qt `msvc2022_64`). llvm-mingw kept for EarthView 2D until O10. | 2026-10-08 | ROADMAP O1/O2 |
+| D-009 | Sim local (x east, z north, y MSL) → geodetic via a scenario origin and an azimuthal-equidistant projection, pending confirmation of cgf-engine's projection (Q1). | 2026-10-08 (proposed) | `OSGEARTH_INTEGRATION.md` §5 |
 
 ---
 
@@ -149,9 +168,9 @@ checklist in `spikes/osgearth/README.md`. Record the outcome under Decisions (D-
 
 | ID | Item | Owner / task | Status |
 | -- | ---- | ------------ | ------ |
-| I-001 | `Camera3D::frustumContains()` rebuilds all planes on every call; M3 tile culling must compute planes once per frame and reuse them. | M3 | Open |
+| I-001 | ~~`Camera3D::frustumContains()` rebuilds planes per call.~~ Moot: custom tile culling dropped (D-007). | M3 | Closed (D-007) |
 | I-002 | ~~M1 did not set its roadmap status marker; reviewer updates on merge.~~ Marker set in #3. | M1 merge | Closed (#3) |
-| I-003 | `DemLoader` only scans `*.tif/*.tiff`; DTED (`.dt2`) / VRT support via GDAL needed for the custom terrain path (osgEarth reads them already). | M4 | Open |
+| I-003 | ~~`DemLoader` cannot read DTED for the custom terrain.~~ Moot for 3D: osgEarth reads DTED/VRT (D-007). 2D DEM overlay still TIFF-only. | — | Closed (D-007) |
 | I-004 | ~~osgEarth spike unbuilt.~~ Built and run 2026-10-08; MapBoxGL result tracked in I-007. | S1 | Closed (2026-10-08) |
 | I-005 | ~~M0.3 snapshot tool not yet run on Windows.~~ Run on Windows 2026-10-08 (GPU, not llvmpipe): both modes render correctly (grid, borders, city labels/dots; orthographic shows curved graticule). | M0.3 | Closed (2026-10-08) |
 | I-007 | Offline imagery: osgEarth `MapBoxGLImage` renders nothing (even a background-only style); `OGRFeatures` on the vector MBTiles hangs (GDAL scans the whole file). Options: pre-render a raster MBTiles from the vector tiles, obtain satellite/raster imagery, or debug the MapBoxGL layer in osgEarth source. | S1 | Open |
@@ -159,6 +178,9 @@ checklist in `spikes/osgearth/README.md`. Record the outcome under Decisions (D-
 | I-009 | Spike was configured with VS 2022 Enterprise, not VS 2026 as in `OFFLINE_BUILD.md`; the vcpkg binary cache is keyed by compiler, so feeder and offline machines must use the same one. | S1 | Open |
 | I-010 | Spike deploy folder lacks the MSVC runtime DLLs (vcruntime/msvcp) and osgEarth's data folder (moon texture); `DEM90TIF/N18.tif` covers 55–56°E, 18–19°N, not the area of interest. | S1 | Open |
 | I-011 | osgEarth logs "GDAL_DATA environment variable is not set" before `main()` sets it; check GDAL/PROJ actually find the deployed `share/` data. | S1 | Open |
+| I-012 | Doctrine/cgf-engine is not under version control; agents cannot work on it until O0. | O0 | Open |
+| I-013 | `RenderEntity` has no EntityID, orientation or entity kind — required for the 3D view. | O5 | Open |
+| I-014 | No geodetic scenario origin/projection defined in Doctrine; 2D and 3D must share one (Q1 in the design doc). | O5 | Open |
 | I-006 | `spike.earth` / `osm_style.json` use absolute `D:/Source/...` data paths; offline machines need the same layout or edited paths. | S1 | Open |
 
 ---
