@@ -19,3 +19,7 @@ foreach(test_name tst_mapconfig tst_entitydiff)
     target_link_libraries(${test_name} PRIVATE earthview3d_core Qt6::Core Qt6::Test)
     add_test(NAME ${test_name} COMMAND ${test_name})
 endforeach()
+
+add_executable(tst_runtimepaths tst_runtimepaths.cpp)
+target_link_libraries(tst_runtimepaths PRIVATE earthview3d_core Qt6::Core Qt6::Test)
+add_test(NAME tst_runtimepaths COMMAND tst_runtimepaths)

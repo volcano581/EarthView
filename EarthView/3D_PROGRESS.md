@@ -100,9 +100,23 @@ Status values: `Not started` · `In progress` · `In review` · `Changes request
 - **Tests:** `tst_mapconfig` (10 cases), `tst_entitydiff` (7 cases); Linux ctest 5/5 pass.
   `GlobeView3D.cpp`, the viewer and the moc output were syntax-checked on Linux against
   the osgEarth 3.8.1 source headers and OSG 3.6.5 (no errors/warnings); not linked on Linux.
-- **Verified:** Linux CI ✓ · Windows CI ✓ (VS 2026 / MSVC 14.51, osgEarth 3.8.1 via vcpkg; all targets link, ctest 5/5) ·
+- **Verified:** Linux CI ✓ · Windows CI ✓ (VS 2026 / MSVC 14.51, osgEarth 3.8.1 via vcpkg; all targets link, ctest 5/5 with Qt 6.8.3 — re-run with Qt 6.11 after review round 1) ·
   Visual check pending (Windows): run `earthview3d_viewer --view home|chase|stealth --snapshot`.
-- **Follow-ups:** I-017, I-018.
+- **Review round 1 (owner, Windows run with Qt 6.11):** fixed
+  1. Qt kit selection: llvm-mingw fallbacks only `if(MINGW)` and only without an explicit
+     `CMAKE_PREFIX_PATH`; MSVC appends `msvc2022_64` as a low-priority fallback;
+     `EARTHVIEW_QT_PREFIX` still wins.
+  2. C++20 when `MSVC` (Qt 6.11 moc output fails in C++17 with MSVC); Windows CI pinned to
+     **Qt 6.11.0** to match developer machines and the host (D-015, D-016).
+  3. Maps did not load from the build tree: osgDB reads `OSG_LIBRARY_PATH` when its DLL
+     loads, before `main()`. New `earthview3d::configureRuntime(RuntimePaths)` adds the
+     plugin folder to `osgDB::Registry`'s library path list and sets GDAL/PROJ data
+     (environment when unset + `CPLSetConfigOption`/`OSRSetPROJSearchPaths`). The first
+     `GlobeView3D` calls it with `RuntimePaths::buildTreeDefaults()` (vcpkg folders from
+     CMake) if the host did not; the viewer's own env setup is gone (D-017).
+  - Minor: `~GlobeView3D` releases all OSG objects while the context is current; the data
+    root is added to osgDB's data path list only once. Test `tst_runtimepaths` (3 cases).
+- **Follow-ups:** I-017, I-018, I-019.
 
 ### 2026-10-08 — Roadmap re-scoped to EarthView-only agent work (D-012)
 - Doctrine cannot be pushed to GitHub. `ROADMAP_3D.md` rewritten: tasks E1–E10 finish the
@@ -235,7 +249,9 @@ Status values: `Not started` · `In progress` · `In review` · `Changes request
 | D-012 | Doctrine/Conquer stays **off GitHub**. Agents finish `earthview3d` + demo host + packaging + wiring kit in EarthView (E1–E10); final Doctrine wiring is local (L1). Only the Doctrine-free widget from the test is published (`earthview3d/reference/`). | 2026-10-08 | ROADMAP, DOCTRINE_WIRING.md |
 | D-013 | `earthview3d` = `earthview3d_core` (GL-free, Qt Core, always built and tested) + `earthview3d` (osgEarth widget, built only with `EARTHVIEW_BUILD_3D`, default ON when osgEarth is found). osgEarth/OSG include dirs and libraries are PRIVATE to `earthview3d`. | 2026-10-08 | E1 |
 | D-014 | Default map lives in the data tree: `EarthView/Data/maps/earthview.earth` with paths relative to the earth file; `MapConfig.dataRoot` = `EarthView/Data` in development. | 2026-10-08 | E1 |
-| D-015 | Windows CI: `windows-latest`, MSVC (runner has VS 2026 / MSVC 14.51) via Ninja, Qt **6.8.3** `msvc2022_64` from `install-qt-action` (developer machines keep Qt 6.11 / VS 2026), vcpkg checked out at the manifest baseline, `files` binary cache stored with `actions/cache` (vcpkg no longer supports `x-gha`). | 2026-10-08 | E1 |
+| D-015 | Windows CI: `windows-latest`, MSVC (runner has VS 2026 / MSVC 14.51) via Ninja, Qt **6.11.0** `msvc2022_64` from `install-qt-action` (same as developer machines and the host; was 6.8.3 before review round 1), vcpkg checked out at the manifest baseline, `files` binary cache stored with `actions/cache` (vcpkg no longer supports `x-gha`). | 2026-10-08 | E1 |
+| D-016 | MSVC builds of EarthView use **C++20** (Qt 6.11 moc output does not compile with MSVC in C++17); MinGW/GCC builds stay C++17. | 2026-10-08 | E1 review |
+| D-017 | `earthview3d` sets its own runtime paths: `configureRuntime(RuntimePaths)` adds the OSG plugin folder to `osgDB::Registry` and sets GDAL/PROJ data before first use (env vars set in `main()` are too late for osgDB). Build-tree defaults come from CMake; E7's deploy helper supplies install paths. | 2026-10-08 | E1 review |
 | D-011 | The integration target is **Conquer** (`D:\Source\Conquer`: Doctrine + cgf-engine + EarthView superbuild, already MSVC), not the standalone `D:\Source\cgf-engine`. 3D code lives in an isolated library so osgEarth includes never reach other TUs. | 2026-10-08 | Conquer test |
 
 ---
@@ -253,7 +269,7 @@ Status values: `Not started` · `In progress` · `In review` · `Changes request
 | I-008 | ~~Spike chase view black with red/yellow band.~~ Cause: osgEarth log depth buffer in the embedded widget (D-010). | S1 | Closed (Conquer test) |
 | I-009 | Spike was configured with VS 2022 Enterprise, not VS 2026 as in `OFFLINE_BUILD.md`; the vcpkg binary cache is keyed by compiler, so feeder and offline machines must use the same one. | S1 | Open |
 | I-010 | Spike deploy folder lacks the MSVC runtime DLLs (vcruntime/msvcp) and osgEarth's data folder (moon texture); `DEM90TIF/N18.tif` covers 55–56°E, 18–19°N, not the area of interest. | S1 | Open |
-| I-011 | osgEarth logs "GDAL_DATA environment variable is not set" before `main()` sets it; check GDAL/PROJ actually find the deployed `share/` data. | S1 | Open |
+| I-011 | osgEarth logs "GDAL_DATA environment variable is not set" before `main()` sets it; check GDAL/PROJ actually find the deployed `share/` data. E1 sets GDAL/PROJ paths through the GDAL API as well (D-017); confirm on Windows. | S1 / E1 | Partly resolved (E1) |
 | I-012 | Doctrine/cgf-engine is not under version control; agents cannot work on it until O0. | O0 | Open |
 | I-013 | In Conquer `RenderEntity` already has EntityID, lat/lon (double), alt, heading; still missing pitch/roll and SISO kind (for models). | O5/O6 | Partly resolved |
 | I-014 | ~~No geodetic origin in Doctrine.~~ Conquer has `GeodeticOrigin` + `CoordBridge`. | O5 | Closed (Conquer) |
@@ -261,6 +277,7 @@ Status values: `Not started` · `In progress` · `In review` · `Changes request
 | I-016 | Conquer test uses the spike's vcpkg tree via `DOCTRINE_OSGEARTH_PREFIX` and online OSM imagery; replace with a pinned manifest (O3) and offline imagery (O8). Pinned manifest now at the repo root (`vcpkg.json`, E1); offline imagery still open (E6). | E1/E6 | Partly resolved (E1) |
 | I-006 | `spike.earth` / `osm_style.json` use absolute `D:/Source/...` data paths. The library's map (`Data/maps/earthview.earth`, E1) uses relative paths; the spike files go away in E2. | S1 / E2 | Partly resolved (E1) |
 | I-017 | Linux CI does not build `earthview3d` yet (roadmap: "once green"). Cloud containers cannot build osgEarth through vcpkg either: the environment's network policy blocks `sqlite.org` (sqlite3 source). Add a cached Linux vcpkg job after E1. | E1 follow-up | Open |
+| I-019 | Developer machine with **VS 2022** + Qt 6.11 + C++20: QtTest headers hit an MSVC internal compiler error (`qrangemodel_impl.h(991): C1001`). Windows CI (VS 2026) shows whether newer MSVC is affected; if so, document the minimum compiler. | E1 | Open |
 | I-018 | `MapConfig.cacheDir` is applied through `OSGEARTH_CACHE_PATH` before the widget's first `osgEarth::initialize()`; it is ignored if the host initialised osgEarth earlier or set the variable itself. Verify the cache fills on Windows (E6 owns caching). | E6 | Open |
 
 ---

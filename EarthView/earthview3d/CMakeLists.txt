@@ -17,14 +17,28 @@ add_library(earthview3d_core STATIC
     include/earthview3d/EntityState3D.h
     include/earthview3d/EntityDiff.h
     include/earthview3d/MapConfig.h
+    include/earthview3d/RuntimePaths.h
     src/EntityDiff.cpp
     src/MapConfig.cpp
+    src/RuntimePaths.cpp
 )
 add_library(earthview3d::core ALIAS earthview3d_core)
 target_include_directories(earthview3d_core PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 target_link_libraries(earthview3d_core PUBLIC Qt6::Core)
 target_compile_features(earthview3d_core PUBLIC cxx_std_17)
 set_target_properties(earthview3d_core PROPERTIES AUTOMOC OFF AUTOUIC OFF AUTORCC OFF)
+
+# Build-tree runtime defaults (RuntimePaths::buildTreeDefaults): the vcpkg OSG plugin folder
+# and GDAL/PROJ data of this configuration. Deployed hosts pass their own paths (E7).
+if(DEFINED VCPKG_INSTALLED_DIR AND DEFINED VCPKG_TARGET_TRIPLET)
+    set(_vcpkg_root "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}")
+    file(GLOB _osg_plugin_dirs LIST_DIRECTORIES true "${_vcpkg_root}/plugins/osgPlugins-*")
+    if(_osg_plugin_dirs)
+        target_compile_definitions(earthview3d_core PRIVATE
+            EARTHVIEW3D_DEV_OSG_PLUGIN_DIR="${_vcpkg_root}/plugins"
+            EARTHVIEW3D_DEV_SHARE_DIR="${_vcpkg_root}/share")
+    endif()
+endif()
 
 # --- osgEarth part -----------------------------------------------------------------------
 find_package(OpenSceneGraph QUIET COMPONENTS osgDB osgGA osgUtil osgViewer)
@@ -48,7 +62,9 @@ message(STATUS "earthview3d: building with osgEarth ${osgEarth_VERSION}")
 
 add_library(earthview3d STATIC
     include/earthview3d/GlobeView3D.h
+    include/earthview3d/Runtime.h
     src/GlobeView3D.cpp
+    src/Runtime.cpp
 )
 add_library(earthview3d::earthview3d ALIAS earthview3d)
 set_target_properties(earthview3d PROPERTIES AUTOMOC ON)
@@ -62,6 +78,12 @@ target_link_libraries(earthview3d
         osgEarth::osgEarth
 )
 target_include_directories(earthview3d PRIVATE ${OPENSCENEGRAPH_INCLUDE_DIRS})
+# GDAL comes with osgEarth (vcpkg); used to set GDAL_DATA/PROJ paths at runtime.
+find_package(GDAL CONFIG QUIET)
+if(TARGET GDAL::GDAL)
+    target_link_libraries(earthview3d PRIVATE GDAL::GDAL)
+    target_compile_definitions(earthview3d PRIVATE EARTHVIEW3D_HAVE_GDAL)
+endif()
 if(MSVC)
     # Keep windows.h min/max macros away from std::min/std::max in OSG/osgEarth headers.
     target_compile_definitions(earthview3d PRIVATE NOMINMAX)
@@ -74,12 +96,3 @@ set_target_properties(earthview3d_viewer PROPERTIES AUTOMOC ON)
 get_filename_component(_earthview3d_data_root "${CMAKE_CURRENT_SOURCE_DIR}/../Data" ABSOLUTE)
 target_compile_definitions(earthview3d_viewer PRIVATE
     EARTHVIEW3D_DEFAULT_DATA_ROOT="${_earthview3d_data_root}")
-if(DEFINED VCPKG_INSTALLED_DIR AND DEFINED VCPKG_TARGET_TRIPLET)
-    set(_vcpkg_root "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}")
-    file(GLOB _osg_plugin_dirs LIST_DIRECTORIES true "${_vcpkg_root}/plugins/osgPlugins-*")
-    if(_osg_plugin_dirs)
-        target_compile_definitions(earthview3d_viewer PRIVATE
-            EARTHVIEW3D_DEV_OSG_PLUGIN_DIR="${_vcpkg_root}/plugins"
-            EARTHVIEW3D_DEV_SHARE_DIR="${_vcpkg_root}/share")
-    endif()
-endif()

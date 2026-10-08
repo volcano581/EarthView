@@ -74,7 +74,10 @@ Prerequisites: Conquer's `msvc` preset builds; osgEarth available (vcpkg tree or
    constructor takes an `earthview3d::MapConfig` (earth file, data root, cache dir, sky)
    instead of an earth-file path; diagnostics `DOCTRINE_3D_LOGDEPTH`/`DOCTRINE_3D_NO_SKY`
    are now `EARTHVIEW3D_LOGDEPTH`/`EARTHVIEW3D_NO_SKY`. The widget calls
-   `osgEarth::initialize()` itself. Keep the mapping table of §2.
+   `osgEarth::initialize()` itself. Before creating the first view, call
+   `earthview3d::configureRuntime(paths)` (`<earthview3d/Runtime.h>`) with the folders of the
+   OSG plugins and GDAL/PROJ data next to `doctrine.exe` (E7 provides them); setting
+   `OSG_LIBRARY_PATH` in `main()` is too late. Keep the mapping table of §2.
 3. **Link + define.** In `doctrine/CMakeLists.txt`:
    `target_link_libraries(doctrine PRIVATE earthview3d::earthview3d)` and
    `DOCTRINE_HAVE_OSGEARTH=1`; call `earthview3d_deploy_runtime(doctrine)` (E7) instead of

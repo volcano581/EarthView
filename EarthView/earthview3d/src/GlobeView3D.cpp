@@ -1,5 +1,6 @@
 #include "earthview3d/GlobeView3D.h"
 #include "earthview3d/EntityDiff.h"
+#include "earthview3d/Runtime.h"
 
 #include <QDir>
 #include <QKeyEvent>
@@ -152,9 +153,15 @@ GlobeView3D::GlobeView3D(const MapConfig& config, double homeLatDeg, double home
     : QOpenGLWidget(parent)
     , d(std::make_unique<Private>(this, config, homeLatDeg, homeLonDeg))
 {
+    if (!isRuntimeConfigured())
+        configureRuntime(RuntimePaths::buildTreeDefaults());
     initializeOsgEarthOnce(config);
-    if (!config.dataRoot.isEmpty())
-        osgDB::Registry::instance()->getDataFilePathList().push_front(config.dataRoot.toStdString());
+    if (!config.dataRoot.isEmpty()) {
+        const std::string dataRoot = config.dataRoot.toStdString();
+        osgDB::FilePathList& dataPaths = osgDB::Registry::instance()->getDataFilePathList();
+        if (std::find(dataPaths.begin(), dataPaths.end(), dataRoot) == dataPaths.end())
+            dataPaths.push_front(dataRoot);
+    }
 
     setFormat(osgEarthSurfaceFormat());
     setFocusPolicy(Qt::StrongFocus);
@@ -170,8 +177,13 @@ GlobeView3D::GlobeView3D(const MapConfig& config, double homeLatDeg, double home
 
 GlobeView3D::~GlobeView3D()
 {
+    // Release every OSG object while the context is current so GL resources are freed.
     makeCurrent();
     d->entities.clear();
+    d->entityRoot = nullptr;
+    d->manip = nullptr;
+    d->mapNode = nullptr;
+    d->window = nullptr;
     d->viewer = nullptr;
     doneCurrent();
 }

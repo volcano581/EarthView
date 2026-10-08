@@ -4,11 +4,11 @@
 
 #include <earthview3d/GlobeView3D.h>
 #include <earthview3d/MapConfig.h>
+#include <earthview3d/Runtime.h>
 
 #include <QApplication>
 #include <QCommandLineParser>
 #include <QDateTime>
-#include <QDir>
 #include <QElapsedTimer>
 #include <QMainWindow>
 #include <QStatusBar>
@@ -17,26 +17,6 @@
 #include <cmath>
 #include <cstdio>
 
-namespace {
-void setEnvIfUnset(const char* name, const QString& path)
-{
-    if (qEnvironmentVariableIsEmpty(name) && !path.isEmpty() && QDir(path).exists())
-        qputenv(name, QDir::toNativeSeparators(path).toLocal8Bit());
-}
-
-// Development builds: point OSG at the vcpkg plugin folder so .earth files load without
-// environment setup. Deployed builds get this from earthview3d_deploy_runtime() (E7).
-void configureDevRuntime()
-{
-#ifdef EARTHVIEW3D_DEV_OSG_PLUGIN_DIR
-    setEnvIfUnset("OSG_LIBRARY_PATH", QStringLiteral(EARTHVIEW3D_DEV_OSG_PLUGIN_DIR));
-#endif
-#ifdef EARTHVIEW3D_DEV_SHARE_DIR
-    setEnvIfUnset("GDAL_DATA", QStringLiteral(EARTHVIEW3D_DEV_SHARE_DIR "/gdal"));
-    setEnvIfUnset("PROJ_DATA", QStringLiteral(EARTHVIEW3D_DEV_SHARE_DIR "/proj"));
-#endif
-}
-} // namespace
 
 int main(int argc, char** argv)
 {
@@ -80,7 +60,9 @@ int main(int argc, char** argv)
         return 2;
     }
 
-    configureDevRuntime();
+
+    // Build-tree OSG plugins and GDAL/PROJ data; must run before the first GlobeView3D.
+    earthview3d::configureRuntime(earthview3d::RuntimePaths::buildTreeDefaults());
 
     const double lat = parser.value(QStringLiteral("lat")).toDouble();
     const double lon = parser.value(QStringLiteral("lon")).toDouble();

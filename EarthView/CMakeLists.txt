@@ -2,6 +2,11 @@ cmake_minimum_required(VERSION 3.16)
 project(EarthView VERSION 1.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
+if(MSVC)
+    # Qt 6.11's moc output (qtmochelpers.h) hits an MSVC generic-lambda bug in C++17 mode;
+    # C++20 builds cleanly and matches the host project.
+    set(CMAKE_CXX_STANDARD 20)
+endif()
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -12,13 +17,21 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 option(EARTHVIEW_DEPLOY_QT "Run windeployqt after building EarthView" ON)
 
+# Qt kit: EARTHVIEW_QT_PREFIX wins; otherwise a default kit matching the compiler is used as
+# a fallback only, so an explicit -DCMAKE_PREFIX_PATH (e.g. the msvc2022_64 kit) is never
+# overridden. The llvm-mingw kits only suit MinGW; MSVC needs msvc2022_64.
 set(EARTHVIEW_QT_PREFIX "" CACHE PATH "Qt installation prefix")
 if(EARTHVIEW_QT_PREFIX)
     list(PREPEND CMAKE_PREFIX_PATH "${EARTHVIEW_QT_PREFIX}")
-elseif(EXISTS "C:/Qt/6.11.0/llvm-mingw_64")
-    list(PREPEND CMAKE_PREFIX_PATH "C:/Qt/6.11.0/llvm-mingw_64")
-elseif(EXISTS "C:/Qtfull/6.11.0/llvm-mingw_64")
-    list(PREPEND CMAKE_PREFIX_PATH "C:/Qtfull/6.11.0/llvm-mingw_64")
+elseif(MINGW AND NOT CMAKE_PREFIX_PATH)
+    foreach(_qt_kit "C:/Qt/6.11.0/llvm-mingw_64" "C:/Qtfull/6.11.0/llvm-mingw_64")
+        if(EXISTS "${_qt_kit}")
+            list(PREPEND CMAKE_PREFIX_PATH "${_qt_kit}")
+            break()
+        endif()
+    endforeach()
+elseif(MSVC AND EXISTS "C:/Qt/6.11.0/msvc2022_64")
+    list(APPEND CMAKE_PREFIX_PATH "C:/Qt/6.11.0/msvc2022_64")
 endif()
 
 find_package(Qt6 REQUIRED COMPONENTS Core Widgets Network OpenGL OpenGLWidgets Sql)

@@ -11,7 +11,8 @@ frame and reads signals. Design: `../OSGEARTH_INTEGRATION.md`; host contract:
 | ---- | ---- |
 | `include/earthview3d/` | Public headers — Qt/STL types only, no osgEarth/OSG (D-011) |
 | `src/GlobeView3D.cpp` | The osgEarth widget (pimpl); started as the widget from the local host test |
-| `src/MapConfig.cpp`, `src/EntityDiff.cpp` | GL-free logic, unit tested (`tests/tst_mapconfig`, `tst_entitydiff`) |
+| `src/MapConfig.cpp`, `src/EntityDiff.cpp`, `src/RuntimePaths.cpp` | GL-free logic, unit tested (`tests/tst_mapconfig`, `tst_entitydiff`, `tst_runtimepaths`) |
+| `src/Runtime.cpp` | `configureRuntime()`: OSG plugin path + GDAL/PROJ data |
 | `examples/earthview3d_viewer.cpp` | The `spikes/osgearth` app ported onto the library |
 | `../Data/maps/earthview.earth` | Default map; layer paths relative to the earth file |
 
@@ -32,6 +33,13 @@ auto* view = new earthview3d::GlobeView3D(config, originLatDeg, originLonDeg);
 view->setPreFrameCallback([&] { view->setEntities(buildEntitiesFromHostSnapshot()); });
 ```
 `MapConfig::fromJsonFile()` reads the same settings from JSON (see `MapConfig.h`).
+
+Runtime files: osgDB reads `OSG_LIBRARY_PATH` when its DLL loads, before `main()`, so
+setting it in the application does nothing. Call `earthview3d::configureRuntime(paths)`
+(`Runtime.h`) before the first view with the OSG plugin folder and GDAL/PROJ data folders;
+otherwise the first `GlobeView3D` uses `RuntimePaths::buildTreeDefaults()` (the vcpkg
+folders of this build tree). Explicit `GDAL_DATA`/`PROJ_DATA` variables still win.
+
 Keyboard: N next entity, T chase, F stealth, U untether, H home.
 
 ## Build (Windows, MSVC)
@@ -46,8 +54,9 @@ cmake --build build-msvc --config Release
 build-msvc\earthview3d\Release\earthview3d_viewer.exe --view stealth --snapshot stealth.png --after 30
 ```
 `VCPKG_MANIFEST_DIR` is needed because the CMake source dir (`EarthView/`) is not the repo
-root. The viewer finds the vcpkg OSG plugins and GDAL/PROJ data of the build tree by itself;
-Qt DLLs come from `windeployqt` or `PATH`. Deployment for other machines is roadmap E7.
+root. MSVC builds use C++20 (Qt 6.11 moc output needs it, D-016). The library finds the
+vcpkg OSG plugins and GDAL/PROJ data of the build tree by itself; Qt DLLs come from
+`windeployqt` or `PATH`. Deployment for other machines is roadmap E7.
 
 ## Rules baked into the widget (do not undo)
 
