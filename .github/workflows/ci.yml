@@ -48,7 +48,8 @@ jobs:
     timeout-minutes: 350
     env:
       VCPKG_COMMIT: 2cfff9c458d9dcf642e9fa09ba624f9931bb5358   # = builtin-baseline in vcpkg.json
-      VCPKG_ROOT: C:\ev-vcpkg
+      # Not VCPKG_ROOT: msvc-dev-cmd overwrites that with Visual Studio's bundled vcpkg.
+      EV_VCPKG_ROOT: C:\ev-vcpkg
       VCPKG_CACHE: C:\ev-vcpkg-cache
       VCPKG_BINARY_SOURCES: clear;files,C:\ev-vcpkg-cache,readwrite
     steps:
@@ -69,9 +70,9 @@ jobs:
       - name: Get vcpkg at the manifest baseline
         shell: pwsh
         run: |
-          git clone https://github.com/microsoft/vcpkg.git $env:VCPKG_ROOT
-          git -C $env:VCPKG_ROOT checkout $env:VCPKG_COMMIT
-          & "$env:VCPKG_ROOT\bootstrap-vcpkg.bat" -disableMetrics
+          git clone https://github.com/microsoft/vcpkg.git $env:EV_VCPKG_ROOT
+          git -C $env:EV_VCPKG_ROOT checkout $env:VCPKG_COMMIT
+          & "$env:EV_VCPKG_ROOT\bootstrap-vcpkg.bat" -disableMetrics
           New-Item -ItemType Directory -Force -Path $env:VCPKG_CACHE | Out-Null
 
       # Complete caches are keyed by manifest; a run that fails part-way saves a partial
@@ -87,11 +88,13 @@ jobs:
 
       - name: Configure (installs osgEarth via vcpkg)
         shell: pwsh
+        env:
+          VCPKG_ROOT: C:\ev-vcpkg
         run: >
           cmake -S EarthView -B build-msvc -G Ninja
           -DCMAKE_BUILD_TYPE=Release
           "-DCMAKE_PREFIX_PATH=$env:QT_ROOT_DIR"
-          "-DCMAKE_TOOLCHAIN_FILE=$env:VCPKG_ROOT\scripts\buildsystems\vcpkg.cmake"
+          "-DCMAKE_TOOLCHAIN_FILE=$env:EV_VCPKG_ROOT\scripts\buildsystems\vcpkg.cmake"
           "-DVCPKG_MANIFEST_DIR=${{ github.workspace }}"
           -DVCPKG_TARGET_TRIPLET=x64-windows
           -DVCPKG_INSTALL_OPTIONS=--clean-after-build
@@ -117,7 +120,7 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path vcpkg-logs | Out-Null
-          Get-ChildItem "$env:VCPKG_ROOT\buildtrees" -Recurse -Filter *.log -ErrorAction SilentlyContinue |
+          Get-ChildItem "$env:EV_VCPKG_ROOT\buildtrees" -Recurse -Filter *.log -ErrorAction SilentlyContinue |
             ForEach-Object { Copy-Item $_.FullName ("vcpkg-logs\" + $_.Directory.Name + "-" + $_.Name) }
           Copy-Item build-msvc\vcpkg-manifest-install.log vcpkg-logs\ -ErrorAction SilentlyContinue
 
