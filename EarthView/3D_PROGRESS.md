@@ -52,7 +52,7 @@ Status values: `Not started` · `In progress` · `In review` · `Changes request
 | M2–M10 | Custom renderer milestones | Dropped (D-007) | | | | |
 | T1 | Local Doctrine integration test (Conquer, branch `earthview-3d-test`) | Done (local) | — | — | `1fd3d89` (Conquer) | ✓ (2026-10-08) |
 | O0–O11 | Earlier osgEarth plan | Superseded by E1–E10 + L1 (D-012) | | | | |
-| E1 | `earthview3d` library + vcpkg manifest + Windows CI | In review | `3d/e1-earthview3d` | PR_LINK | — | pending (Windows) |
+| E1 | `earthview3d` library + vcpkg manifest + Windows CI | In review | `3d/e1-earthview3d` | [#4](https://github.com/volcano581/EarthView/pull/4) | — | pending (Windows) |
 | E2 | `earthview3d_demo` with synthetic host feed | Not started | | | | |
 | E3 | Entity layer (models, labels, LOD, picking) | Not started | | | | |
 | E4 | Camera controllers + HUD | Not started | | | | |
@@ -72,7 +72,7 @@ Status values: `Not started` · `In progress` · `In review` · `Changes request
 ## Change log (newest first)
 
 ### 2026-10-08 — E1: `earthview3d` library, vcpkg manifest, Windows CI  (In review)
-- **Branch / PR:** `3d/e1-earthview3d` / PR_LINK — merge —
+- **Branch / PR:** `3d/e1-earthview3d` / [#4](https://github.com/volcano581/EarthView/pull/4) — merge —
 - **Author:** cloud agent
 - **Changes:**
   - `earthview3d/reference/GlobeView3D.*` moved to `earthview3d/src/GlobeView3D.cpp` +
@@ -100,7 +100,7 @@ Status values: `Not started` · `In progress` · `In review` · `Changes request
 - **Tests:** `tst_mapconfig` (10 cases), `tst_entitydiff` (7 cases); Linux ctest 5/5 pass.
   `GlobeView3D.cpp`, the viewer and the moc output were syntax-checked on Linux against
   the osgEarth 3.8.1 source headers and OSG 3.6.5 (no errors/warnings); not linked on Linux.
-- **Verified:** Linux CI WINDOWS_CI_LINUX · Windows CI (MSVC build + ctest) WINDOWS_CI_WIN ·
+- **Verified:** Linux CI ✓ · Windows CI ✓ (VS 2026 / MSVC 14.51, osgEarth 3.8.1 via vcpkg; all targets link, ctest 5/5) ·
   Visual check pending (Windows): run `earthview3d_viewer --view home|chase|stealth --snapshot`.
 - **Follow-ups:** I-017, I-018.
 
@@ -235,7 +235,7 @@ Status values: `Not started` · `In progress` · `In review` · `Changes request
 | D-012 | Doctrine/Conquer stays **off GitHub**. Agents finish `earthview3d` + demo host + packaging + wiring kit in EarthView (E1–E10); final Doctrine wiring is local (L1). Only the Doctrine-free widget from the test is published (`earthview3d/reference/`). | 2026-10-08 | ROADMAP, DOCTRINE_WIRING.md |
 | D-013 | `earthview3d` = `earthview3d_core` (GL-free, Qt Core, always built and tested) + `earthview3d` (osgEarth widget, built only with `EARTHVIEW_BUILD_3D`, default ON when osgEarth is found). osgEarth/OSG include dirs and libraries are PRIVATE to `earthview3d`. | 2026-10-08 | E1 |
 | D-014 | Default map lives in the data tree: `EarthView/Data/maps/earthview.earth` with paths relative to the earth file; `MapConfig.dataRoot` = `EarthView/Data` in development. | 2026-10-08 | E1 |
-| D-015 | Windows CI: `windows-latest`, MSVC via Ninja, Qt **6.8.3** `msvc2022_64` from `install-qt-action` (developer machines keep Qt 6.11 / VS 2026), vcpkg checked out at the manifest baseline, `files` binary cache stored with `actions/cache` (vcpkg no longer supports `x-gha`). | 2026-10-08 | E1 |
+| D-015 | Windows CI: `windows-latest`, MSVC (runner has VS 2026 / MSVC 14.51) via Ninja, Qt **6.8.3** `msvc2022_64` from `install-qt-action` (developer machines keep Qt 6.11 / VS 2026), vcpkg checked out at the manifest baseline, `files` binary cache stored with `actions/cache` (vcpkg no longer supports `x-gha`). | 2026-10-08 | E1 |
 | D-011 | The integration target is **Conquer** (`D:\Source\Conquer`: Doctrine + cgf-engine + EarthView superbuild, already MSVC), not the standalone `D:\Source\cgf-engine`. 3D code lives in an isolated library so osgEarth includes never reach other TUs. | 2026-10-08 | Conquer test |
 
 ---

@@ -61,7 +61,7 @@
 | M1 | Geodesy + Camera3D maths (`scene3d`) | M0 | M | no | **Done** (#3) |
 | S1 | osgEarth spike | — | M | yes | **Done** |
 | T1 | Local Doctrine integration test (Conquer) | S1 | M | yes | **Done** (local, `1fd3d89`) |
-| E1 | `earthview3d` library from the reference widget + vcpkg manifest + Windows CI | — | M | yes | In review (`3d/e1-earthview3d`) |
+| E1 | `earthview3d` library from the reference widget + vcpkg manifest + Windows CI | — | M | yes | In review (`3d/e1-earthview3d`, [#4](https://github.com/volcano581/EarthView/pull/4)) |
 | E2 | `earthview3d_demo` app with synthetic host feed (replaces the spike app) | E1 | M | yes | |
 | E3 | Entity layer: API, model table, labels, LOD, attitude, picking + selection | E1 | L | yes | |
 | E4 | Camera controllers (orbit, chase, stealth, first-person, free-fly) + HUD | E1 | M | yes | |
@@ -80,7 +80,7 @@ demonstrated).
 
 ## 2. Task details
 
-### E1 — `earthview3d` library
+### E1 — `earthview3d` library — IN REVIEW ([#4](https://github.com/volcano581/EarthView/pull/4))
 - Move `earthview3d/reference/GlobeView3D.*` to `earthview3d/src/` +
   `earthview3d/include/earthview3d/`; namespace `earthview3d`; **pimpl** so the public
   header has only Qt/STL types; rename `DOCTRINE_3D_*` env vars to `EARTHVIEW3D_*`.
