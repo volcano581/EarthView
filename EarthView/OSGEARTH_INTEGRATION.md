@@ -1,6 +1,19 @@
 # osgEarth 3D / Stealth View — Integration Design
 
-Status: **Draft for review** · Date: 2026-10-08 · Decisions: D-007 (osgEarth), D-008 (MSVC)
+Status: **Draft for review** · Date: 2026-10-08 · Decisions: D-007 (osgEarth), D-008 (MSVC), D-010, D-011
+
+> **Update 2026-10-08 — integration test in Conquer.** The real integration target is
+> **Conquer** (`D:\Source\Conquer`, superbuild of Doctrine + cgf-engine + EarthView). It
+> already builds with MSVC, its `RenderEntity` carries EntityID + double lat/lon + ellipsoid
+> altitude + heading, and `CoordBridge` (tangent-plane ENU at a `GeodeticOrigin`, ECEF hub)
+> answers Q1, so §5.2/§6.2 are largely already satisfied there. A working test lives on
+> Conquer branch `earthview-3d-test` (`doctrine/src/view3d/`). Findings are in
+> `3D_PROGRESS.md` (D-010, D-011, I-015).
+>
+> **Update — repo split (D-012).** Doctrine stays off GitHub. Everything in §3.1 except the
+> host adapter is built in EarthView as `earthview3d` (tasks E1–E10); the adapter and
+> Doctrine CMake changes are applied locally per [DOCTRINE_WIRING.md](DOCTRINE_WIRING.md).
+> Where this document says "Doctrine adapter (O5)", read "local task L1".
 Related: [ROADMAP_3D.md](ROADMAP_3D.md) (tasks O0–O11) · [3D_PROGRESS.md](3D_PROGRESS.md)
 (status, decisions, issues) · [spikes/osgearth](../spikes/osgearth/README.md) (evaluation
 code and results) · [OFFLINE_BUILD.md](../spikes/osgearth/OFFLINE_BUILD.md).
@@ -114,6 +127,11 @@ the public API in §7. This keeps EarthView reusable and testable on its own (ex
   2. `State::setUseVertexAttributeAliasing(true)` and
      `setUseModelViewAndProjectionUniforms(true)` before the first frame — normally done by
      osgEarth's `GL3RealizeOperation`, which never runs for embedded windows.
+  6. Do **not** install osgEarth's `LogarithmicDepthBuffer`: in the embedded widget it drops
+     terrain near the camera (ground-level views go black). Use
+     `Camera::setNearFarRatio(2e-5)` instead (D-010).
+  7. Keep OSG/osgEarth include directories on a separate library target: vcpkg's include
+     tree (Boost, glm) otherwise leaks into every translation unit (D-011).
   3. Never query `MapNode::getTerrain()` before the first frame (null).
   4. Register the home viewpoint with `EarthManipulator::setHomeViewpoint()` and apply the
      initial viewpoint after the first frame; otherwise the camera frames the sky dome.
@@ -439,7 +457,7 @@ GDAL/PROJ (MIT), GEOS (LGPL), Qt (per your Qt licence). Have legal confirm befor
 
 | # | Question | Needed by |
 | - | -------- | --------- |
-| Q1 | Which projection does cgf-engine assume for (x, z)? Where is the scenario origin defined? | O5 |
+| Q1 | ~~Which projection does cgf-engine assume?~~ Answered in Conquer: `CoordBridge`, tangent-plane ENU at `GeodeticOrigin`; lat/lon/alt delivered in `RenderEntity`. | — |
 | Q2 | Does cgf-engine's terrain read the same DTED? At what resolution? | O5 |
 | Q3 | Which imagery source for the theatre (pre-rendered OSM vs satellite)? | O8 |
 | Q4 | Model sources/formats for the SISO kinds in use (licensing)? | O6 |

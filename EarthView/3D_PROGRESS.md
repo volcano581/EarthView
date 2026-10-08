@@ -50,25 +50,62 @@ Status values: `Not started` · `In progress` · `In review` · `Changes request
 | M0.3 | Offscreen snapshot tool | Merged | `3d/m0-snapshot` | — | `5682f87` | pending (Windows) |
 | M1 | Geodesy + Camera3D + RTE math | Merged | `3d/m1-geodesy` | [#3](https://github.com/volcano581/EarthView/pull/3) | `23dcfe4` | n.a. |
 | M2–M10 | Custom renderer milestones | Dropped (D-007) | | | | |
-| O0 | Doctrine under git + GitHub | Not started | | | | |
-| O1 | EarthView on MSVC + Windows CI | Not started | | | | |
-| O2 | cgf-engine + Doctrine on MSVC | Not started | | | | |
-| O3 | osgEarth via vcpkg in Doctrine | Not started | | | | |
-| O4 | `earthview3d` osgEarth widget library | Not started | | | | |
-| O5 | Doctrine 3D window from SimRenderBridge | Not started | | | | |
-| O6 | Entity visualisation + picking | Not started | | | | |
-| O7 | Stealth camera controllers + HUD | Not started | | | | |
-| O8 | Offline data pipeline | Not started | | | | |
-| O9 | Offline packaging for Doctrine | Not started | | | | |
-| O10 | Remove pseudo-3D, unify GIS copy | Not started | | | | |
-| O11 | Performance + polish | Not started | | | | |
+| T1 | Local Doctrine integration test (Conquer, branch `earthview-3d-test`) | Done (local) | — | — | `1fd3d89` (Conquer) | ✓ (2026-10-08) |
+| O0–O11 | Earlier osgEarth plan | Superseded by E1–E10 + L1 (D-012) | | | | |
+| E1 | `earthview3d` library + vcpkg manifest + Windows CI | Not started | | | | |
+| E2 | `earthview3d_demo` with synthetic host feed | Not started | | | | |
+| E3 | Entity layer (models, labels, LOD, picking) | Not started | | | | |
+| E4 | Camera controllers + HUD | Not started | | | | |
+| E5 | Terrain services | Not started | | | | |
+| E6 | Offline data pipeline | Not started | | | | |
+| E7 | Packaging + runtime deploy | Not started | | | | |
+| E8 | Wiring kit / host contract test | Not started | | | | |
+| E9 | Cleanup pseudo-3D | Not started | | | | |
+| E10 | Performance + polish | Not started | | | | |
+| L1 | Local wiring into Doctrine (off GitHub) | Not started | local | — | | |
 | S1 | osgEarth evaluation spike (`spikes/osgearth`) | Done — led to D-007 | master | — | `241c108`…`0b5f729` | partial ✓ (2026-10-08) |
 
-**Direction:** osgEarth, in-process, MSVC (D-007, D-008). Design: [OSGEARTH_INTEGRATION.md](OSGEARTH_INTEGRATION.md).
+**Direction:** host-independent `earthview3d` (osgEarth, MSVC) finished on GitHub by agents; Doctrine wired locally (D-007, D-008, D-012). Design: [OSGEARTH_INTEGRATION.md](OSGEARTH_INTEGRATION.md) · Local wiring: [DOCTRINE_WIRING.md](DOCTRINE_WIRING.md).
 
 ---
 
 ## Change log (newest first)
+
+### 2026-10-08 — Roadmap re-scoped to EarthView-only agent work (D-012)
+- Doctrine cannot be pushed to GitHub. `ROADMAP_3D.md` rewritten: tasks E1–E10 finish the
+  host-independent `earthview3d` library in this repo; L1 wires it into Doctrine locally.
+- Added `DOCTRINE_WIRING.md` (host contract, local steps, acceptance checklist) and
+  `earthview3d/reference/` (the Doctrine-free `GlobeView3D` widget from the local test,
+  not built yet — E1 turns it into the library). `CLAUDE.md` updated.
+
+### 2026-10-08 — Conquer: 2D + osgEarth 3D integration test  (local branch)
+- **Where:** `D:\Source\conquer-3d`, worktree of Conquer on branch `earthview-3d-test`,
+  commit `1fd3d89` (no git remote; not pushed). Based on the WIP commit `2d77598`.
+- **Author:** Claude Code (local Windows session)
+- **What:** new opt-in `doctrine_view3d` library (`GlobeView3D` osgEarth widget +
+  `Doctrine3DWindow` adapter), "3D View" action in Doctrine's main window, fed from the
+  same `SimRenderBridge` snapshot as the 2D `TacticalMapWidget`. Built with Conquer's
+  existing `msvc` preset (VS 2022) + `-DDOCTRINE_ENABLE_OSGEARTH=ON
+  -DDOCTRINE_OSGEARTH_PREFIX=<spike vcpkg_installed/x64-windows>`; osgEarth runtime deployed
+  next to `doctrine.exe` by a post-build step.
+- **Results (demo scenario, 8 entities, Islamabad):** 2D map unchanged; 3D window shows DTED
+  terrain + OSM imagery; entity positions match the 2D map; chase and ground-level stealth
+  views work after two fixes below.
+- **Findings:**
+  - Conquer already builds with MSVC (DIS vendor library requires it) → roadmap O1/O2 are
+    largely done there; osgEarth from vcpkg (VS 2022) links cleanly.
+  - `RenderEntity` already carries EntityID, double lat/lon, ellipsoid altitude, heading
+    (→ I-013 mostly resolved); `CoordBridge` answers Q1 (tangent-plane ENU at a
+    `GeodeticOrigin`, ECEF hub).
+  - Sim ground units sit on a flat plane at the origin altitude (500.7 m); DTED there is
+    520–525 m → units ~20–24 m underground (I-015). Test clamps non-air units to terrain.
+  - osgEarth `LogarithmicDepthBuffer` drops terrain near the camera in the embedded widget
+    (black + red/yellow bands below the horizon) — cause of spike issue I-008. Now off by
+    default with `setNearFarRatio(2e-5)` (D-010).
+  - Adding OSG's include dir to the whole `doctrine` target pulled vcpkg's Boost/glm into
+    every TU and broke `osg/Math` (macro clash) → 3D code isolated in its own library.
+- **Verified:** Windows MSVC build ✓ · Visual check ✓ (2D + 3D home/chase/stealth snapshots)
+- **Follow-ups:** I-015, I-016.
 
 ### 2026-10-08 — Decision: osgEarth in-process, MSVC; roadmap and design rewritten
 - **Author:** Claude Code with the project owner
@@ -160,7 +197,10 @@ Status values: `Not started` · `In progress` · `In review` · `Changes request
 | D-006 | `earthview_scene3d` is a Qt-free static library; Qt/GL integration lives in later layers. | 2026-10-07 | M1 |
 | D-007 | **osgEarth** provides the 3D / stealth view; the custom renderer (M2–M10) is dropped. `scene3d` (M1) is kept for conversions. | 2026-10-08 | S1, `OSGEARTH_INTEGRATION.md` |
 | D-008 | osgEarth is embedded **in-process** in Doctrine; Doctrine, cgf-engine and EarthView move to **MSVC** (VS 2026, Qt `msvc2022_64`). llvm-mingw kept for EarthView 2D until O10. | 2026-10-08 | ROADMAP O1/O2 |
-| D-009 | Sim local (x east, z north, y MSL) → geodetic via a scenario origin and an azimuthal-equidistant projection, pending confirmation of cgf-engine's projection (Q1). | 2026-10-08 (proposed) | `OSGEARTH_INTEGRATION.md` §5 |
+| D-009 | ~~aeqd projection proposal~~ Superseded: Conquer's `CoordBridge` (tangent-plane ENU at a `GeodeticOrigin`, ECEF hub) already provides lat/lon/alt in `RenderEntity`; the 3D view uses those directly. | 2026-10-08 | Conquer test |
+| D-010 | osgEarth logarithmic depth buffer is **off** by default in the embedded widget (drops near-camera terrain); use `Camera::setNearFarRatio(2e-5)`. | 2026-10-08 | Conquer test |
+| D-012 | Doctrine/Conquer stays **off GitHub**. Agents finish `earthview3d` + demo host + packaging + wiring kit in EarthView (E1–E10); final Doctrine wiring is local (L1). Only the Doctrine-free widget from the test is published (`earthview3d/reference/`). | 2026-10-08 | ROADMAP, DOCTRINE_WIRING.md |
+| D-011 | The integration target is **Conquer** (`D:\Source\Conquer`: Doctrine + cgf-engine + EarthView superbuild, already MSVC), not the standalone `D:\Source\cgf-engine`. 3D code lives in an isolated library so osgEarth includes never reach other TUs. | 2026-10-08 | Conquer test |
 
 ---
 
@@ -174,13 +214,15 @@ Status values: `Not started` · `In progress` · `In review` · `Changes request
 | I-004 | ~~osgEarth spike unbuilt.~~ Built and run 2026-10-08; MapBoxGL result tracked in I-007. | S1 | Closed (2026-10-08) |
 | I-005 | ~~M0.3 snapshot tool not yet run on Windows.~~ Run on Windows 2026-10-08 (GPU, not llvmpipe): both modes render correctly (grid, borders, city labels/dots; orthographic shows curved graticule). | M0.3 | Closed (2026-10-08) |
 | I-007 | Offline imagery: osgEarth `MapBoxGLImage` renders nothing (even a background-only style); `OGRFeatures` on the vector MBTiles hangs (GDAL scans the whole file). Options: pre-render a raster MBTiles from the vector tiles, obtain satellite/raster imagery, or debug the MapBoxGL layer in osgEarth source. | S1 | Open |
-| I-008 | Spike chase view (`T`, 600 m, −15°): lower half of the frame black with a red/yellow band — camera under terrain or captured mid-fly-to. Stealth view (`F`) is fine. | S1 | Open |
+| I-008 | ~~Spike chase view black with red/yellow band.~~ Cause: osgEarth log depth buffer in the embedded widget (D-010). | S1 | Closed (Conquer test) |
 | I-009 | Spike was configured with VS 2022 Enterprise, not VS 2026 as in `OFFLINE_BUILD.md`; the vcpkg binary cache is keyed by compiler, so feeder and offline machines must use the same one. | S1 | Open |
 | I-010 | Spike deploy folder lacks the MSVC runtime DLLs (vcruntime/msvcp) and osgEarth's data folder (moon texture); `DEM90TIF/N18.tif` covers 55–56°E, 18–19°N, not the area of interest. | S1 | Open |
 | I-011 | osgEarth logs "GDAL_DATA environment variable is not set" before `main()` sets it; check GDAL/PROJ actually find the deployed `share/` data. | S1 | Open |
 | I-012 | Doctrine/cgf-engine is not under version control; agents cannot work on it until O0. | O0 | Open |
-| I-013 | `RenderEntity` has no EntityID, orientation or entity kind — required for the 3D view. | O5 | Open |
-| I-014 | No geodetic scenario origin/projection defined in Doctrine; 2D and 3D must share one (Q1 in the design doc). | O5 | Open |
+| I-013 | In Conquer `RenderEntity` already has EntityID, lat/lon (double), alt, heading; still missing pitch/roll and SISO kind (for models). | O5/O6 | Partly resolved |
+| I-014 | ~~No geodetic origin in Doctrine.~~ Conquer has `GeodeticOrigin` + `CoordBridge`. | O5 | Closed (Conquer) |
+| I-015 | Conquer ground units ride a flat plane at the origin altitude, ~20–24 m below the DTED surface near Islamabad; sim terrain must use the same DEM (or the 3D view keeps clamping ground units). | O5 | Open |
+| I-016 | Conquer test uses the spike's vcpkg tree via `DOCTRINE_OSGEARTH_PREFIX` and online OSM imagery; replace with a pinned manifest (O3) and offline imagery (O8). | O3/O8 | Open |
 | I-006 | `spike.earth` / `osm_style.json` use absolute `D:/Source/...` data paths; offline machines need the same layout or edited paths. | S1 | Open |
 
 ---
