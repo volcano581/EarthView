@@ -1,0 +1,51 @@
+<!--
+  earthview3d default map (template moved from spikes/osgearth/spike.earth).
+
+  osgEarth resolves every path below relative to THIS file, so it lives inside the data
+  tree: <DataRoot>/maps/earthview.earth, with <DataRoot> = EarthView/Data.
+    ../DEM/dted_1arc.vrt    SRTM 1" DTED2 mosaic (git-ignored; copy the .dt2 tiles locally)
+    ../Borders/...          country borders shapefile (in git)
+  Missing local files only drop that layer; osgEarth logs a warning.
+-->
+<map name="EarthView" version="3">
+
+    <!-- Imagery: online OSM until the offline imagery decision (I-007, roadmap E6).
+         Respect the OSM tile usage policy. -->
+    <XYZImage name="OpenStreetMap">
+        <url>https://tile.openstreetmap.org/{z}/{x}/{y}.png</url>
+        <profile>spherical-mercator</profile>
+        <attribution>&#169;OpenStreetMap contributors</attribution>
+    </XYZImage>
+
+    <!-- Offline raster alternative: any raster (PNG/JPEG) MBTiles file.
+    <MBTilesImage name="Local imagery">
+        <filename>../OSM/imagery.mbtiles</filename>
+    </MBTilesImage>
+    -->
+
+    <!-- SRTM 1-arc-second DTED2, 34 tiles N30-N34 / E066-E077, mosaicked by
+         dted_1arc.vrt (relative paths to the .dt2 files next to it).
+         For faster zoomed-out loading, build overviews once:
+           gdaladdo -ro dted_1arc.vrt 2 4 8 16 32 64 -->
+    <GDALElevation name="SRTM 1arc DTED2">
+        <url>../DEM/dted_1arc.vrt</url>
+    </GDALElevation>
+
+    <!-- Vector overlay straight from EarthView's shapefile, clamped to terrain. -->
+    <FeatureModel name="Country borders">
+        <OGRFeatures>
+            <url>../Borders/World_Countries_Generalized_Shapefile/World_Countries_Generalized.shp</url>
+        </OGRFeatures>
+        <styles>
+            <style type="text/css">
+                default {
+                    stroke: #ffd24a;
+                    stroke-width: 2px;
+                    altitude-clamping: terrain-drape;
+                    render-lighting: false;
+                }
+            </style>
+        </styles>
+    </FeatureModel>
+
+</map>

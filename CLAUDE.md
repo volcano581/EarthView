@@ -11,7 +11,7 @@ host application (Doctrine, Conquer superbuild) is **not on GitHub** and is wire
 - `EarthView/OSGEARTH_INTEGRATION.md` — design (embedded-widget rules in §3.3).
 - `EarthView/DOCTRINE_WIRING.md` — the host contract; keep it in sync with the API.
 - `EarthView/3D_PROGRESS.md` — status board, decisions, issues; update it in your PR.
-- `EarthView/earthview3d/reference/` — widget that already worked inside the host (start of E1).
+- `EarthView/earthview3d/` — the library (E1); its README lists the embedded-widget rules.
 
 Never reference, recreate or guess Doctrine/Conquer source. Superseded plans (custom
 renderer M2–M10, O0–O11) must not be implemented. `EarthView/scene3d/` (M1) stays.

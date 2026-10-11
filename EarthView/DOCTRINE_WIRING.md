@@ -27,7 +27,10 @@ API, update that adapter, not a new one.
 
 ## 2. Host contract (what the adapter must provide)
 
-The adapter runs on the GUI thread inside the widget's pre-frame callback.
+The adapter runs on the GUI thread inside the widget's pre-frame callback. API as of E1:
+`#include <earthview3d/GlobeView3D.h>`, class `earthview3d::GlobeView3D(MapConfig, homeLat,
+homeLon)`, records `earthview3d::EntityState3D`, `setPreFrameCallback()`, `setEntities()`.
+Entries with `id == 0` are ignored; a repeated id in one snapshot keeps the first entry.
 
 | `EntityState3D` field | Meaning | Doctrine source (Conquer, as of 2026-10-08) |
 | --------------------- | ------- | ------------------------------------------- |
@@ -40,7 +43,7 @@ The adapter runs on the GUI thread inside the widget's pre-frame callback.
 | `rgba` | 0xRRGGBBAA | `RenderEntity::symbolColor` |
 | `label` | short text | `RenderEntity::label` (char[8]) |
 | `clampToTerrain` | put on 3D terrain | `true` for non-air units (I-015: sim ground is a flat plane at the origin altitude, ~20 m under DTED near Islamabad) |
-| `visible` | skip when false | `RenderEntity::visible` |
+| `visible` | hide when false (visual and selection kept) | `RenderEntity::visible` |
 
 Rules for the adapter:
 - Read the snapshot the same way the 2D map does (copy on new tick only:
@@ -65,8 +68,16 @@ Prerequisites: Conquer's `msvc` preset builds; osgEarth available (vcpkg tree or
    endif()
    ```
 2. **Adapter.** Copy `doctrine/src/view3d/Doctrine3DWindow.*` from branch
-   `earthview-3d-test`; replace its `GlobeView3D` usage with the `earthview3d` public API
-   (names per E1/E3). Keep the mapping table of §2.
+   `earthview-3d-test`; replace its `GlobeView3D` usage with the `earthview3d` public API.
+   Changes since the test (E1): include `<earthview3d/GlobeView3D.h>`; namespace
+   `earthview3d`; `GlobeView3D::EntityState3D` is now `earthview3d::EntityState3D`; the
+   constructor takes an `earthview3d::MapConfig` (earth file, data root, cache dir, sky)
+   instead of an earth-file path; diagnostics `DOCTRINE_3D_LOGDEPTH`/`DOCTRINE_3D_NO_SKY`
+   are now `EARTHVIEW3D_LOGDEPTH`/`EARTHVIEW3D_NO_SKY`. The widget calls
+   `osgEarth::initialize()` itself. Before creating the first view, call
+   `earthview3d::configureRuntime(paths)` (`<earthview3d/Runtime.h>`) with the folders of the
+   OSG plugins and GDAL/PROJ data next to `doctrine.exe` (E7 provides them); setting
+   `OSG_LIBRARY_PATH` in `main()` is too late. Keep the mapping table of §2.
 3. **Link + define.** In `doctrine/CMakeLists.txt`:
    `target_link_libraries(doctrine PRIVATE earthview3d::earthview3d)` and
    `DOCTRINE_HAVE_OSGEARTH=1`; call `earthview3d_deploy_runtime(doctrine)` (E7) instead of
