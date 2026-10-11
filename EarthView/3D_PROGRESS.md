@@ -54,7 +54,7 @@ Status values: `Not started` · `In progress` · `In review` · `Changes request
 | O0–O11 | Earlier osgEarth plan | Superseded by E1–E10 + L1 (D-012) | | | | |
 | E1 | `earthview3d` library + vcpkg manifest + Windows CI | Merged | `3d/e1-earthview3d` | [#4](https://github.com/volcano581/EarthView/pull/4) | `351de51` | ✓ (2026-10-11, local) |
 | E2 | `earthview3d_demo` with synthetic host feed | In review | `3d/e2-demo` | [#5](https://github.com/volcano581/EarthView/pull/5) | — | ✓ (2026-10-11, local; imagery note I-022) |
-| E3 | Entity layer (models, labels, LOD, picking) | In review | `3d/e3-entities` | (stacked on #5) | — | pending (Windows) |
+| E3 | Entity layer (models, labels, LOD, picking) | In review | `3d/e3-entities` | [#6](https://github.com/volcano581/EarthView/pull/6) (stacked on #5) | — | pending (Windows) |
 | E4 | Camera controllers + HUD | Not started | | | | |
 | E5 | Terrain services | Not started | | | | |
 | E6 | Offline data pipeline | Not started | | | | |
@@ -72,7 +72,7 @@ Status values: `Not started` · `In progress` · `In review` · `Changes request
 ## Change log (newest first)
 
 ### 2026-10-11 — E3: entity layer — model table, labels, LOD, attitude, picking  (In review)
-- **Branch / PR:** `3d/e3-entities` / PR stacked on `3d/e2-demo` (#5 not merged yet; retarget to `master` after it merges) — merge —
+- **Branch / PR:** `3d/e3-entities` / [#6](https://github.com/volcano581/EarthView/pull/6) stacked on `3d/e2-demo` (#5 not merged yet; retarget to `master` after it merges) — merge —
 - **Author:** cloud agent
 - **Changes:**
   - `EntityState3D`: `pitchDeg`, `rollDeg`, `kindKey`, `Force force`; `shape` kept as fallback; `entityColor()`.
