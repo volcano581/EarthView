@@ -52,7 +52,7 @@ Status values: `Not started` · `In progress` · `In review` · `Changes request
 | M2–M10 | Custom renderer milestones | Dropped (D-007) | | | | |
 | T1 | Local Doctrine integration test (Conquer, branch `earthview-3d-test`) | Done (local) | — | — | `1fd3d89` (Conquer) | ✓ (2026-10-08) |
 | O0–O11 | Earlier osgEarth plan | Superseded by E1–E10 + L1 (D-012) | | | | |
-| E1 | `earthview3d` library + vcpkg manifest + Windows CI | In review | `3d/e1-earthview3d` | [#4](https://github.com/volcano581/EarthView/pull/4) | — | pending (Windows) |
+| E1 | `earthview3d` library + vcpkg manifest + Windows CI | In review | `3d/e1-earthview3d` | [#4](https://github.com/volcano581/EarthView/pull/4) | — | ✓ (2026-10-11, local) |
 | E2 | `earthview3d_demo` with synthetic host feed | In review | `3d/e2-demo` (on `3d/e1-earthview3d`) | [#5](https://github.com/volcano581/EarthView/pull/5) | — | pending (Windows) |
 | E3 | Entity layer (models, labels, LOD, picking) | Not started | | | | |
 | E4 | Camera controllers + HUD | Not started | | | | |
@@ -133,7 +133,7 @@ Status values: `Not started` · `In progress` · `In review` · `Changes request
   `GlobeView3D.cpp`, the viewer and the moc output were syntax-checked on Linux against
   the osgEarth 3.8.1 source headers and OSG 3.6.5 (no errors/warnings); not linked on Linux.
 - **Verified:** Linux CI ✓ · Windows CI ✓ (VS 2026 / MSVC 14.51, osgEarth 3.8.1 via vcpkg; all targets link, ctest 5/5 with Qt 6.8.3; after review round 1: Qt **6.11.0** + C++20, all targets link, ctest 6/6) ·
-  Visual check pending (Windows): run `earthview3d_viewer --view home|chase|stealth --snapshot`.
+  Visual check ✓ (owner, 2026-10-11, local Windows: home/chase/stealth render with no runtime env vars).
 - **Review round 1 (owner, Windows run with Qt 6.11):** fixed
   1. Qt kit selection: llvm-mingw fallbacks only `if(MINGW)` and only without an explicit
      `CMAKE_PREFIX_PATH`; MSVC appends `msvc2022_64` as a low-priority fallback;
@@ -327,4 +327,5 @@ Record each manual Windows check (build + visual) here; cloud agents cannot do t
 | 2026-10-07 | `3d/m1-geodesy` `1ad4ce8` | llvm-mingw build of app + ctest (3 suites) | Pass | review |
 | 2026-10-08 | master (S1 spike) | MSVC build, `cmake --install`, home/chase/stealth snapshots with DTED + online OSM | Partial — stealth ✓, chase ✗, offline vector imagery ✗ | Claude Code |
 | 2026-10-08 | `3d/m1-geodesy` `5529c47` (post-master-merge) | llvm-mingw build of app + ctest (3 suites: `tst_mercatorprojection`, `tst_geodesy`, `tst_camera3d`) | Pass | Claude Code |
+| 2026-10-11 | `3d/e2-demo` `0c509f4` (contains all E1 fixes) | E1 re-check: Qt kit picks `msvc2022_64` with llvm-mingw installed; C++20 on MSVC builds EarthView, `earthview3d` and demo without manual flags; maps render home/chase/stealth with no `OSG_LIBRARY_PATH`/`GDAL_DATA`/`PROJ_DATA` set. Unit tests not built locally (VS 2022 QtTest ICE, I-019) | Pass — E1 approved | owner |
 | 2026-10-08 | `3d/m1-geodesy` `5529c47` | `earthview_snapshot` run on Windows (real GPU), `--mode mercator` and `--mode orthographic` | Pass — both PNGs render grid/borders/city labels correctly; closes I-005 | Claude Code |
