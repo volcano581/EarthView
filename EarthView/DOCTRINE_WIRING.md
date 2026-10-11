@@ -30,6 +30,8 @@ API, update that adapter, not a new one.
 The adapter runs on the GUI thread inside the widget's pre-frame callback. API as of E1:
 `#include <earthview3d/GlobeView3D.h>`, class `earthview3d::GlobeView3D(MapConfig, homeLat,
 homeLon)`, records `earthview3d::EntityState3D`, `setPreFrameCallback()`, `setEntities()`.
+E3 adds attitude, `kindKey`, `force`, the model table (`MapConfig::modelTable`), picking and
+selection (see below).
 Entries with `id == 0` are ignored; a repeated id in one snapshot keeps the first entry.
 
 | `EntityState3D` field | Meaning | Doctrine source (Conquer, as of 2026-10-08) |
@@ -38,12 +40,24 @@ Entries with `id == 0` are ignored; a repeated id in one snapshot keeps the firs
 | `latDeg`, `lonDeg` | WGS-84, double | `RenderEntity::lat_rad`, `lon_rad` × 180/π |
 | `altM` | height above the **WGS-84 ellipsoid** | `RenderEntity::alt_m` |
 | `headingDeg` | clockwise from north | `RenderEntity::heading_rad` × 180/π |
-| `pitchDeg`, `rollDeg` (E3) | attitude | not in the snapshot yet — 0 until added |
-| `shape` / `kindKey` (E3) | marker shape or model-table key | `RenderEntity::unitType` (0 inf, 1 air, 2 armour, 3 arty); SISO kind later |
-| `rgba` | 0xRRGGBBAA | `RenderEntity::symbolColor` |
+| `pitchDeg`, `rollDeg` (E3) | attitude, degrees (nose up / right wing down positive) | not in the snapshot yet — 0 until added |
+| `kindKey` (E3) | model-table key, e.g. SISO `"1.1.225.1.1.3"` or `"ground/armour"`; empty = use `shape` | SISO kind when available; empty until then |
+| `shape` | placeholder marker when no model matches (0 inf, 1 air, 2 armour, 3 arty) | `RenderEntity::unitType` |
+| `force` (E3) | `Force::Friendly/Hostile/Neutral/Unknown` colours the marker and label; `Unspecified` uses `rgba` | force/side of the unit |
+| `rgba` | 0xRRGGBBAA, used when `force` is `Unspecified` | `RenderEntity::symbolColor` |
 | `label` | short text | `RenderEntity::label` (char[8]) |
 | `clampToTerrain` | put on 3D terrain | `true` for non-air units (I-015: sim ground is a flat plane at the origin altitude, ~20 m under DTED near Islamabad) |
 | `visible` | hide when false (visual and selection kept) | `RenderEntity::visible` |
+
+Model table (E3): `MapConfig::modelTable` = path to `models.json` (relative to `dataRoot`;
+format in `ModelTable.h`, example `Data/models/models.json`). Each entry maps a `kindKey` glob
+(`*`, `?`; most specific wins) to a model file, scale, HPR offset, clamp flag and fallback
+shape. Missing files, unmatched kinds and models smaller than `iconBelowPixels` on screen are
+drawn as placeholder markers. A broken table is reported via `loadFailed` and ignored.
+
+Selection and picking (E3): left-click on an entity selects it and emits
+`entityPicked(quint64 id)`; `setSelected(id)` selects from the host (0 clears) and emits
+`selectionChanged(label)`. `setLabelsVisible(bool)` toggles the decluttered labels.
 
 Rules for the adapter:
 - Read the snapshot the same way the 2D map does (copy on new tick only:

@@ -1,0 +1,9 @@
+{
+  "iconBelowPixels": 12,
+  "models": [
+    { "kind": "ground/infantry*",  "shape": 0, "clampToTerrain": true },
+    { "kind": "ground/armour*",    "shape": 2, "clampToTerrain": true },
+    { "kind": "ground/artillery*", "shape": 3, "clampToTerrain": true },
+    { "kind": "air/*",             "shape": 1 }
+  ]
+}

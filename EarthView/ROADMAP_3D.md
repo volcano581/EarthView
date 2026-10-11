@@ -63,7 +63,7 @@
 | T1 | Local Doctrine integration test (Conquer) | S1 | M | yes | **Done** (local, `1fd3d89`) |
 | E1 | `earthview3d` library from the reference widget + vcpkg manifest + Windows CI | — | M | yes | **Done** ([#4](https://github.com/volcano581/EarthView/pull/4), `351de51`) |
 | E2 | `earthview3d_demo` app with synthetic host feed (replaces the spike app) | E1 | M | yes | In review (`3d/e2-demo`, [#5](https://github.com/volcano581/EarthView/pull/5)) |
-| E3 | Entity layer: API, model table, labels, LOD, attitude, picking + selection | E1 | L | yes | |
+| E3 | Entity layer: API, model table, labels, LOD, attitude, picking + selection | E1 | L | yes | In review |
 | E4 | Camera controllers (orbit, chase, stealth, first-person, free-fly) + HUD | E1 | M | yes | |
 | E5 | Terrain services: height query API, clamping, vertical datum check | E1 | S | yes | |
 | E6 | Offline data pipeline (imagery, DEM overviews, overlays, earth template, cache) | E1 | M | yes | |
@@ -108,7 +108,7 @@ demonstrated).
 - Retire `spikes/osgearth` (keep README results as history).
 - Acceptance: snapshots show 2D and 3D positions agreeing; tests for the feed.
 
-### E3 — Entity layer
+### E3 — Entity layer — IN REVIEW (branch `3d/e3-entities`)
 - `EntityState3D`: id, lat/lon/alt (double), heading/pitch/roll, `kindKey`, rgba, label,
   `clampToTerrain`, visible.
 - Model table (`models.json`): kindKey pattern → model file (`.osgb`/glTF), scale, HPR

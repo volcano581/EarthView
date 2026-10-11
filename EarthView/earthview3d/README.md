@@ -11,7 +11,8 @@ frame and reads signals. Design: `../OSGEARTH_INTEGRATION.md`; host contract:
 | ---- | ---- |
 | `include/earthview3d/` | Public headers — Qt/STL types only, no osgEarth/OSG (D-011) |
 | `src/GlobeView3D.cpp` | The osgEarth widget (pimpl); started as the widget from the local host test |
-| `src/MapConfig.cpp`, `src/EntityDiff.cpp`, `src/RuntimePaths.cpp` | GL-free logic, unit tested (`tests/tst_mapconfig`, `tst_entitydiff`, `tst_runtimepaths`) |
+| `src/MapConfig.cpp`, `src/EntityDiff.cpp`, `src/ModelTable.cpp`, `src/Picking.cpp`, `src/RuntimePaths.cpp` | GL-free logic, unit tested (`tests/tst_mapconfig`, `tst_entitydiff`, `tst_modeltable`, `tst_runtimepaths`) |
+| `../Data/models/models.json` | Example model table (`MapConfig::modelTable`; format in `ModelTable.h`) |
 | `src/Runtime.cpp` | `configureRuntime()`: OSG plugin path + GDAL/PROJ data |
 | `demo/` | `earthview3d_demo`: host simulator — 2D map + "Open 3D View", synthetic 100 Hz entity feed (E2) |
 | `../Data/maps/earthview.earth` | Default map; layer paths relative to the earth file |
@@ -40,7 +41,7 @@ setting it in the application does nothing. Call `earthview3d::configureRuntime(
 otherwise the first `GlobeView3D` uses `RuntimePaths::buildTreeDefaults()` (the vcpkg
 folders of this build tree). Explicit `GDAL_DATA`/`PROJ_DATA` variables still win.
 
-Keyboard: N next entity, T chase, F stealth, U untether, H home.
+Mouse: left-click selects an entity (`entityPicked`). Keyboard: N next entity, T chase, F stealth, U untether, H home.
 
 `GlobeView3D::entityPosition(id, &lat, &lon, &alt)` returns where an entity was actually
 placed (after terrain clamping) — used by `earthview3d_demo --check-agreement`.
@@ -79,4 +80,6 @@ vcpkg OSG plugins and GDAL/PROJ data of the build tree by itself; Qt DLLs come f
    `EARTHVIEW3D_LOGDEPTH=1` turns it on for diagnosis; `EARTHVIEW3D_NO_SKY=1` drops the sky.
 7. Ground entities clamped to terrain with a cached last-good height (I-015).
 8. Entity markers: real size up close, minimum pixel size far away (`AutoTransform`
-   with pre-scale + minimum scale).
+   with pre-scale + minimum scale). With a model file they are the far LOD (`osg::LOD`
+   by pixel size, `iconBelowPixels`), so entities stay readable at all ranges.
+9. Labels go through osgEarth's `ScreenSpaceLayout` (declutter); the selected label gets top priority.

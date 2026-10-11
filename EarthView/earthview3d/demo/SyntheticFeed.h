@@ -19,7 +19,8 @@ namespace earthview3d::demo {
  * Deterministic: stateAt(t) depends only on the settings and t, so tests and snapshots are
  * reproducible. Entity i has kind i % 4 (infantry, armour, artillery, air) and drives a
  * circular route whose radius, speed and direction depend on i. Ground kinds are clamped to
- * terrain; air flies at airAltitudeM above the ellipsoid.
+ * terrain; air flies at airAltitudeM above the ellipsoid, banked 20° into its turn.
+ * Every fifth entity is hostile, the rest friendly.
  */
 class SyntheticFeed
 {
@@ -28,7 +29,7 @@ public:
 
     struct Settings
     {
-        int entityCount = 40;
+        int entityCount = 200;
         double originLatDeg = 33.6844;
         double originLonDeg = 73.0479;
         double groundAltitudeM = 540.0;  ///< Used until terrain clamping finds the ground
@@ -45,6 +46,9 @@ public:
     static Kind kindOf(int index) { return Kind(index % 4); }
     /// EntityState3D::shape for a kind (0 infantry, 1 air, 2 armour, 3 artillery).
     static int shapeOf(Kind kind);
+    /// EntityState3D::kindKey for a kind ("ground/infantry", …, "air/fixed-wing"), matched by
+    /// Data/models/models.json.
+    static const char* kindKeyOf(Kind kind);
     /// Route radius (m) and ground speed (m/s) of entity @p index.
     static double routeRadiusM(int index);
     static double speedMps(int index);

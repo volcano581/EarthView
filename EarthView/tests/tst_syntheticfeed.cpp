@@ -7,6 +7,7 @@
 #include <set>
 
 using earthview3d::EntityState3D;
+using earthview3d::Force;
 using earthview3d::demo::FeedPublisher;
 using earthview3d::demo::SnapshotBuffer;
 using earthview3d::demo::SyntheticFeed;
@@ -50,6 +51,7 @@ private slots:
     void staysNearOrigin();
     void headingFollowsMotion();
     void groundClampedAirAloft();
+    void kindKeysForceAttitude();
     void zeroAndNegativeCount();
     void bufferCopiesOnlyNewTicks();
     void publisherRunsAndStops();
@@ -137,6 +139,23 @@ void TestSyntheticFeed::groundClampedAirAloft()
             QCOMPARE(e.altM, 500.0);
         }
         QVERIFY(e.visible);
+    }
+}
+
+void TestSyntheticFeed::kindKeysForceAttitude()
+{
+    SyntheticFeed::Settings s;
+    s.entityCount = 10;
+    const std::vector<EntityState3D> entities = SyntheticFeed(s).stateAt(5.0);
+    for (int i = 0; i < 10; ++i) {
+        const EntityState3D& e = entities[std::size_t(i)];
+        const SyntheticFeed::Kind kind = SyntheticFeed::kindOf(i);
+        QCOMPARE(e.kindKey, QString::fromLatin1(SyntheticFeed::kindKeyOf(kind)));
+        QCOMPARE(e.force, i % 5 == 4 ? Force::Hostile : Force::Friendly);
+        if (kind == SyntheticFeed::Air)
+            QCOMPARE(std::abs(e.rollDeg), 20.0);
+        else
+            QCOMPARE(e.rollDeg, 0.0);
     }
 }
 
