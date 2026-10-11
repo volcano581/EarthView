@@ -53,7 +53,7 @@ Status values: `Not started` · `In progress` · `In review` · `Changes request
 | T1 | Local Doctrine integration test (Conquer, branch `earthview-3d-test`) | Done (local) | — | — | `1fd3d89` (Conquer) | ✓ (2026-10-08) |
 | O0–O11 | Earlier osgEarth plan | Superseded by E1–E10 + L1 (D-012) | | | | |
 | E1 | `earthview3d` library + vcpkg manifest + Windows CI | In review | `3d/e1-earthview3d` | [#4](https://github.com/volcano581/EarthView/pull/4) | — | ✓ (2026-10-11, local) |
-| E2 | `earthview3d_demo` with synthetic host feed | In review | `3d/e2-demo` (on `3d/e1-earthview3d`) | [#5](https://github.com/volcano581/EarthView/pull/5) | — | pending (Windows) |
+| E2 | `earthview3d_demo` with synthetic host feed | In review | `3d/e2-demo` (on `3d/e1-earthview3d`) | [#5](https://github.com/volcano581/EarthView/pull/5) | — | ✓ (2026-10-11, local; imagery note I-022) |
 | E3 | Entity layer (models, labels, LOD, picking) | Not started | | | | |
 | E4 | Camera controllers + HUD | Not started | | | | |
 | E5 | Terrain services | Not started | | | | |
@@ -101,7 +101,15 @@ Status values: `Not started` · `In progress` · `In review` · `Changes request
 - **Verified:** Linux CI ✓ · Windows CI ✓ (VS 2026, Qt 6.11, C++20: `earthview3d_demo.exe` links, ctest 7/7) · Visual check pending (Windows):
   `earthview3d_demo --view chase --snapshot2d 2d.png --snapshot3d 3d.png --after 30`;
   2D dots and 3D markers should sit at the same places.
-- **Follow-ups:** I-020, I-021.
+- **Review (owner, local Windows, approved with notes):** 2D/3D, chase/stealth, fp/free
+  fallback, threading all ✓. Notes addressed: (1) coarse 3D imagery after 30 s → I-022;
+  (2) `Windows Error #2000 ... Unable to restore current OpenGL rendering context` at
+  startup documented as an expected log line in `earthview3d/README.md`; (3) 2D↔3D agreement
+  made testable: `GlobeView3D::entityPosition()` (where an entity is placed after clamping)
+  and `earthview3d_demo --check-agreement` (pauses the feed, compares 2D overlay vs 3D
+  placement horizontally, exits non-zero if any entity is missing or > 0.5 m off);
+  comparison logic unit tested (`agreementComparison`).
+- **Follow-ups:** I-020, I-021, I-022.
 
 ### 2026-10-08 — E1: `earthview3d` library, vcpkg manifest, Windows CI  (In review)
 - **Branch / PR:** `3d/e1-earthview3d` / [#4](https://github.com/volcano581/EarthView/pull/4) — merge —
@@ -314,6 +322,7 @@ Status values: `Not started` · `In progress` · `In review` · `Changes request
 | I-019 | **VS 2022** + Qt 6.11 + C++20: QtTest headers hit an MSVC internal compiler error (`qrangemodel_impl.h(991): C1001`). Windows CI with **VS 2026 (MSVC 14.51)** compiles all six test suites fine, so the minimum compiler for Qt 6.11 builds is VS 2026. Developer machines on VS 2022 must upgrade (and rebuild vcpkg packages, I-009). | E1 | Open (documented) |
 | I-020 | `earthview3d_demo --view fp` / `--view free` fall back to stealth / home until E4 adds first-person and free-fly cameras. | E4 | Open |
 | I-021 | The demo's 2D entity overlay is a QWidget painted over `MapWidget` (no 2D API for entities). E9 ("Open 3D" hook in the 2D viewer) should decide whether EarthView 2D gets a proper entity layer. | E9 | Open |
+| I-022 | 3D imagery still coarse after 30 s in the demo (sharp by then in the host test). Likely the 2D map and osgEarth both pulling from tile.openstreetmap.org (throttling). Re-check once E6's offline imagery and the osgEarth cache are in. | E6 | Open |
 | I-018 | `MapConfig.cacheDir` is applied through `OSGEARTH_CACHE_PATH` before the widget's first `osgEarth::initialize()`; it is ignored if the host initialised osgEarth earlier or set the variable itself. Verify the cache fills on Windows (E6 owns caching). | E6 | Open |
 
 ---
@@ -327,5 +336,6 @@ Record each manual Windows check (build + visual) here; cloud agents cannot do t
 | 2026-10-07 | `3d/m1-geodesy` `1ad4ce8` | llvm-mingw build of app + ctest (3 suites) | Pass | review |
 | 2026-10-08 | master (S1 spike) | MSVC build, `cmake --install`, home/chase/stealth snapshots with DTED + online OSM | Partial — stealth ✓, chase ✗, offline vector imagery ✗ | Claude Code |
 | 2026-10-08 | `3d/m1-geodesy` `5529c47` (post-master-merge) | llvm-mingw build of app + ctest (3 suites: `tst_mercatorprojection`, `tst_geodesy`, `tst_camera3d`) | Pass | Claude Code |
+| 2026-10-11 | `3d/e2-demo` `0c509f4` | E2: `earthview3d_demo --entities 20 --view home/chase/stealth/fp/free --snapshot2d --snapshot3d --after 30`, no runtime env vars. 2D 20 entities with labels/heading ticks (117 FPS); 3D entities move, chase/stealth tether on DTED with sky; fp/free fall back with message. Unit tests not built locally (I-019) | Pass, approved (imagery note I-022) | owner |
 | 2026-10-11 | `3d/e2-demo` `0c509f4` (contains all E1 fixes) | E1 re-check: Qt kit picks `msvc2022_64` with llvm-mingw installed; C++20 on MSVC builds EarthView, `earthview3d` and demo without manual flags; maps render home/chase/stealth with no `OSG_LIBRARY_PATH`/`GDAL_DATA`/`PROJ_DATA` set. Unit tests not built locally (VS 2022 QtTest ICE, I-019) | Pass — E1 approved | owner |
 | 2026-10-08 | `3d/m1-geodesy` `5529c47` | `earthview_snapshot` run on Windows (real GPU), `--mode mercator` and `--mode orthographic` | Pass — both PNGs render grid/borders/city labels correctly; closes I-005 | Claude Code |

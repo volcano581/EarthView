@@ -53,6 +53,7 @@ private slots:
     void zeroAndNegativeCount();
     void bufferCopiesOnlyNewTicks();
     void publisherRunsAndStops();
+    void agreementComparison();
 };
 
 void TestSyntheticFeed::countIdsAndKinds()
@@ -204,6 +205,37 @@ void TestSyntheticFeed::publisherRunsAndStops()
     QVERIFY(ticks >= std::uint64_t(copies));
     QThread::msleep(30);
     QCOMPARE(buffer.tick(), ticks);   // nothing published after stop()
+}
+
+void TestSyntheticFeed::agreementComparison()
+{
+    using earthview3d::demo::compareHorizontal;
+    SyntheticFeed::Settings s;
+    s.entityCount = 6;
+    const auto reference = SyntheticFeed(s).stateAt(5.0);
+
+    // Identical placement (altitude ignored) -> zero error, nothing missing.
+    auto same = compareHorizontal(reference, [&](std::uint64_t id, double* lat, double* lon) {
+        *lat = reference[id - 1].latDeg;
+        *lon = reference[id - 1].lonDeg;
+        return true;
+    });
+    QCOMPARE(same.compared, 6);
+    QCOMPARE(same.missing, 0);
+    QVERIFY(same.maxErrorM < 1e-6);
+
+    // Entity 4 shifted ~111 m north, entity 6 unknown to the other view.
+    auto off = compareHorizontal(reference, [&](std::uint64_t id, double* lat, double* lon) {
+        if (id == 6)
+            return false;
+        *lat = reference[id - 1].latDeg + (id == 4 ? 0.001 : 0.0);
+        *lon = reference[id - 1].lonDeg;
+        return true;
+    });
+    QCOMPARE(off.compared, 5);
+    QCOMPARE(off.missing, 1);
+    QCOMPARE(off.worstId, std::uint64_t(4));
+    QVERIFY(std::abs(off.maxErrorM - 110.9) < 1.0);
 }
 
 QTEST_GUILESS_MAIN(TestSyntheticFeed)

@@ -42,6 +42,15 @@ folders of this build tree). Explicit `GDAL_DATA`/`PROJ_DATA` variables still wi
 
 Keyboard: N next entity, T chase, F stealth, U untether, H home.
 
+`GlobeView3D::entityPosition(id, &lat, &lon, &alt)` returns where an entity was actually
+placed (after terrain clamping) — used by `earthview3d_demo --check-agreement`.
+
+### Expected log lines
+- `Windows Error #2000: ... Unable to restore current OpenGL rendering context` at startup:
+  OSG probing contexts while the Qt widget owns the current one. Harmless.
+- `GDAL_DATA environment variable is not set` may still appear before `configureRuntime()`
+  runs (I-011); GDAL then uses the paths set through its API.
+
 ## Build (Windows, MSVC)
 
 osgEarth comes from the vcpkg manifest at the repo root (`vcpkg.json`); see `CLAUDE.md`.

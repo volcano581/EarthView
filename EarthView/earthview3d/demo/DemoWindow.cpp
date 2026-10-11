@@ -155,6 +155,14 @@ GlobeView3D* DemoWindow::open3DView()
     return view;
 }
 
+AgreementReport DemoWindow::checkAgreement() const
+{
+    const GlobeView3D* view = m_view3D.data();
+    return compareHorizontal(m_overlay->entities(), [view](std::uint64_t id, double* lat, double* lon) {
+        return view && view->entityPosition(id, lat, lon, nullptr);
+    });
+}
+
 QImage DemoWindow::grab2D() const
 {
     // Compose the GL map with the overlay on top (QWidget::grab includes the GL content).

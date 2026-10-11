@@ -119,6 +119,13 @@ std::vector<EntityState3D> SyntheticFeed::stateAt(double seconds) const
     return entities;
 }
 
+double horizontalDistanceM(double lat1, double lon1, double lat2, double lon2)
+{
+    const glm::dvec3 a = scene3d::Geodesy::geodeticToEcef(lat1, lon1, 0.0);
+    const glm::dvec3 b = scene3d::Geodesy::geodeticToEcef(lat2, lon2, 0.0);
+    return glm::length(a - b);
+}
+
 void SnapshotBuffer::publish(std::vector<EntityState3D> snapshot)
 {
     QMutexLocker lock(&m_mutex);

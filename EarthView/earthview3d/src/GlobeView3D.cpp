@@ -419,6 +419,21 @@ std::uint64_t GlobeView3D::selectedId() const
     return d->selectedId;
 }
 
+bool GlobeView3D::entityPosition(std::uint64_t id, double* latDeg, double* lonDeg, double* altM) const
+{
+    auto it = d->entities.find(id);
+    if (it == d->entities.end())
+        return false;
+    const GeoPoint& p = it->second.geo->getPosition();
+    if (latDeg)
+        *latDeg = p.y();
+    if (lonDeg)
+        *lonDeg = p.x();
+    if (altM)
+        *altM = p.z();
+    return true;
+}
+
 QString GlobeView3D::selectedLabel() const
 {
     auto it = d->entities.find(d->selectedId);

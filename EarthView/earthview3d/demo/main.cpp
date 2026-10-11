@@ -71,6 +71,8 @@ int main(int argc, char** argv)
         {QStringLiteral("snapshot3d"), QStringLiteral("Save the 3D view to this PNG (opens the 3D view)."), QStringLiteral("png")},
         {QStringLiteral("after"), QStringLiteral("Seconds before taking snapshots, then exit."), QStringLiteral("sec"),
          QStringLiteral("30")},
+        {QStringLiteral("check-agreement"),
+         QStringLiteral("After --after seconds: pause the feed, compare 2D and 3D entity positions, exit 0 if they agree.")},
     });
     parser.process(app);
 
@@ -128,7 +130,8 @@ int main(int argc, char** argv)
 
     const QString snapshot2D = parser.value(QStringLiteral("snapshot2d"));
     const QString snapshot3D = parser.value(QStringLiteral("snapshot3d"));
-    if (!view.isEmpty() || !snapshot3D.isEmpty()) {
+    const bool checkAgreement = parser.isSet(QStringLiteral("check-agreement"));
+    if (!view.isEmpty() || !snapshot3D.isEmpty() || checkAgreement) {
         QTimer::singleShot(500, &window, [&window, view] {
             earthview3d::GlobeView3D* view3D = window.open3DView();
             // Tether once the home fly-in has settled and entities exist.
@@ -143,10 +146,19 @@ int main(int argc, char** argv)
         });
     }
 
-    if (!snapshot2D.isEmpty() || !snapshot3D.isEmpty()) {
+    if (!snapshot2D.isEmpty() || !snapshot3D.isEmpty() || checkAgreement) {
         const int afterMs = int(parser.value(QStringLiteral("after")).toDouble() * 1000.0);
-        QTimer::singleShot(afterMs, &window, [&window, snapshot2D, snapshot3D] {
+        auto finish = [&window, snapshot2D, snapshot3D, checkAgreement] {
             bool allSaved = true;
+            if (checkAgreement) {
+                // Both views now hold the same (last) tick, so positions must match exactly.
+                const earthview3d::demo::AgreementReport r = window.checkAgreement();
+                const bool agree = r.compared > 0 && r.missing == 0 && r.maxErrorM < 0.5;
+                std::fprintf(stderr, "2D/3D agreement %s: %d entities compared, %d missing in 3D, max horizontal difference %.3f m (entity %llu)\n",
+                             agree ? "OK" : "FAILED", r.compared, r.missing, r.maxErrorM,
+                             static_cast<unsigned long long>(r.worstId));
+                allSaved = allSaved && agree;
+            }
             if (!snapshot2D.isEmpty()) {
                 const bool saved = window.grab2D().save(snapshot2D);
                 std::fprintf(stderr, "2D snapshot %s: %s\n", saved ? "saved" : "FAILED", qPrintable(snapshot2D));
@@ -160,6 +172,15 @@ int main(int argc, char** argv)
                 allSaved = allSaved && saved;
             }
             QCoreApplication::exit(allSaved ? 0 : 1);
+        };
+        QTimer::singleShot(afterMs, &window, [&publisher, &window, finish, checkAgreement] {
+            if (!checkAgreement) {
+                finish();
+                return;
+            }
+            // Freeze the feed and give both views time to consume the final tick.
+            publisher.stop();
+            QTimer::singleShot(500, &window, finish);
         });
     }
 

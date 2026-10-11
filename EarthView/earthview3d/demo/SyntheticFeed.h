@@ -54,6 +54,26 @@ private:
 };
 
 /**
+ * @brief Result of comparing where two views placed the same entities (horizontal only).
+ */
+struct AgreementReport
+{
+    int compared = 0;          ///< Entities present in both views
+    int missing = 0;           ///< Entities in the reference set the other view did not place
+    double maxErrorM = 0.0;    ///< Largest horizontal distance between the two placements
+    std::uint64_t worstId = 0;
+};
+
+/**
+ * @brief Compare reference entities against positions looked up in another view.
+ *
+ * @p lookup returns false when the other view does not know the id. Altitude is ignored
+ * (terrain clamping changes it on purpose); distance is measured via ECEF in double.
+ */
+template <typename Lookup>
+AgreementReport compareHorizontal(const std::vector<EntityState3D>& reference, Lookup lookup);
+
+/**
  * @brief Latest-snapshot double buffer between a producer thread and the GUI thread.
  *
  * The producer publishes whole snapshots; the consumer copies only when the tick counter
@@ -96,6 +116,30 @@ private:
     std::atomic<bool> m_running{false};
     std::thread m_thread;
 };
+
+/// Horizontal distance (m) between two WGS-84 points, via ECEF in double.
+double horizontalDistanceM(double lat1, double lon1, double lat2, double lon2);
+
+template <typename Lookup>
+AgreementReport compareHorizontal(const std::vector<EntityState3D>& reference, Lookup lookup)
+{
+    AgreementReport report;
+    for (const EntityState3D& e : reference) {
+        double lat = 0.0;
+        double lon = 0.0;
+        if (!lookup(e.id, &lat, &lon)) {
+            ++report.missing;
+            continue;
+        }
+        ++report.compared;
+        const double d = horizontalDistanceM(e.latDeg, e.lonDeg, lat, lon);
+        if (d >= report.maxErrorM) {
+            report.maxErrorM = d;
+            report.worstId = e.id;
+        }
+    }
+    return report;
+}
 
 } // namespace earthview3d::demo
 

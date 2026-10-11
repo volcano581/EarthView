@@ -30,6 +30,9 @@ class EntityOverlay2D : public QWidget
 public:
     EntityOverlay2D(MapWidget* map, const SnapshotBuffer* buffer, QWidget* parent);
 
+    /// The snapshot last drawn (for the 2D/3D agreement check).
+    const std::vector<EntityState3D>& entities() const { return m_entities; }
+
 protected:
     void paintEvent(QPaintEvent* event) override;
 
@@ -59,6 +62,8 @@ public:
     GlobeView3D* open3DView();
     /// 2D map including the entity overlay, as an image.
     QImage grab2D() const;
+    /// Compare where the 2D overlay drew each entity with where the 3D view placed it.
+    AgreementReport checkAgreement() const;
 
 private:
     MapConfig m_mapConfig;
