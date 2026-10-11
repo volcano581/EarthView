@@ -17,7 +17,8 @@ Never reference, recreate or guess Doctrine/Conquer source. Superseded plans (cu
 renderer M2–M10, O0–O11) must not be implemented. `EarthView/scene3d/` (M1) stays.
 
 Further docs: `EarthView/DEVELOPERS_GUIDE.md`, `EarthView/RENDERING_PIPELINE.md`,
-`spikes/osgearth/` (working osgEarth-in-Qt reference, `OFFLINE_BUILD.md`).
+`spikes/osgearth/` (retired spike: evaluation results and `OFFLINE_BUILD.md`). Demo host:
+`EarthView/earthview3d/demo` (`earthview3d_demo`, E2).
 
 ## Build
 

@@ -1,3 +1,8 @@
+> **Retired (roadmap E2).** The spike app, its earth file and vcpkg manifest were removed; their
+> successors are the `earthview3d` library, `EarthView/Data/maps/earthview.earth`, the repo-root
+> `vcpkg.json` and the demo host `EarthView/earthview3d/demo` (`earthview3d_demo`). This README is
+> kept as the record of the evaluation; `OFFLINE_BUILD.md` stays until E7 generalises it.
+
 # osgEarth spike
 
 Throwaway evaluation app: does osgEarth, hosted in a Qt 6 widget, give EarthView an

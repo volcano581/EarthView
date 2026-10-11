@@ -160,7 +160,7 @@ the public API in §7. This keeps EarthView reusable and testable on its own (ex
   "dependencies": [ "osgearth", "glm", "zlib" ]
 }
 ```
-- Baseline is shared with `spikes/osgearth/vcpkg.json`; bump both together.
+- The manifest lives at the EarthView repo root (`vcpkg.json`, E1); the spike's copy was removed in E2.
 - osgEarth's default features pulled in GDAL, PROJ, GEOS, protobuf, blend2d, curl, sqlite3
   (see `vcpkg depend-info osgearth`). curl stays linked but is unused offline.
 - No `FetchContent` for new dependencies (offline rule). Doctrine's current

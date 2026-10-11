@@ -13,11 +13,11 @@ frame and reads signals. Design: `../OSGEARTH_INTEGRATION.md`; host contract:
 | `src/GlobeView3D.cpp` | The osgEarth widget (pimpl); started as the widget from the local host test |
 | `src/MapConfig.cpp`, `src/EntityDiff.cpp`, `src/RuntimePaths.cpp` | GL-free logic, unit tested (`tests/tst_mapconfig`, `tst_entitydiff`, `tst_runtimepaths`) |
 | `src/Runtime.cpp` | `configureRuntime()`: OSG plugin path + GDAL/PROJ data |
-| `examples/earthview3d_viewer.cpp` | The `spikes/osgearth` app ported onto the library |
+| `demo/` | `earthview3d_demo`: host simulator — 2D map + "Open 3D View", synthetic 100 Hz entity feed (E2) |
 | `../Data/maps/earthview.earth` | Default map; layer paths relative to the earth file |
 
-CMake targets: `earthview3d_core` (always built), `earthview3d` and `earthview3d_viewer`
-(only with `EARTHVIEW_BUILD_3D`, which defaults to ON when osgEarth is found).
+CMake targets: `earthview3d_core` and `earthview3d_demo_feed` (always built), `earthview3d` and
+`earthview3d_demo` (only with `EARTHVIEW_BUILD_3D`, which defaults to ON when osgEarth is found).
 
 ## Use
 
@@ -51,7 +51,7 @@ cmake -S EarthView -B build-msvc -G "Visual Studio 18 2026" -A x64 ^
   -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake ^
   -DVCPKG_MANIFEST_DIR=D:/Source/EarthView1
 cmake --build build-msvc --config Release
-build-msvc\earthview3d\Release\earthview3d_viewer.exe --view stealth --snapshot stealth.png --after 30
+build-msvc\earthview3d\demo\Release\earthview3d_demo.exe --view stealth --snapshot2d 2d.png --snapshot3d 3d.png --after 30
 ```
 `VCPKG_MANIFEST_DIR` is needed because the CMake source dir (`EarthView/`) is not the repo
 root. MSVC builds use C++20 (Qt 6.11 moc output needs it, D-016); use **VS 2026** —

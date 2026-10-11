@@ -23,3 +23,7 @@ endforeach()
 add_executable(tst_runtimepaths tst_runtimepaths.cpp)
 target_link_libraries(tst_runtimepaths PRIVATE earthview3d_core Qt6::Core Qt6::Test)
 add_test(NAME tst_runtimepaths COMMAND tst_runtimepaths)
+
+add_executable(tst_syntheticfeed tst_syntheticfeed.cpp)
+target_link_libraries(tst_syntheticfeed PRIVATE earthview3d_demo_feed Qt6::Core Qt6::Test)
+add_test(NAME tst_syntheticfeed COMMAND tst_syntheticfeed)

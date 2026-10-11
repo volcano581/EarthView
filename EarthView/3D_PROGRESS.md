@@ -53,7 +53,7 @@ Status values: `Not started` · `In progress` · `In review` · `Changes request
 | T1 | Local Doctrine integration test (Conquer, branch `earthview-3d-test`) | Done (local) | — | — | `1fd3d89` (Conquer) | ✓ (2026-10-08) |
 | O0–O11 | Earlier osgEarth plan | Superseded by E1–E10 + L1 (D-012) | | | | |
 | E1 | `earthview3d` library + vcpkg manifest + Windows CI | In review | `3d/e1-earthview3d` | [#4](https://github.com/volcano581/EarthView/pull/4) | — | pending (Windows) |
-| E2 | `earthview3d_demo` with synthetic host feed | Not started | | | | |
+| E2 | `earthview3d_demo` with synthetic host feed | In review | `3d/e2-demo` (on `3d/e1-earthview3d`) | PR_LINK | — | pending (Windows) |
 | E3 | Entity layer (models, labels, LOD, picking) | Not started | | | | |
 | E4 | Camera controllers + HUD | Not started | | | | |
 | E5 | Terrain services | Not started | | | | |
@@ -70,6 +70,38 @@ Status values: `Not started` · `In progress` · `In review` · `Changes request
 ---
 
 ## Change log (newest first)
+
+### 2026-10-11 — E2: `earthview3d_demo` host simulator  (In review)
+- **Branch / PR:** `3d/e2-demo` / PR_LINK — merge — (built on the unmerged E1 branch; retarget to `master` after #4 merges)
+- **Author:** cloud agent
+- **Applied from the E1 review:** `configureRuntime()` before the first `GlobeView3D`; MSVC
+  C++20 / VS 2026 / Qt 6.11 (inherited); visual checks left `pending (Windows)`.
+- **Changes:**
+  - `earthview3d/demo/SyntheticFeed.*` (lib `earthview3d_demo_feed`, Qt Core + `scene3d`,
+    GL-free): N scripted entities (infantry, armour, artillery, air) on circular routes
+    around a configurable origin, positions via ECEF/ENU in double (`scene3d::Geodesy`),
+    deterministic `stateAt(t)`; `SnapshotBuffer` (mutex, copy only on a new tick — the host
+    contract pattern); `FeedPublisher` (worker thread, 100 Hz).
+  - `earthview3d/demo/DemoWindow.*` + `main.cpp` (`earthview3d_demo`): EarthView 2D
+    `MapWidget` with a transparent entity overlay (uses only `Camera::projectMercatorToScreen`,
+    no 2D code changed) and a "View → Open 3D View" action (Ctrl+3) opening `GlobeView3D`,
+    both fed from the same buffer. Options `--entities`, `--origin lat,lon`,
+    `--view home|chase|stealth|fp|free`, `--map`, `--data-root`, `--snapshot2d`,
+    `--snapshot3d`, `--after`.
+  - Retired `spikes/osgearth` (code, earth file, style, manifest removed; README kept as the
+    evaluation record, `OFFLINE_BUILD.md` kept for E7) and the E1 `earthview3d_viewer`
+    (superseded by the demo).
+- **Existing files touched:** `EarthView/CMakeLists.txt` (`add_subdirectory(earthview3d/demo)`
+  only), `earthview3d/CMakeLists.txt` (viewer removed), `tests/CMakeLists.txt`, docs
+  (`CLAUDE.md`, `OSGEARTH_INTEGRATION.md` manifest note, `earthview3d/README.md`,
+  `spikes/osgearth/README.md`). No 2D source changed.
+- **Tests:** `tst_syntheticfeed` (8 cases: ids/kinds, determinism, stays within 10 km,
+  heading matches motion within 3°, air speed, clamp flags, buffer tick semantics,
+  publisher thread start/stop). Linux ctest 7/7. Demo sources syntax-checked (C++17/20).
+- **Verified:** Linux CI pending · Windows CI pending · Visual check pending (Windows):
+  `earthview3d_demo --view chase --snapshot2d 2d.png --snapshot3d 3d.png --after 30`;
+  2D dots and 3D markers should sit at the same places.
+- **Follow-ups:** I-020, I-021.
 
 ### 2026-10-08 — E1: `earthview3d` library, vcpkg manifest, Windows CI  (In review)
 - **Branch / PR:** `3d/e1-earthview3d` / [#4](https://github.com/volcano581/EarthView/pull/4) — merge —
@@ -280,6 +312,8 @@ Status values: `Not started` · `In progress` · `In review` · `Changes request
 | I-006 | `spike.earth` / `osm_style.json` use absolute `D:/Source/...` data paths. The library's map (`Data/maps/earthview.earth`, E1) uses relative paths; the spike files go away in E2. | S1 / E2 | Partly resolved (E1) |
 | I-017 | Linux CI does not build `earthview3d` yet (roadmap: "once green"). Cloud containers cannot build osgEarth through vcpkg either: the environment's network policy blocks `sqlite.org` (sqlite3 source). Add a cached Linux vcpkg job after E1. | E1 follow-up | Open |
 | I-019 | **VS 2022** + Qt 6.11 + C++20: QtTest headers hit an MSVC internal compiler error (`qrangemodel_impl.h(991): C1001`). Windows CI with **VS 2026 (MSVC 14.51)** compiles all six test suites fine, so the minimum compiler for Qt 6.11 builds is VS 2026. Developer machines on VS 2022 must upgrade (and rebuild vcpkg packages, I-009). | E1 | Open (documented) |
+| I-020 | `earthview3d_demo --view fp` / `--view free` fall back to stealth / home until E4 adds first-person and free-fly cameras. | E4 | Open |
+| I-021 | The demo's 2D entity overlay is a QWidget painted over `MapWidget` (no 2D API for entities). E9 ("Open 3D" hook in the 2D viewer) should decide whether EarthView 2D gets a proper entity layer. | E9 | Open |
 | I-018 | `MapConfig.cacheDir` is applied through `OSGEARTH_CACHE_PATH` before the widget's first `osgEarth::initialize()`; it is ignored if the host initialised osgEarth earlier or set the variable itself. Verify the cache fills on Windows (E6 owns caching). | E6 | Open |
 
 ---
