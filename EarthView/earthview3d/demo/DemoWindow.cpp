@@ -133,7 +133,7 @@ GlobeView3D* DemoWindow::open3DView()
         "Click: select  Drag: rotate/pan  Wheel: zoom  N: next entity  T: chase  F: stealth  U: untether  H: home"));
     connect(view, &GlobeView3D::selectionChanged, window, [window](const QString& label) {
         window->statusBar()->showMessage(label.isEmpty() ? QStringLiteral("No selection")
-                                                         : QStringLiteral("Selected %1").arg(label));
+                                                         : QStringLiteral("Selected %1 — click another entity or press N for the next").arg(label));
     });
     connect(view, &GlobeView3D::entityPicked, window, [window, view](quint64 id) {
         window->statusBar()->showMessage(QStringLiteral("Picked entity %1 (%2)").arg(id).arg(view->selectedLabel()));

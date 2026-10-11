@@ -12,11 +12,13 @@
 #include <QWheelEvent>
 
 #include <osg/AutoTransform>
+#include <osg/Depth>
 #include <osg/Geometry>
 #include <osg/LOD>
 #include <osg/LineWidth>
 #include <osg/MatrixTransform>
 #include <osg/ShapeDrawable>
+#include <osgText/Font>
 #include <osgText/Text>
 #include <osg/ref_ptr>
 #include <osgDB/ReadFile>
@@ -31,6 +33,7 @@
 #include <osgEarth/GLUtils>
 #include <osgEarth/LogarithmicDepthBuffer>
 #include <osgEarth/MapNode>
+#include <osgEarth/Registry>
 #include <osgEarth/ScreenSpaceLayout>
 #include <osgEarth/Sky>
 #include <osgEarth/Terrain>
@@ -130,7 +133,7 @@ public:
     {
         osg::ref_ptr<GeoTransform> geo;
         osg::ref_ptr<osg::MatrixTransform> attitude;
-        osg::ref_ptr<osg::Node> highlight;
+        osg::ref_ptr<osg::AutoTransform> highlight;
         osg::ref_ptr<osg::Geode> labelGeode;
         osg::ref_ptr<osgText::Text> labelText;
         ResolvedStyle style;
@@ -147,7 +150,9 @@ public:
     osg::Node* createShape(int shape, std::uint32_t rgba) const;
     osg::Node* createContent(const ResolvedStyle& style);
     osg::Node* loadModel(const QString& file);
-    osg::Node* createSelectionRing() const;
+    osg::AutoTransform* createSelectionRing() const;
+    double contentCentreZ(const ResolvedStyle& style) const;
+    osgText::Font* loadLabelFont() const;
     void applySelectionLook(EntityVisual& visual, bool selected) const;
     std::uint64_t pickAt(double x, double y) const;
     EntityVisual& createEntity(const EntityState3D& state);
@@ -174,6 +179,8 @@ public:
     bool haveModelTable = false;
     std::unordered_map<QString, osg::ref_ptr<osg::Node>> modelCache;   // null = failed to load
     osg::ref_ptr<osg::StateSet> labelStateSet;
+    osg::ref_ptr<TextSymbol> labelSymbol;   // shared by all labels
+    osg::ref_ptr<osgText::Font> labelFont;  // null = osgEarth's default font
     bool labelsVisible = true;
     QPointF pressPos;
     bool leftPressed = false;
@@ -297,9 +304,22 @@ void GlobeView3D::Private::buildScene()
     mapNode->addChild(entityRoot.get());
 
     // Labels: one shared state set in osgEarth's screen-space layout bin, decluttered.
+    // Same state as osgEarth's LabelNode: layout bin, no depth test/writes, no lighting.
     labelStateSet = new osg::StateSet();
     ScreenSpaceLayout::activate(labelStateSet.get());
-    ScreenSpaceLayout::setDeclutteringEnabled(true);
+    labelStateSet->setAttributeAndModes(new osg::Depth(osg::Depth::ALWAYS, 0.0, 1.0, false),
+                                        osg::StateAttribute::ON | osg::StateAttribute::PROTECTED);
+    GLUtils::setLighting(labelStateSet.get(), osg::StateAttribute::OFF | osg::StateAttribute::PROTECTED);
+    ScreenSpaceLayout::setDeclutteringEnabled(qEnvironmentVariableIntValue("EARTHVIEW3D_NO_DECLUTTER") != 1);
+
+    // osg::Referenced objects live on the heap, held by ref_ptr (createTextDrawable keeps a
+    // reference to the symbol and would delete a stack object).
+    labelSymbol = new TextSymbol();
+    labelSymbol->fill().mutable_value().color() = Color::White;
+    labelSymbol->halo().mutable_value().color() = Color::Black;
+    labelSymbol->alignment() = TextSymbol::ALIGN_LEFT_CENTER;
+    labelSymbol->declutter() = true;
+    labelFont = loadLabelFont();
 
     const QString tablePath = config.resolvedModelTable();
     if (!tablePath.isEmpty()) {
@@ -392,7 +412,39 @@ osg::Node* GlobeView3D::Private::createContent(const ResolvedStyle& style)
     return lod;
 }
 
-osg::Node* GlobeView3D::Private::createSelectionRing() const
+double GlobeView3D::Private::contentCentreZ(const ResolvedStyle& style) const
+{
+    if (!style.modelFile.isEmpty()) {
+        auto it = modelCache.find(style.modelFile);
+        if (it != modelCache.end() && it->second.valid())
+            return it->second->getBound().center().z() * style.scale;
+    }
+    switch (style.shape) {   // centres used by createShape(), at real size
+    case 0: return 2.0;      // sphere
+    case 2: return 1.5;      // box
+    default: return 0.0;     // cone and cylinder are centred on the origin after alignment
+    }
+}
+
+osgText::Font* GlobeView3D::Private::loadLabelFont() const
+{
+    // Loaded here, after configureRuntime() put the freetype plugin on the path: osgEarth
+    // resolves its own default font when its DLL loads, which may be too early (E3 review).
+    QString name = qEnvironmentVariable("EARTHVIEW3D_LABEL_FONT");
+#ifdef _WIN32
+    if (name.isEmpty())
+        name = QStringLiteral("arial.ttf");
+#endif
+    if (!name.isEmpty()) {
+        osg::ref_ptr<osgText::Font> font = osgText::readRefFontFile(name.toStdString());
+        if (font.valid())
+            return font.release();
+        emit q->loadFailed(QStringLiteral("Label font %1 could not be loaded; using the default font").arg(name));
+    }
+    return Registry::instance()->getDefaultFont();
+}
+
+osg::AutoTransform* GlobeView3D::Private::createSelectionRing() const
 {
     // Unit circle facing the screen, scaled to kSelectionRingPixels.
     constexpr int kSegments = 48;
@@ -440,13 +492,13 @@ GlobeView3D::Private::EntityVisual& GlobeView3D::Private::createEntity(const Ent
     visual.highlight = createSelectionRing();
     visual.geo->addChild(visual.highlight.get());
 
-    TextSymbol symbol;
-    symbol.fill().mutable_value().color() = Color::White;
-    symbol.halo().mutable_value().color() = Color::Black;
-    symbol.alignment() = TextSymbol::ALIGN_LEFT_CENTER;
-    symbol.declutter() = true;
-    visual.labelText = AnnotationUtils::createTextDrawable(std::string(), &symbol, osg::BoundingBox());
+    // Zero-size alignment box at the anchor: a default osg::BoundingBox is invalid
+    // (xMax = -FLT_MAX) and would place the text far off screen.
+    const osg::BoundingBox anchor(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+    visual.labelText = AnnotationUtils::createTextDrawable(std::string(), labelSymbol.get(), anchor);
     visual.labelText->setDataVariance(osg::Object::DYNAMIC);
+    if (labelFont.valid())
+        visual.labelText->setFont(labelFont.get());
     ScreenSpaceLayoutData::getOrCreate(visual.labelText.get())->setPixelOffset(osg::Vec2s(12, 0));
     visual.labelGeode = new osg::Geode();
     visual.labelGeode->setStateSet(labelStateSet.get());
@@ -467,6 +519,8 @@ void GlobeView3D::Private::updateEntity(EntityVisual& visual, const EntityState3
         visual.attitude->removeChildren(0, visual.attitude->getNumChildren());
         visual.attitude->addChild(createContent(style));
         visual.haveContent = true;
+        // Centre the selection ring on the marker/model rather than its ground point.
+        visual.highlight->setPosition(osg::Vec3d(0.0, 0.0, contentCentreZ(style)));
     }
     if (style.label != visual.style.label || visual.labelText->getText().empty())
         visual.labelText->setText(style.label.toStdString(), osgText::String::ENCODING_UTF8);

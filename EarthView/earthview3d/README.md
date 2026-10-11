@@ -12,7 +12,8 @@ frame and reads signals. Design: `../OSGEARTH_INTEGRATION.md`; host contract:
 | `include/earthview3d/` | Public headers — Qt/STL types only, no osgEarth/OSG (D-011) |
 | `src/GlobeView3D.cpp` | The osgEarth widget (pimpl); started as the widget from the local host test |
 | `src/MapConfig.cpp`, `src/EntityDiff.cpp`, `src/ModelTable.cpp`, `src/Picking.cpp`, `src/RuntimePaths.cpp` | GL-free logic, unit tested (`tests/tst_mapconfig`, `tst_entitydiff`, `tst_modeltable`, `tst_runtimepaths`) |
-| `../Data/models/models.json` | Example model table (`MapConfig::modelTable`; format in `ModelTable.h`) |
+| `../Data/models/models.json` | Example model table (`MapConfig::modelTable`; format in `ModelTable.h`); armour uses `test_armour.osgt` |
+| `tools/make_test_armour.cpp` | Generator for the test model (not built) |
 | `src/Runtime.cpp` | `configureRuntime()`: OSG plugin path + GDAL/PROJ data |
 | `demo/` | `earthview3d_demo`: host simulator — 2D map + "Open 3D View", synthetic 100 Hz entity feed (E2) |
 | `../Data/maps/earthview.earth` | Default map; layer paths relative to the earth file |
@@ -82,4 +83,10 @@ vcpkg OSG plugins and GDAL/PROJ data of the build tree by itself; Qt DLLs come f
 8. Entity markers: real size up close, minimum pixel size far away (`AutoTransform`
    with pre-scale + minimum scale). With a model file they are the far LOD (`osg::LOD`
    by pixel size, `iconBelowPixels`), so entities stay readable at all ranges.
-9. Labels go through osgEarth's `ScreenSpaceLayout` (declutter); the selected label gets top priority.
+9. **Every `osg::Referenced` object (nodes, state sets, `TextSymbol`, …) is heap-allocated and
+   held by `osg::ref_ptr`** — osgEarth/OSG take references and delete them (E3 review: a stack
+   `TextSymbol` corrupted the heap).
+10. Text alignment boxes are explicit zero boxes, never `osg::BoundingBox()` (invalid →
+   labels placed at -FLT_MAX). The label font is loaded after `configureRuntime()`
+   (`EARTHVIEW3D_LABEL_FONT` overrides; `EARTHVIEW3D_NO_DECLUTTER=1` for debugging).
+11. Labels go through osgEarth's `ScreenSpaceLayout` (declutter); the selected label gets top priority.

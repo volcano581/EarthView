@@ -27,6 +27,10 @@ Last updated: 2026-10-08
 
 Status values: `Not started` · `In progress` · `In review` · `Changes requested` · `Merged` · `Blocked` · `Dropped`
 
+Rendering PRs (osgEarth code) also list, under **Verified by owner**, which smoke runs were
+done on Windows: `earthview3d_demo --check-agreement --after 20` and one `--snapshot3d` run.
+Cloud agents can only syntax-check osgEarth code (E3 review).
+
 ### Change-log entry template
 ```
 ### YYYY-MM-DD — <Task id>: <short title>  (<Status>)
@@ -88,6 +92,14 @@ Status values: `Not started` · `In progress` · `In review` · `Changes request
 - **Tests:** new `tst_modeltable` (12 cases); picking cases in `tst_entitydiff`; `tst_mapconfig`,
   `tst_syntheticfeed` extended. Linux ctest 8/8.
 - **Verified:** Linux build + ctest ✓ · osgEarth code syntax-checked against osgEarth 3.8.1 headers (C++17/20); Windows CI pending · Visual check pending (Windows)
+- **Review round 1 (owner, local Windows, `43fc5ea`):** fixed (1) heap corruption at the first
+  label — `TextSymbol` was a stack object handed to `createTextDrawable` (now one shared
+  `ref_ptr` symbol; rule added to the earthview3d README); (2) invisible labels — root cause: the
+  alignment box was a default (invalid) `osg::BoundingBox`, so osgEarth placed every label at
+  x = -FLT_MAX; now a zero box, plus LabelNode's state (depth ALWAYS, no lighting), font loaded
+  after `configureRuntime()` (`EARTHVIEW3D_LABEL_FONT`), `EARTHVIEW3D_NO_DECLUTTER=1`; (3)
+  smoke runs listed under "Verified by owner" in the PR. Minor: ring centred on the marker,
+  test model `Data/models/test_armour.osgt` (armour) exercises model/LOD path, status-bar hint.
 - **Follow-ups:** I-023, I-024.
 
 ### 2026-10-11 — E2: `earthview3d_demo` host simulator  (In review)
@@ -343,7 +355,7 @@ Status values: `Not started` · `In progress` · `In review` · `Changes request
 | I-020 | `earthview3d_demo --view fp` / `--view free` fall back to stealth / home until E4 adds first-person and free-fly cameras. | E4 | Open |
 | I-021 | The demo's 2D entity overlay is a QWidget painted over `MapWidget` (no 2D API for entities). E9 ("Open 3D" hook in the 2D viewer) should decide whether EarthView 2D gets a proper entity layer. | E9 | Open |
 | I-022 | 3D imagery still coarse after 30 s in the demo (sharp by then in the host test). Likely the 2D map and osgEarth both pulling from tile.openstreetmap.org (throttling). Re-check once E6's offline imagery and the osgEarth cache are in. | E6 | Open |
-| I-023 | No real 3D model files are shipped yet; `Data/models/models.json` maps kinds to placeholder shapes only. Add `.osgb`/glTF models (and licence check) with E6/E7. | E3 | Open |
+| I-023 | Only a generated test model ships (`test_armour.osgt`, armour); other kinds use placeholder shapes. Add real `.osgb`/glTF models (and licence check) with E6/E7. | E3 | Open |
 | I-024 | Label declutter and model/icon LOD thresholds need a visual check on Windows with 200 entities (`earthview3d_demo --select 5 --snapshot3d`). | E3 | Open |
 | I-018 | `MapConfig.cacheDir` is applied through `OSGEARTH_CACHE_PATH` before the widget's first `osgEarth::initialize()`; it is ignored if the host initialised osgEarth earlier or set the variable itself. Verify the cache fills on Windows (E6 owns caching). | E6 | Open |
 
