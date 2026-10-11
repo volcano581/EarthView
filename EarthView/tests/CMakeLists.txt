@@ -27,3 +27,7 @@ add_test(NAME tst_runtimepaths COMMAND tst_runtimepaths)
 add_executable(tst_syntheticfeed tst_syntheticfeed.cpp)
 target_link_libraries(tst_syntheticfeed PRIVATE earthview3d_demo_feed Qt6::Core Qt6::Test)
 add_test(NAME tst_syntheticfeed COMMAND tst_syntheticfeed)
+
+add_executable(tst_modeltable tst_modeltable.cpp)
+target_link_libraries(tst_modeltable PRIVATE earthview3d_core Qt6::Core Qt6::Test)
+add_test(NAME tst_modeltable COMMAND tst_modeltable)

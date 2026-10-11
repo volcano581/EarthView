@@ -18,7 +18,7 @@ namespace earthview3d {
  * JSON form (all keys optional except earthFile; unknown keys are an error):
  * @code
  * { "earthFile": "maps/earthview.earth", "dataRoot": "../Data", "cacheDir": "cache",
- *   "sky": true, "skyTime": "2026-06-01T07:00:00Z" }
+ *   "modelTable": "models/models.json", "sky": true, "skyTime": "2026-06-01T07:00:00Z" }
  * @endcode
  * In JSON, a relative dataRoot resolves against the JSON file's folder, and a missing
  * dataRoot defaults to that folder.
@@ -28,6 +28,7 @@ struct MapConfig
     QString earthFile;   ///< Absolute, or relative to dataRoot
     QString dataRoot;    ///< Root for relative paths; empty = current directory
     QString cacheDir;    ///< osgEarth filesystem cache; empty = no cache. Relative to dataRoot
+    QString modelTable;  ///< models.json (ModelTable); empty = placeholder shapes. Relative to dataRoot
     bool sky = true;     ///< Sky, sun and atmosphere
     QDateTime skyTime;   ///< Sun position time (UTC); invalid = now
 
@@ -35,6 +36,8 @@ struct MapConfig
     QString resolvedEarthFile() const;
     /// Absolute, cleaned cache folder (empty if no cache).
     QString resolvedCacheDir() const;
+    /// Absolute, cleaned model table path (empty if none).
+    QString resolvedModelTable() const;
     /// skyTime in UTC, or the current UTC time when skyTime is invalid.
     QDateTime effectiveSkyTime() const;
 
