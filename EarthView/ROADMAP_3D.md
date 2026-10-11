@@ -62,7 +62,7 @@
 | S1 | osgEarth spike | — | M | yes | **Done** |
 | T1 | Local Doctrine integration test (Conquer) | S1 | M | yes | **Done** (local, `1fd3d89`) |
 | E1 | `earthview3d` library from the reference widget + vcpkg manifest + Windows CI | — | M | yes | In review (`3d/e1-earthview3d`, [#4](https://github.com/volcano581/EarthView/pull/4)) |
-| E2 | `earthview3d_demo` app with synthetic host feed (replaces the spike app) | E1 | M | yes | In review (`3d/e2-demo`) |
+| E2 | `earthview3d_demo` app with synthetic host feed (replaces the spike app) | E1 | M | yes | In review (`3d/e2-demo`, [#5](https://github.com/volcano581/EarthView/pull/5)) |
 | E3 | Entity layer: API, model table, labels, LOD, attitude, picking + selection | E1 | L | yes | |
 | E4 | Camera controllers (orbit, chase, stealth, first-person, free-fly) + HUD | E1 | M | yes | |
 | E5 | Terrain services: height query API, clamping, vertical datum check | E1 | S | yes | |

@@ -53,7 +53,7 @@ Status values: `Not started` · `In progress` · `In review` · `Changes request
 | T1 | Local Doctrine integration test (Conquer, branch `earthview-3d-test`) | Done (local) | — | — | `1fd3d89` (Conquer) | ✓ (2026-10-08) |
 | O0–O11 | Earlier osgEarth plan | Superseded by E1–E10 + L1 (D-012) | | | | |
 | E1 | `earthview3d` library + vcpkg manifest + Windows CI | In review | `3d/e1-earthview3d` | [#4](https://github.com/volcano581/EarthView/pull/4) | — | pending (Windows) |
-| E2 | `earthview3d_demo` with synthetic host feed | In review | `3d/e2-demo` (on `3d/e1-earthview3d`) | PR_LINK | — | pending (Windows) |
+| E2 | `earthview3d_demo` with synthetic host feed | In review | `3d/e2-demo` (on `3d/e1-earthview3d`) | [#5](https://github.com/volcano581/EarthView/pull/5) | — | pending (Windows) |
 | E3 | Entity layer (models, labels, LOD, picking) | Not started | | | | |
 | E4 | Camera controllers + HUD | Not started | | | | |
 | E5 | Terrain services | Not started | | | | |
@@ -72,7 +72,7 @@ Status values: `Not started` · `In progress` · `In review` · `Changes request
 ## Change log (newest first)
 
 ### 2026-10-11 — E2: `earthview3d_demo` host simulator  (In review)
-- **Branch / PR:** `3d/e2-demo` / PR_LINK — merge — (built on the unmerged E1 branch; retarget to `master` after #4 merges)
+- **Branch / PR:** `3d/e2-demo` / [#5](https://github.com/volcano581/EarthView/pull/5) — merge — (built on the unmerged E1 branch; retarget to `master` after #4 merges)
 - **Author:** cloud agent
 - **Applied from the E1 review:** `configureRuntime()` before the first `GlobeView3D`; MSVC
   C++20 / VS 2026 / Qt 6.11 (inherited); visual checks left `pending (Windows)`.
