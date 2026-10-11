@@ -91,7 +91,7 @@ Cloud agents can only syntax-check osgEarth code (E3 review).
 - **Existing files touched:** earthview3d only; no 2D code.
 - **Tests:** new `tst_modeltable` (12 cases); picking cases in `tst_entitydiff`; `tst_mapconfig`,
   `tst_syntheticfeed` extended. Linux ctest 8/8.
-- **Verified:** Linux build + ctest ✓ · osgEarth code syntax-checked against osgEarth 3.8.1 headers (C++17/20); Windows CI pending · Visual check pending (Windows)
+- **Verified:** Linux build + ctest ✓ · osgEarth code syntax-checked against osgEarth 3.8.1 headers (C++17/20); Windows CI ✓ (`f12d8e8`, MSVC + osgEarth) · Visual check pending (Windows)
 - **Review round 1 (owner, local Windows, `43fc5ea`):** fixed (1) heap corruption at the first
   label — `TextSymbol` was a stack object handed to `createTextDrawable` (now one shared
   `ref_ptr` symbol; rule added to the earthview3d README); (2) invisible labels — root cause: the
