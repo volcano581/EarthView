@@ -98,7 +98,7 @@ Status values: `Not started` · `In progress` · `In review` · `Changes request
 - **Tests:** `tst_syntheticfeed` (8 cases: ids/kinds, determinism, stays within 10 km,
   heading matches motion within 3°, air speed, clamp flags, buffer tick semantics,
   publisher thread start/stop). Linux ctest 7/7. Demo sources syntax-checked (C++17/20).
-- **Verified:** Linux CI pending · Windows CI pending · Visual check pending (Windows):
+- **Verified:** Linux CI ✓ · Windows CI ✓ (VS 2026, Qt 6.11, C++20: `earthview3d_demo.exe` links, ctest 7/7) · Visual check pending (Windows):
   `earthview3d_demo --view chase --snapshot2d 2d.png --snapshot3d 3d.png --after 30`;
   2D dots and 3D markers should sit at the same places.
 - **Follow-ups:** I-020, I-021.
