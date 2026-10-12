@@ -27,6 +27,10 @@ Last updated: 2026-10-08
 
 Status values: `Not started` · `In progress` · `In review` · `Changes requested` · `Merged` · `Blocked` · `Dropped`
 
+Rendering PRs (osgEarth code) also list, under **Verified by owner**, which smoke runs were
+done on Windows: `earthview3d_demo --check-agreement --after 20` and one `--snapshot3d` run.
+Cloud agents can only syntax-check osgEarth code (E3 review).
+
 ### Change-log entry template
 ```
 ### YYYY-MM-DD — <Task id>: <short title>  (<Status>)
@@ -53,8 +57,8 @@ Status values: `Not started` · `In progress` · `In review` · `Changes request
 | T1 | Local Doctrine integration test (Conquer, branch `earthview-3d-test`) | Done (local) | — | — | `1fd3d89` (Conquer) | ✓ (2026-10-08) |
 | O0–O11 | Earlier osgEarth plan | Superseded by E1–E10 + L1 (D-012) | | | | |
 | E1 | `earthview3d` library + vcpkg manifest + Windows CI | Merged | `3d/e1-earthview3d` | [#4](https://github.com/volcano581/EarthView/pull/4) | `351de51` | ✓ (2026-10-11, local) |
-| E2 | `earthview3d_demo` with synthetic host feed | In review | `3d/e2-demo` | [#5](https://github.com/volcano581/EarthView/pull/5) | — | ✓ (2026-10-11, local; imagery note I-022) |
-| E3 | Entity layer (models, labels, LOD, picking) | Not started | | | | |
+| E2 | `earthview3d_demo` with synthetic host feed | Merged | `3d/e2-demo` | [#5](https://github.com/volcano581/EarthView/pull/5) | `2242208` | ✓ (2026-10-11, local; imagery note I-022) |
+| E3 | Entity layer (models, labels, LOD, picking) | In review | `3d/e3-entities` | [#6](https://github.com/volcano581/EarthView/pull/6) | — | pending (Windows) |
 | E4 | Camera controllers + HUD | Not started | | | | |
 | E5 | Terrain services | Not started | | | | |
 | E6 | Offline data pipeline | Not started | | | | |
@@ -71,7 +75,41 @@ Status values: `Not started` · `In progress` · `In review` · `Changes request
 
 ## Change log (newest first)
 
-### 2026-10-11 — E2: `earthview3d_demo` host simulator  (In review)
+### 2026-10-11 — E3: entity layer — model table, labels, LOD, attitude, picking  (In review)
+- **Branch / PR:** `3d/e3-entities` / [#6](https://github.com/volcano581/EarthView/pull/6) (retargeted to `master` after #5 merged) — merge —
+- **Author:** cloud agent
+- **Changes:**
+  - `EntityState3D`: `pitchDeg`, `rollDeg`, `kindKey`, `Force force`; `shape` kept as fallback; `entityColor()`.
+  - `ModelTable.h/.cpp` (core): `models.json` parsing, glob matching (most specific wins), `resolveStyle()`.
+  - `Picking.h/.cpp` (core): screen-space nearest pick (12 px), hidden/behind-camera skipped (D-018).
+  - `GlobeView3D`: attitude transform (D-005 order + table HPR offset), model cache, `osg::LOD`
+    model → marker by pixel size, decluttered labels (osgEarth `ScreenSpaceLayout`), force
+    colours, selection ring + yellow label, `setSelected()`, `setLabelsVisible()`, `entityPicked` signal.
+  - `MapConfig::modelTable` (+ JSON key); `Data/models/models.json` (style-only example).
+  - Demo: 200 entities default, kindKeys, every 5th hostile, banked aircraft, `--select <id>`,
+    `--models <json>`, picked entity in the status bar.
+- **Existing files touched:** earthview3d only; no 2D code.
+- **Tests:** new `tst_modeltable` (12 cases); picking cases in `tst_entitydiff`; `tst_mapconfig`,
+  `tst_syntheticfeed` extended. Linux ctest 8/8.
+- **Verified:** Linux build + ctest ✓ · osgEarth code syntax-checked against osgEarth 3.8.1 headers (C++17/20); Windows CI ✓ (`f12d8e8`, MSVC + osgEarth) · Visual check pending (Windows)
+- **Review round 1 (owner, local Windows, `43fc5ea`):** fixed (1) heap corruption at the first
+  label — `TextSymbol` was a stack object handed to `createTextDrawable` (now one shared
+  `ref_ptr` symbol; rule added to the earthview3d README); (2) invisible labels — root cause: the
+  alignment box was a default (invalid) `osg::BoundingBox`, so osgEarth placed every label at
+  x = -FLT_MAX; now a zero box, plus LabelNode's state (depth ALWAYS, no lighting), font loaded
+  after `configureRuntime()` (`EARTHVIEW3D_LABEL_FONT`), `EARTHVIEW3D_NO_DECLUTTER=1`; (3)
+  smoke runs listed under "Verified by owner" in the PR. Minor: ring centred on the marker,
+  test model `Data/models/test_armour.osgt` (armour) exercises model/LOD path, status-bar hint.
+- **Review round 2 (owner, `58e6bfd`):** approved. Crash, labels, ring, test model and 2D/3D
+  agreement ✓; stealth 60 m in 4/4 undisturbed runs (an apparent tether regression was a test
+  artefact: the window was zoomed during the runs, which cancels the fly-to). `579d8eb` still
+  holds a tether requested before the first frame until home is applied (a real, if unseen,
+  race), adds tether start/end log lines and frame time, and documents the CascadiaCode font
+  message. Owner checklist keeps 3× stealth/chase runs — don't touch the window while they run.
+  Optional follow-up (E4/E10): selection ring radius = max(ring px, marker bound) up close.
+- **Follow-ups:** I-023, I-024, I-025 (performance, E10).
+
+### 2026-10-11 — E2: `earthview3d_demo` host simulator  (Merged `2242208`, 2026-10-12)
 - **Branch / PR:** `3d/e2-demo` / [#5](https://github.com/volcano581/EarthView/pull/5) — merge — (retargeted to `master` after #4 merged)
 - **Author:** cloud agent
 - **Applied from the E1 review:** `configureRuntime()` before the first `GlobeView3D`; MSVC
@@ -294,6 +332,7 @@ Status values: `Not started` · `In progress` · `In review` · `Changes request
 | D-015 | Windows CI: `windows-latest`, MSVC (runner has VS 2026 / MSVC 14.51) via Ninja, Qt **6.11.0** `msvc2022_64` from `install-qt-action` (same as developer machines and the host; was 6.8.3 before review round 1), vcpkg checked out at the manifest baseline, `files` binary cache stored with `actions/cache` (vcpkg no longer supports `x-gha`). | 2026-10-08 | E1 |
 | D-016 | MSVC builds of EarthView use **C++20** (Qt 6.11 moc output does not compile with MSVC in C++17); MinGW/GCC builds stay C++17. | 2026-10-08 | E1 review |
 | D-017 | `earthview3d` sets its own runtime paths: `configureRuntime(RuntimePaths)` adds the OSG plugin folder to `osgDB::Registry` and sets GDAL/PROJ data before first use (env vars set in `main()` are too late for osgDB). Build-tree defaults come from CMake; E7's deploy helper supplies install paths. | 2026-10-08 | E1 review |
+| D-018 | E3 picking is screen-space (project entity anchors, nearest within 12 px, nearer eye wins ties) instead of OSG ray intersection: small icons stay easy to hit and the logic is unit tested. Placeholder markers are the LOD icon; model-table `scale` applies to model files only. | 2026-10-11 | E3 |
 | D-011 | The integration target is **Conquer** (`D:\Source\Conquer`: Doctrine + cgf-engine + EarthView superbuild, already MSVC), not the standalone `D:\Source\cgf-engine`. 3D code lives in an isolated library so osgEarth includes never reach other TUs. | 2026-10-08 | Conquer test |
 
 ---
@@ -323,6 +362,9 @@ Status values: `Not started` · `In progress` · `In review` · `Changes request
 | I-020 | `earthview3d_demo --view fp` / `--view free` fall back to stealth / home until E4 adds first-person and free-fly cameras. | E4 | Open |
 | I-021 | The demo's 2D entity overlay is a QWidget painted over `MapWidget` (no 2D API for entities). E9 ("Open 3D" hook in the 2D viewer) should decide whether EarthView 2D gets a proper entity layer. | E9 | Open |
 | I-022 | 3D imagery still coarse after 30 s in the demo (sharp by then in the host test). Likely the 2D map and osgEarth both pulling from tile.openstreetmap.org (throttling). Re-check once E6's offline imagery and the osgEarth cache are in. | E6 | Open |
+| I-023 | Only a generated test model ships (`test_armour.osgt`, armour); other kinds use placeholder shapes. Add real `.osgb`/glTF models (and licence check) with E6/E7. | E3 | Open |
+| I-024 | Label declutter and model/icon LOD thresholds need a visual check on Windows with 200 entities (`earthview3d_demo --select 5 --snapshot3d`). | E3 | Open |
+| I-025 | 3D frame time scales ~linearly with entity count (~0.25–0.35 ms/entity): RTX 3050 Ti, 1400×900, 20 entities 14.6 ms (~68 FPS), 200 entities 64–86 ms (~12–15 FPS), 200 with declutter off 59.1 ms (owner, `579d8eb`). Suspects: per-entity `Terrain::getHeight()` every frame for clamped units, one `osgText::Text` + geode per entity, per-entity `AutoTransform`s (marker + ring). First steps: cache terrain height and refresh only on movement > N m or every few frames, share label/marker state, profile with osgEarth stats. Target 1,000 entities at 60 FPS. | E10 | Open |
 | I-018 | `MapConfig.cacheDir` is applied through `OSGEARTH_CACHE_PATH` before the widget's first `osgEarth::initialize()`; it is ignored if the host initialised osgEarth earlier or set the variable itself. Verify the cache fills on Windows (E6 owns caching). | E6 | Open |
 
 ---

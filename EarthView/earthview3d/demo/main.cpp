@@ -58,7 +58,7 @@ int main(int argc, char** argv)
     parser.setApplicationDescription(QStringLiteral("earthview3d demo host: 2D map + 3D view with a synthetic entity feed."));
     parser.addHelpOption();
     parser.addOptions({
-        {QStringLiteral("entities"), QStringLiteral("Number of synthetic entities."), QStringLiteral("n"), QStringLiteral("40")},
+        {QStringLiteral("entities"), QStringLiteral("Number of synthetic entities."), QStringLiteral("n"), QStringLiteral("200")},
         {QStringLiteral("origin"), QStringLiteral("Scenario origin lat,lon in degrees."), QStringLiteral("lat,lon"),
          QStringLiteral("33.6844,73.0479")},
         {QStringLiteral("view"), QStringLiteral("3D start view: home, chase, stealth, fp or free (opens the 3D view)."),
@@ -69,6 +69,10 @@ int main(int argc, char** argv)
          QStringLiteral(EARTHVIEW3D_DEFAULT_DATA_ROOT)},
         {QStringLiteral("snapshot2d"), QStringLiteral("Save the 2D map (with entities) to this PNG."), QStringLiteral("png")},
         {QStringLiteral("snapshot3d"), QStringLiteral("Save the 3D view to this PNG (opens the 3D view)."), QStringLiteral("png")},
+        {QStringLiteral("select"), QStringLiteral("Select this entity id in the 3D view (highlight + label)."),
+         QStringLiteral("id")},
+        {QStringLiteral("models"), QStringLiteral("Model table (absolute or relative to --data-root)."),
+         QStringLiteral("json"), QStringLiteral("models/models.json")},
         {QStringLiteral("after"), QStringLiteral("Seconds before taking snapshots, then exit."), QStringLiteral("sec"),
          QStringLiteral("30")},
         {QStringLiteral("check-agreement"),
@@ -108,6 +112,7 @@ int main(int argc, char** argv)
     earthview3d::MapConfig mapConfig;
     mapConfig.dataRoot = parser.value(QStringLiteral("data-root"));
     mapConfig.earthFile = parser.value(QStringLiteral("map"));
+    mapConfig.modelTable = parser.value(QStringLiteral("models"));
     mapConfig.skyTime = QDateTime(QDate(2026, 6, 1), QTime(7, 0), QTimeZone::utc());   // daylight over the theatre
     QString error;
     if (!mapConfig.validate(&error)) {
@@ -132,8 +137,11 @@ int main(int argc, char** argv)
     const QString snapshot3D = parser.value(QStringLiteral("snapshot3d"));
     const bool checkAgreement = parser.isSet(QStringLiteral("check-agreement"));
     if (!view.isEmpty() || !snapshot3D.isEmpty() || checkAgreement) {
-        QTimer::singleShot(500, &window, [&window, view] {
+        const quint64 selectId = parser.value(QStringLiteral("select")).toULongLong();
+        QTimer::singleShot(500, &window, [&window, view, selectId] {
             earthview3d::GlobeView3D* view3D = window.open3DView();
+            if (selectId != 0)
+                QTimer::singleShot(1000, view3D, [view3D, selectId] { view3D->setSelected(selectId); });
             // Tether once the home fly-in has settled and entities exist.
             if (view == QLatin1String("chase") || view == QLatin1String("stealth")) {
                 QTimer::singleShot(3000, view3D, [view3D, view] {

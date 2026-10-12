@@ -1,4 +1,5 @@
 #include "earthview3d/EntityDiff.h"
+#include "earthview3d/Picking.h"
 
 #include <QtTest>
 
@@ -37,6 +38,9 @@ private slots:
     void duplicateIdsFirstWins();
     void removedIsSortedAndReAddWorks();
     void invisibleEntitiesStayPresent();
+    void pickNearestWithinRadius();
+    void pickIgnoresHiddenAndBehind();
+    void pickTieGoesToNearerEye();
 };
 
 void TestEntityDiff::firstSnapshotAddsAll()
@@ -122,6 +126,33 @@ void TestEntityDiff::invisibleEntitiesStayPresent()
     const EntityDiff::Changes c = diff.apply(snap);
     QCOMPARE(c.updated, (std::vector<std::size_t>{0}));
     QVERIFY(c.removed.empty());
+}
+
+void TestEntityDiff::pickNearestWithinRadius()
+{
+    using earthview3d::PickCandidate;
+    const std::vector<PickCandidate> c = {{1, 100, 100, 500}, {2, 108, 100, 500}, {3, 300, 300, 10}};
+    QCOMPARE(earthview3d::pickNearest(c, 101, 100, 10), std::uint64_t(1));
+    QCOMPARE(earthview3d::pickNearest(c, 107, 101, 10), std::uint64_t(2));
+    QCOMPARE(earthview3d::pickNearest(c, 200, 200, 10), std::uint64_t(0));   // nothing within radius
+    QCOMPARE(earthview3d::pickNearest({}, 0, 0, 10), std::uint64_t(0));
+}
+
+void TestEntityDiff::pickIgnoresHiddenAndBehind()
+{
+    using earthview3d::PickCandidate;
+    std::vector<PickCandidate> c = {{1, 100, 100, 50}, {2, 104, 100, 50}};
+    c[0].visible = false;
+    QCOMPARE(earthview3d::pickNearest(c, 100, 100, 10), std::uint64_t(2));
+    c[1].inFront = false;
+    QCOMPARE(earthview3d::pickNearest(c, 100, 100, 10), std::uint64_t(0));
+}
+
+void TestEntityDiff::pickTieGoesToNearerEye()
+{
+    using earthview3d::PickCandidate;
+    const std::vector<PickCandidate> c = {{1, 100, 100, 900}, {2, 100.5, 100, 40}};
+    QCOMPARE(earthview3d::pickNearest(c, 100, 100, 10), std::uint64_t(2));
 }
 
 QTEST_APPLESS_MAIN(TestEntityDiff)

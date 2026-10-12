@@ -46,8 +46,10 @@ void TestMapConfig::resolvesRelativeToDataRoot()
     config.dataRoot = m_data;
     config.earthFile = QStringLiteral("maps/../maps/test.earth");
     config.cacheDir = QStringLiteral("cache");
+    config.modelTable = QStringLiteral("models/models.json");
     QCOMPARE(config.resolvedEarthFile(), QDir(m_data).filePath(QStringLiteral("maps/test.earth")));
     QCOMPARE(config.resolvedCacheDir(), QDir(m_data).filePath(QStringLiteral("cache")));
+    QCOMPARE(config.resolvedModelTable(), QDir(m_data).filePath(QStringLiteral("models/models.json")));
 }
 
 void TestMapConfig::absolutePathsUnchanged()
@@ -70,13 +72,14 @@ void TestMapConfig::emptyCacheMeansNoCache()
 void TestMapConfig::parseFullConfig()
 {
     const QByteArray json = R"({"earthFile": "maps/test.earth", "dataRoot": ")" + m_data.toUtf8()
-        + R"(", "cacheDir": "cache", "sky": false, "skyTime": "2026-06-01T07:30:00Z"})";
+        + R"(", "cacheDir": "cache", "modelTable": "m.json", "sky": false, "skyTime": "2026-06-01T07:30:00Z"})";
     MapConfig config;
     QString error;
     QVERIFY2(MapConfig::fromJson(json, QString(), &config, &error), qPrintable(error));
     QCOMPARE(config.earthFile, QStringLiteral("maps/test.earth"));
     QCOMPARE(config.dataRoot, QDir::cleanPath(m_data));
     QCOMPARE(config.cacheDir, QStringLiteral("cache"));
+    QCOMPARE(config.modelTable, QStringLiteral("m.json"));
     QCOMPARE(config.sky, false);
     QCOMPARE(config.skyTime, QDateTime(QDate(2026, 6, 1), QTime(7, 30), QTimeZone::utc()));
     QVERIFY(config.validate(&error));
