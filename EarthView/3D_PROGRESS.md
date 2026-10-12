@@ -59,7 +59,7 @@ Cloud agents can only syntax-check osgEarth code (E3 review).
 | E1 | `earthview3d` library + vcpkg manifest + Windows CI | Merged | `3d/e1-earthview3d` | [#4](https://github.com/volcano581/EarthView/pull/4) | `351de51` | ✓ (2026-10-11, local) |
 | E2 | `earthview3d_demo` with synthetic host feed | Merged | `3d/e2-demo` | [#5](https://github.com/volcano581/EarthView/pull/5) | `2242208` | ✓ (2026-10-11, local; imagery note I-022) |
 | E3 | Entity layer (models, labels, LOD, picking) | Merged | `3d/e3-entities` | [#6](https://github.com/volcano581/EarthView/pull/6) | `9233edc` | ✓ (2026-10-12, owner, local) |
-| E4 | Camera controllers + HUD | In review | `3d/e4-cameras` | PR (this branch) | — | pending (Windows) |
+| E4 | Camera controllers + HUD | In review | `3d/e4-cameras` | [#8](https://github.com/volcano581/EarthView/pull/8) | — | pending (Windows) |
 | E5 | Terrain services | Not started | | | | |
 | E6 | Offline data pipeline | Not started | | | | |
 | E7 | Packaging + runtime deploy | Not started | | | | |
@@ -76,7 +76,7 @@ Cloud agents can only syntax-check osgEarth code (E3 review).
 ## Change log (newest first)
 
 ### 2026-10-12 — E4: cameras (orbit, chase, stealth, first person, free-fly) + HUD  (In review)
-- **Branch / PR:** `3d/e4-cameras` / PR — merge —
+- **Branch / PR:** `3d/e4-cameras` / [#8](https://github.com/volcano581/EarthView/pull/8) — merge —
 - **Author:** cloud agent
 - **Changes:**
   - `CameraControl.h/.cpp` (core, GL-free): `CameraMode`, `CameraPose`, eased `blendPose`
@@ -95,7 +95,7 @@ Cloud agents can only syntax-check osgEarth code (E3 review).
     acceptance run), mode in the status bar and key hints.
 - **Existing files touched:** earthview3d only; no 2D code.
 - **Tests:** new `tst_cameracontrol` (11 cases). Linux ctest 9/9.
-- **Verified:** Linux build + ctest ✓ · osgEarth code syntax-checked (C++17/20); Windows CI pending · Visual check pending (Windows)
+- **Verified:** Linux build + ctest ✓ · osgEarth code syntax-checked (C++17/20); Windows CI ✓ (`7801361`) · Visual check pending (Windows)
 - **Follow-ups:** I-026, I-027.
 
 ### 2026-10-12 — CI: vcpkg cache saved by master only, weekly keep-alive  (In review)
