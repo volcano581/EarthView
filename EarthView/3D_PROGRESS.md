@@ -100,14 +100,13 @@ Cloud agents can only syntax-check osgEarth code (E3 review).
   after `configureRuntime()` (`EARTHVIEW3D_LABEL_FONT`), `EARTHVIEW3D_NO_DECLUTTER=1`; (3)
   smoke runs listed under "Verified by owner" in the PR. Minor: ring centred on the marker,
   test model `Data/models/test_armour.osgt` (armour) exercises model/LOD path, status-bar hint.
-- **Review round 2 (owner, `58e6bfd`):** crash, labels, ring, test model and 2D/3D agreement
-  verified ✓. Regression: `--view stealth` sometimes ended in the home view (never tethered) or
-  part-way (72 m, 5 558 m). Found one race: a tether requested before the first frame was
-  queued by EarthManipulator, then replaced by the home viewpoint applied right after frame 1.
-  Now the tether waits until home is applied and entities exist. Added log lines for tether
-  start/end and the frame time in `viewpointDescription()` to pin down any remaining cause;
-  3× stealth/chase check added to the PR's owner checklist. CascadiaCode font message
-  documented as an expected log line.
+- **Review round 2 (owner, `58e6bfd`):** approved. Crash, labels, ring, test model and 2D/3D
+  agreement ✓; stealth 60 m in 4/4 undisturbed runs (an apparent tether regression was a test
+  artefact: the window was zoomed during the runs, which cancels the fly-to). `579d8eb` still
+  holds a tether requested before the first frame until home is applied (a real, if unseen,
+  race), adds tether start/end log lines and frame time, and documents the CascadiaCode font
+  message. Owner checklist keeps 3× stealth/chase runs — don't touch the window while they run.
+  Optional follow-up (E4/E10): selection ring radius = max(ring px, marker bound) up close.
 - **Follow-ups:** I-023, I-024.
 
 ### 2026-10-11 — E2: `earthview3d_demo` host simulator  (Merged `2242208`, 2026-10-12)
