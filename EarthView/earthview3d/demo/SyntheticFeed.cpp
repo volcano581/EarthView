@@ -67,6 +67,12 @@ double SyntheticFeed::speedMps(int index)
     return kSpeed[kindOf(index)];
 }
 
+const char* SyntheticFeed::kindKeyOf(Kind kind)
+{
+    static const char* const kKeys[] = {"ground/infantry", "ground/armour", "ground/artillery", "air/fixed-wing"};
+    return kKeys[kind];
+}
+
 std::vector<EntityState3D> SyntheticFeed::stateAt(double seconds) const
 {
     const glm::dvec3 originEcef = scene3d::Geodesy::geodeticToEcef(
@@ -110,8 +116,15 @@ std::vector<EntityState3D> SyntheticFeed::stateAt(double seconds) const
         e.lonDeg = geo.longitudeDeg;
         e.altM = kind == Air ? m_settings.airAltitudeM : m_settings.groundAltitudeM;
         e.headingDeg = heading;
+        e.kindKey = QLatin1String(kindKeyOf(kind));
         e.shape = shapeOf(kind);
         e.rgba = kindColor(kind);
+        e.force = (i % 5 == 4) ? Force::Hostile : Force::Friendly;
+        if (kind == Air) {
+            // Coordinated turn on the circle: bank into the turn, slight nose-up.
+            e.rollDeg = 20.0 * direction;
+            e.pitchDeg = 2.0;
+        }
         e.label = QStringLiteral("%1-%2").arg(QLatin1String(kindPrefix(kind))).arg(i + 1, 2, 10, QLatin1Char('0'));
         e.clampToTerrain = kind != Air;
         entities.push_back(std::move(e));

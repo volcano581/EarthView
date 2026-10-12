@@ -1,8 +1,12 @@
 #include "earthview3d/GlobeView3D.h"
 #include "earthview3d/EntityDiff.h"
+#include "earthview3d/ModelTable.h"
+#include "earthview3d/Picking.h"
 #include "earthview3d/Runtime.h"
 
+#include <QDebug>
 #include <QDir>
+#include <QElapsedTimer>
 #include <QKeyEvent>
 #include <QMouseEvent>
 #include <QSurfaceFormat>
@@ -10,25 +14,36 @@
 #include <QWheelEvent>
 
 #include <osg/AutoTransform>
+#include <osg/Depth>
+#include <osg/Geometry>
+#include <osg/LOD>
+#include <osg/LineWidth>
 #include <osg/MatrixTransform>
 #include <osg/ShapeDrawable>
+#include <osgText/Font>
+#include <osgText/Text>
 #include <osg/ref_ptr>
 #include <osgDB/ReadFile>
 #include <osgDB/Registry>
 #include <osgViewer/GraphicsWindow>
 #include <osgViewer/Viewer>
 
+#include <osgEarth/AnnotationUtils>
 #include <osgEarth/Common>
 #include <osgEarth/EarthManipulator>
 #include <osgEarth/GeoTransform>
 #include <osgEarth/GLUtils>
 #include <osgEarth/LogarithmicDepthBuffer>
 #include <osgEarth/MapNode>
+#include <osgEarth/Registry>
+#include <osgEarth/ScreenSpaceLayout>
 #include <osgEarth/Sky>
 #include <osgEarth/Terrain>
+#include <osgEarth/TextSymbol>
 #include <osgEarth/Viewpoint>
 
 #include <algorithm>
+#include <cfloat>
 #include <cmath>
 #include <unordered_map>
 
@@ -44,6 +59,18 @@ constexpr double kDegToRad = kPi / 180.0;
 // Entity markers are modelled in metres at roughly real size and never drawn
 // smaller than this many pixels, so they stay visible from orbit.
 constexpr float kMinMarkerPixels = 14.0f;
+constexpr float kSelectionRingPixels = 18.0f;   // radius of the selection highlight
+constexpr double kPickRadiusPixels = 12.0;
+constexpr double kClickSlopPixels = 4.0;      // a press/release further apart is a drag
+
+osg::Matrix attitudeMatrix(double headingDeg, double pitchDeg, double rollDeg)
+{
+    // Local frame of a GeoTransform: X east, Y north, Z up; models face +Y (D-005).
+    // OSG multiplies row vectors, so the left-most matrix applies first: roll, pitch, heading.
+    return osg::Matrix::rotate(rollDeg * kDegToRad, osg::Y_AXIS)
+         * osg::Matrix::rotate(pitchDeg * kDegToRad, osg::X_AXIS)
+         * osg::Matrix::rotate(-headingDeg * kDegToRad, osg::Z_AXIS);
+}
 
 int toOsgButton(Qt::MouseButton button)
 {
@@ -108,9 +135,12 @@ public:
     {
         osg::ref_ptr<GeoTransform> geo;
         osg::ref_ptr<osg::MatrixTransform> attitude;
-        int shape = -1;
-        std::uint32_t rgba = 0;
-        QString label;
+        osg::ref_ptr<osg::AutoTransform> highlight;
+        osg::ref_ptr<osg::Geode> labelGeode;
+        osg::ref_ptr<osgText::Text> labelText;
+        ResolvedStyle style;
+        bool haveContent = false;
+        bool visible = true;
         double groundAltM = 0.0;    // last terrain height found (tiles may still be loading)
         bool haveGround = false;
     };
@@ -120,6 +150,13 @@ public:
 
     void buildScene();
     osg::Node* createShape(int shape, std::uint32_t rgba) const;
+    osg::Node* createContent(const ResolvedStyle& style);
+    osg::Node* loadModel(const QString& file);
+    osg::AutoTransform* createSelectionRing() const;
+    double contentCentreZ(const ResolvedStyle& style) const;
+    osgText::Font* loadLabelFont() const;
+    void applySelectionLook(EntityVisual& visual, bool selected) const;
+    std::uint64_t pickAt(double x, double y) const;
     EntityVisual& createEntity(const EntityState3D& state);
     void updateEntity(EntityVisual& visual, const EntityState3D& state);
     void removeEntity(std::uint64_t id);
@@ -140,10 +177,28 @@ public:
     osg::ref_ptr<EarthManipulator> manip;
     osg::ref_ptr<osg::Group> entityRoot;
 
+    ModelTable modelTable;
+    bool haveModelTable = false;
+    std::unordered_map<QString, osg::ref_ptr<osg::Node>> modelCache;   // null = failed to load
+    osg::ref_ptr<osg::StateSet> labelStateSet;
+    osg::ref_ptr<TextSymbol> labelSymbol;   // shared by all labels
+    osg::ref_ptr<osgText::Font> labelFont;  // null = osgEarth's default font
+    bool labelsVisible = true;
+    QPointF pressPos;
+    bool leftPressed = false;
+
     EntityDiff diff;
     std::unordered_map<std::uint64_t, EntityVisual> entities;
     std::uint64_t selectedId = 0;
     bool homeApplied = false;
+    // A tether requested before the home viewpoint was applied (first frame) waits here;
+    // otherwise the home viewpoint, applied right after frame 1, would replace it (E3 review).
+    bool tetherPending = false;
+    double pendingRangeM = 0.0;
+    double pendingPitchDeg = 0.0;
+    bool wasTethering = false;      // for the tether start/end log lines
+    QElapsedTimer frameClock;
+    double frameMsAvg = 0.0;        // smoothed frame time, reported by viewpointDescription()
 
     std::function<void()> preFrame;
     QTimer frameTimer;
@@ -180,6 +235,8 @@ GlobeView3D::~GlobeView3D()
     // Release every OSG object while the context is current so GL resources are freed.
     makeCurrent();
     d->entities.clear();
+    d->modelCache.clear();
+    d->labelStateSet = nullptr;
     d->entityRoot = nullptr;
     d->manip = nullptr;
     d->mapNode = nullptr;
@@ -256,6 +313,32 @@ void GlobeView3D::Private::buildScene()
     GLUtils::setLighting(entityRoot->getOrCreateStateSet(), osg::StateAttribute::OFF);
     mapNode->addChild(entityRoot.get());
 
+    // Labels: one shared state set in osgEarth's screen-space layout bin, decluttered.
+    // Same state as osgEarth's LabelNode: layout bin, no depth test/writes, no lighting.
+    labelStateSet = new osg::StateSet();
+    ScreenSpaceLayout::activate(labelStateSet.get());
+    labelStateSet->setAttributeAndModes(new osg::Depth(osg::Depth::ALWAYS, 0.0, 1.0, false),
+                                        osg::StateAttribute::ON | osg::StateAttribute::PROTECTED);
+    GLUtils::setLighting(labelStateSet.get(), osg::StateAttribute::OFF | osg::StateAttribute::PROTECTED);
+    ScreenSpaceLayout::setDeclutteringEnabled(qEnvironmentVariableIntValue("EARTHVIEW3D_NO_DECLUTTER") != 1);
+
+    // osg::Referenced objects live on the heap, held by ref_ptr (createTextDrawable keeps a
+    // reference to the symbol and would delete a stack object).
+    labelSymbol = new TextSymbol();
+    labelSymbol->fill().mutable_value().color() = Color::White;
+    labelSymbol->halo().mutable_value().color() = Color::Black;
+    labelSymbol->alignment() = TextSymbol::ALIGN_LEFT_CENTER;
+    labelSymbol->declutter() = true;
+    labelFont = loadLabelFont();
+
+    const QString tablePath = config.resolvedModelTable();
+    if (!tablePath.isEmpty()) {
+        QString tableError;
+        haveModelTable = ModelTable::fromJsonFile(tablePath, &modelTable, &tableError);
+        if (!haveModelTable)
+            emit q->loadFailed(QStringLiteral("Model table ignored (placeholders used): %1").arg(tableError));
+    }
+
     manip = new EarthManipulator();
     manip->getSettings()->setTetherMode(EarthManipulator::TETHER_CENTER_AND_HEADING);
     manip->getSettings()->setMinMaxDistance(5.0, 4.0e7);
@@ -309,33 +392,155 @@ osg::Node* GlobeView3D::Private::createShape(int shape, std::uint32_t rgba) cons
     return autoScale;
 }
 
+osg::Node* GlobeView3D::Private::loadModel(const QString& file)
+{
+    auto it = modelCache.find(file);
+    if (it != modelCache.end())
+        return it->second.get();
+    osg::ref_ptr<osg::Node> model = osgDB::readRefNodeFile(file.toStdString());
+    if (!model.valid())
+        emit q->loadFailed(QStringLiteral("Model %1 could not be loaded; using a placeholder").arg(file));
+    modelCache.emplace(file, model);   // remember failures too, so the file is tried once
+    return model.get();
+}
+
+osg::Node* GlobeView3D::Private::createContent(const ResolvedStyle& style)
+{
+    osg::Node* marker = createShape(style.shape, style.rgba);
+    osg::Node* model = style.modelFile.isEmpty() ? nullptr : loadModel(style.modelFile);
+    if (!model)
+        return marker;
+
+    // Model when it covers enough pixels, the always-visible marker (icon) below that.
+    auto* scaled = new osg::MatrixTransform(osg::Matrix::scale(style.scale, style.scale, style.scale));
+    scaled->addChild(model);   // shared between entities of the same kind
+    const float iconBelow = float(haveModelTable ? modelTable.iconBelowPixels() : 12.0);
+    auto* lod = new osg::LOD();
+    lod->setRangeMode(osg::LOD::PIXEL_SIZE_ON_SCREEN);
+    lod->addChild(scaled, iconBelow, FLT_MAX);
+    lod->addChild(marker, 0.0f, iconBelow);
+    return lod;
+}
+
+double GlobeView3D::Private::contentCentreZ(const ResolvedStyle& style) const
+{
+    if (!style.modelFile.isEmpty()) {
+        auto it = modelCache.find(style.modelFile);
+        if (it != modelCache.end() && it->second.valid())
+            return it->second->getBound().center().z() * style.scale;
+    }
+    switch (style.shape) {   // centres used by createShape(), at real size
+    case 0: return 2.0;      // sphere
+    case 2: return 1.5;      // box
+    default: return 0.0;     // cone and cylinder are centred on the origin after alignment
+    }
+}
+
+osgText::Font* GlobeView3D::Private::loadLabelFont() const
+{
+    // Loaded here, after configureRuntime() put the freetype plugin on the path: osgEarth
+    // resolves its own default font when its DLL loads, which may be too early (E3 review).
+    QString name = qEnvironmentVariable("EARTHVIEW3D_LABEL_FONT");
+#ifdef _WIN32
+    if (name.isEmpty())
+        name = QStringLiteral("arial.ttf");
+#endif
+    if (!name.isEmpty()) {
+        osg::ref_ptr<osgText::Font> font = osgText::readRefFontFile(name.toStdString());
+        if (font.valid())
+            return font.release();
+        emit q->loadFailed(QStringLiteral("Label font %1 could not be loaded; using the default font").arg(name));
+    }
+    return Registry::instance()->getDefaultFont();
+}
+
+osg::AutoTransform* GlobeView3D::Private::createSelectionRing() const
+{
+    // Unit circle facing the screen, scaled to kSelectionRingPixels.
+    constexpr int kSegments = 48;
+    auto* vertices = new osg::Vec3Array();
+    for (int i = 0; i < kSegments; ++i) {
+        const double a = 2.0 * kPi * i / kSegments;
+        vertices->push_back(osg::Vec3(float(std::cos(a)), float(std::sin(a)), 0.0f));
+    }
+    auto* colors = new osg::Vec4Array();
+    colors->push_back(osg::Vec4(1.0f, 0.85f, 0.1f, 1.0f));
+    auto* ring = new osg::Geometry();
+    ring->setVertexArray(vertices);
+    ring->setColorArray(colors, osg::Array::BIND_OVERALL);
+    ring->addPrimitiveSet(new osg::DrawArrays(GL_LINE_LOOP, 0, kSegments));
+    ring->getOrCreateStateSet()->setAttributeAndModes(new osg::LineWidth(2.5f));
+    ring->getOrCreateStateSet()->setMode(GL_DEPTH_TEST, osg::StateAttribute::OFF);
+    ring->getOrCreateStateSet()->setRenderBinDetails(100, "RenderBin");
+
+    auto* preScale = new osg::MatrixTransform(osg::Matrix::scale(kSelectionRingPixels, kSelectionRingPixels, 1.0));
+    preScale->addChild(ring);
+    auto* screen = new osg::AutoTransform();
+    screen->setAutoRotateMode(osg::AutoTransform::ROTATE_TO_SCREEN);
+    screen->setAutoScaleToScreen(true);
+    screen->addChild(preScale);
+    return screen;
+}
+
+void GlobeView3D::Private::applySelectionLook(EntityVisual& visual, bool selected) const
+{
+    visual.highlight->setNodeMask(selected ? ~0u : 0u);
+    if (visual.labelText.valid())
+        visual.labelText->setColor(selected ? osg::Vec4(1.0f, 0.85f, 0.1f, 1.0f) : osg::Vec4(1.0f, 1.0f, 1.0f, 1.0f));
+    // Selected labels win decluttering.
+    if (visual.labelText.valid())
+        ScreenSpaceLayoutData::getOrCreate(visual.labelText.get())->setPriority(selected ? 1000.0f : 0.0f);
+}
+
 GlobeView3D::Private::EntityVisual& GlobeView3D::Private::createEntity(const EntityState3D& state)
 {
     EntityVisual& visual = entities[state.id];
     visual.geo = new GeoTransform();
     visual.attitude = new osg::MatrixTransform();
-    visual.attitude->addChild(createShape(state.shape, state.rgba));
     visual.geo->addChild(visual.attitude.get());
-    visual.shape = state.shape;
-    visual.rgba = state.rgba;
+
+    visual.highlight = createSelectionRing();
+    visual.geo->addChild(visual.highlight.get());
+
+    // Zero-size alignment box at the anchor: a default osg::BoundingBox is invalid
+    // (xMax = -FLT_MAX) and would place the text far off screen.
+    const osg::BoundingBox anchor(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+    visual.labelText = AnnotationUtils::createTextDrawable(std::string(), labelSymbol.get(), anchor);
+    visual.labelText->setDataVariance(osg::Object::DYNAMIC);
+    if (labelFont.valid())
+        visual.labelText->setFont(labelFont.get());
+    ScreenSpaceLayoutData::getOrCreate(visual.labelText.get())->setPixelOffset(osg::Vec2s(12, 0));
+    visual.labelGeode = new osg::Geode();
+    visual.labelGeode->setStateSet(labelStateSet.get());
+    visual.labelGeode->addDrawable(visual.labelText.get());
+    visual.labelGeode->setNodeMask(labelsVisible ? ~0u : 0u);
+    visual.geo->addChild(visual.labelGeode.get());
+
+    applySelectionLook(visual, state.id == selectedId);
     entityRoot->addChild(visual.geo.get());
     return visual;
 }
 
 void GlobeView3D::Private::updateEntity(EntityVisual& visual, const EntityState3D& state)
 {
-    if (state.shape != visual.shape || state.rgba != visual.rgba) {
+    const ResolvedStyle style = resolveStyle(state, haveModelTable ? &modelTable : nullptr);
+    if (!visual.haveContent || style.modelFile != visual.style.modelFile || style.shape != visual.style.shape
+        || style.rgba != visual.style.rgba || style.scale != visual.style.scale) {
         visual.attitude->removeChildren(0, visual.attitude->getNumChildren());
-        visual.attitude->addChild(createShape(state.shape, state.rgba));
-        visual.shape = state.shape;
-        visual.rgba = state.rgba;
+        visual.attitude->addChild(createContent(style));
+        visual.haveContent = true;
+        // Centre the selection ring on the marker/model rather than its ground point.
+        visual.highlight->setPosition(osg::Vec3d(0.0, 0.0, contentCentreZ(style)));
     }
-    visual.label = state.label;
-    visual.geo->setNodeMask(state.visible ? ~0u : 0u);
+    if (style.label != visual.style.label || visual.labelText->getText().empty())
+        visual.labelText->setText(style.label.toStdString(), osgText::String::ENCODING_UTF8);
+    visual.style = style;
+    visual.visible = style.visible;
+    visual.geo->setNodeMask(style.visible ? ~0u : 0u);
 
     const SpatialReference* wgs84 = mapNode->getMapSRS()->getGeographicSRS();
     double altM = state.altM;
-    if (state.clampToTerrain) {
+    if (style.clampToTerrain) {
         double terrainM = 0.0;
         Terrain* terrain = mapNode->getTerrain();
         if (terrain && terrain->getHeight(wgs84, state.lonDeg, state.latDeg, &terrainM)) {
@@ -346,7 +551,9 @@ void GlobeView3D::Private::updateEntity(EntityVisual& visual, const EntityState3
             altM = visual.groundAltM;
     }
     visual.geo->setPosition(GeoPoint(wgs84, state.lonDeg, state.latDeg, altM, ALTMODE_ABSOLUTE));
-    visual.attitude->setMatrix(osg::Matrix::rotate(-state.headingDeg * kDegToRad, osg::Z_AXIS));
+    visual.attitude->setMatrix(
+        attitudeMatrix(style.headingOffsetDeg, style.pitchOffsetDeg, style.rollOffsetDeg)
+        * attitudeMatrix(state.headingDeg, state.pitchDeg, state.rollDeg));
 }
 
 void GlobeView3D::Private::removeEntity(std::uint64_t id)
@@ -361,6 +568,36 @@ void GlobeView3D::Private::removeEntity(std::uint64_t id)
         manip->clearViewpoint();
         emit q->selectionChanged(QString());
     }
+}
+
+std::uint64_t GlobeView3D::Private::pickAt(double x, double y) const
+{
+    const osg::Camera* camera = viewer->getCamera();
+    if (!camera->getViewport())
+        return 0;
+    const double dpr = q->devicePixelRatioF();
+    const osg::Matrixd view = camera->getViewMatrix();
+    const osg::Matrixd vpw = view * camera->getProjectionMatrix() * camera->getViewport()->computeWindowMatrix();
+    const double windowHeight = camera->getViewport()->height();
+
+    std::vector<PickCandidate> candidates;
+    candidates.reserve(entities.size());
+    for (const auto& [id, visual] : entities) {
+        osg::Vec3d world;
+        if (!visual.geo->getPosition().toWorld(world))
+            continue;
+        const osg::Vec3d eye = world * view;
+        const osg::Vec3d screen = world * vpw;
+        PickCandidate c;
+        c.id = id;
+        c.x = screen.x() / dpr;
+        c.y = (windowHeight - screen.y()) / dpr;   // OSG window origin is bottom-left
+        c.distanceM = eye.length();
+        c.inFront = eye.z() < 0.0;
+        c.visible = visual.visible;
+        candidates.push_back(c);
+    }
+    return pickNearest(candidates, x, y, kPickRadiusPixels);
 }
 
 void GlobeView3D::setEntities(const std::vector<EntityState3D>& entities)
@@ -398,6 +635,7 @@ Viewpoint GlobeView3D::Private::homeViewpoint() const
 
 void GlobeView3D::goHome()
 {
+    d->tetherPending = false;
     if (!d->manip.valid())
         return;
     d->manip->clearViewpoint();
@@ -410,8 +648,26 @@ void GlobeView3D::selectNextEntity()
         return;
     auto it = d->entities.find(d->selectedId);
     it = (it == d->entities.end() || std::next(it) == d->entities.end()) ? d->entities.begin() : std::next(it);
-    d->selectedId = it->first;
+    setSelected(it->first);
+}
+
+void GlobeView3D::setSelected(quint64 id)
+{
+    if (id != 0 && !d->entities.count(id))
+        id = 0;
+    if (auto old = d->entities.find(d->selectedId); old != d->entities.end())
+        d->applySelectionLook(old->second, false);
+    d->selectedId = id;
+    if (auto now = d->entities.find(id); now != d->entities.end())
+        d->applySelectionLook(now->second, true);
     emit selectionChanged(selectedLabel());
+}
+
+void GlobeView3D::setLabelsVisible(bool visible)
+{
+    d->labelsVisible = visible;
+    for (auto& [id, visual] : d->entities)
+        visual.labelGeode->setNodeMask(visible ? ~0u : 0u);
 }
 
 std::uint64_t GlobeView3D::selectedId() const
@@ -439,13 +695,20 @@ QString GlobeView3D::selectedLabel() const
     auto it = d->entities.find(d->selectedId);
     if (it == d->entities.end())
         return QString();
-    return it->second.label.isEmpty() ? QStringLiteral("#%1").arg(d->selectedId) : it->second.label;
+    return it->second.style.label;
 }
 
 void GlobeView3D::Private::tether(double rangeMeters, double pitchDeg)
 {
     if (!manip.valid())
         return;
+    if (!homeApplied || entities.empty()) {
+        tetherPending = true;
+        pendingRangeM = rangeMeters;
+        pendingPitchDeg = pitchDeg;
+        return;
+    }
+    tetherPending = false;
     if (selectedId == 0 || !entities.count(selectedId))
         q->selectNextEntity();
     auto it = entities.find(selectedId);
@@ -458,6 +721,8 @@ void GlobeView3D::Private::tether(double rangeMeters, double pitchDeg)
     vp.pitch() = Angle(pitchDeg, Units::DEGREES);
     vp.range() = Distance(rangeMeters, Units::METERS);
     manip->setViewpoint(vp, 1.5);
+    qInfo().noquote() << QStringLiteral("earthview3d: tether to entity %1 (range %2 m, pitch %3)")
+                             .arg(selectedId).arg(rangeMeters).arg(pitchDeg);
 }
 
 void GlobeView3D::chaseSelected() { d->tether(250.0, -20.0); }
@@ -465,6 +730,7 @@ void GlobeView3D::stealthSelected() { d->tether(60.0, -10.0); }   // eye ~10 m u
 
 void GlobeView3D::untether()
 {
+    d->tetherPending = false;
     if (d->manip.valid())
         d->manip->clearViewpoint();
 }
@@ -473,7 +739,8 @@ QString GlobeView3D::viewpointDescription() const
 {
     if (!d->manip.valid())
         return QString();
-    return QString::fromStdString(d->manip->getViewpoint().toString());
+    return QStringLiteral("%1, frame %2 ms").arg(QString::fromStdString(d->manip->getViewpoint().toString()))
+        .arg(d->frameMsAvg, 0, 'f', 1);
 }
 
 bool GlobeView3D::saveSnapshot(const QString& pngPath)
@@ -504,15 +771,47 @@ void GlobeView3D::paintGL()
         d->homeApplied = true;
         d->manip->setViewpoint(d->homeViewpoint(), 0.0);
     }
+    else if (d->tetherPending && !d->entities.empty()) {
+        d->tether(d->pendingRangeM, d->pendingPitchDeg);
+    }
+
+    // Diagnostics: frame time and the end of a tether (user input or a new viewpoint).
+    if (d->frameClock.isValid()) {
+        const double ms = double(d->frameClock.nsecsElapsed()) / 1.0e6;
+        d->frameMsAvg = d->frameMsAvg <= 0.0 ? ms : 0.9 * d->frameMsAvg + 0.1 * ms;
+    }
+    d->frameClock.restart();
+    if (d->manip.valid()) {
+        const bool tethering = d->manip->isTethering();
+        if (d->wasTethering && !tethering)
+            qInfo().noquote() << QStringLiteral("earthview3d: tether ended (%1)")
+                                     .arg(QString::fromStdString(d->manip->getViewpoint().toString()));
+        d->wasTethering = tethering;
+    }
 }
 
 void GlobeView3D::mousePressEvent(QMouseEvent* e)
 {
+    if (e->button() == Qt::LeftButton) {
+        d->pressPos = e->position();
+        d->leftPressed = true;
+    }
     d->eventQueue()->mouseButtonPress(d->scaledX(e->position().x()), d->scaledY(e->position().y()), toOsgButton(e->button()));
 }
 
 void GlobeView3D::mouseReleaseEvent(QMouseEvent* e)
 {
+    // A left click (not a drag) picks the entity nearest the cursor.
+    if (e->button() == Qt::LeftButton && d->leftPressed && d->mapNode.valid()) {
+        d->leftPressed = false;
+        const QPointF delta = e->position() - d->pressPos;
+        if (std::hypot(delta.x(), delta.y()) <= kClickSlopPixels) {
+            if (const std::uint64_t id = d->pickAt(e->position().x(), e->position().y())) {
+                setSelected(id);
+                emit entityPicked(id);
+            }
+        }
+    }
     d->eventQueue()->mouseButtonRelease(d->scaledX(e->position().x()), d->scaledY(e->position().y()), toOsgButton(e->button()));
 }
 

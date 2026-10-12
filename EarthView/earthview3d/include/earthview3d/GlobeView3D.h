@@ -26,6 +26,11 @@ namespace earthview3d {
  * The widget sets its own compatibility-profile surface format, so hosts may keep a core
  * profile as their default. GUI thread only.
  *
+ * Entities: MapConfig::modelTable (models.json, see ModelTable.h) maps kindKey to a model
+ * file; unmatched kinds, missing files and far-away models (below the table's
+ * iconBelowPixels) are drawn as placeholder markers that never get smaller than a few pixels.
+ * Labels are decluttered by osgEarth's screen-space layout. Left-click picks an entity.
+ *
  * Diagnostics (environment): EARTHVIEW3D_NO_SKY=1 disables the sky,
  * EARTHVIEW3D_LOGDEPTH=1 installs osgEarth's logarithmic depth buffer (off by default, D-010).
  */
@@ -55,6 +60,11 @@ public:
     void untether();
 
     std::uint64_t selectedId() const;
+    /// Select entity @p id (0 clears): highlight ring + label emphasis, emits selectionChanged.
+    /// Does not move the camera; call chaseSelected()/stealthSelected() for that.
+    void setSelected(quint64 id);
+    /// Show or hide entity labels (decluttered; on by default).
+    void setLabelsVisible(bool visible);
     /// Where entity @p id is placed in the scene (after terrain clamping): WGS-84 degrees and
     /// metres above the ellipsoid. Returns false if the entity is unknown. For checks/tests.
     bool entityPosition(std::uint64_t id, double* latDeg, double* lonDeg, double* altM) const;
@@ -64,6 +74,8 @@ public:
 
 signals:
     void selectionChanged(QString label);
+    /// The user clicked entity @p id in the view (it is selected as well).
+    void entityPicked(quint64 id);
     void loadFailed(QString reason);
 
 protected:

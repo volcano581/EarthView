@@ -37,6 +37,11 @@ QString MapConfig::resolvedCacheDir() const
     return resolveAgainst(cacheDir, dataRoot);
 }
 
+QString MapConfig::resolvedModelTable() const
+{
+    return resolveAgainst(modelTable, dataRoot);
+}
+
 QDateTime MapConfig::effectiveSkyTime() const
 {
     return skyTime.isValid() ? skyTime.toUTC() : QDateTime::currentDateTimeUtc();
@@ -78,7 +83,7 @@ bool MapConfig::fromJson(const QByteArray& json, const QString& baseDir, MapConf
     const QJsonObject obj = doc.object();
     static const QStringList kKnownKeys = {
         QStringLiteral("earthFile"), QStringLiteral("dataRoot"), QStringLiteral("cacheDir"),
-        QStringLiteral("sky"), QStringLiteral("skyTime")};
+        QStringLiteral("modelTable"), QStringLiteral("sky"), QStringLiteral("skyTime")};
     for (auto it = obj.begin(); it != obj.end(); ++it) {
         if (!kKnownKeys.contains(it.key())) {
             setError(error, QStringLiteral("Unknown map config key \"%1\"").arg(it.key()));
@@ -100,7 +105,8 @@ bool MapConfig::fromJson(const QByteArray& json, const QString& baseDir, MapConf
     };
     if (!readString(QStringLiteral("earthFile"), &result.earthFile)
         || !readString(QStringLiteral("dataRoot"), &result.dataRoot)
-        || !readString(QStringLiteral("cacheDir"), &result.cacheDir))
+        || !readString(QStringLiteral("cacheDir"), &result.cacheDir)
+        || !readString(QStringLiteral("modelTable"), &result.modelTable))
         return false;
 
     if (result.earthFile.isEmpty()) {

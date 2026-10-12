@@ -17,9 +17,13 @@ add_library(earthview3d_core STATIC
     include/earthview3d/EntityState3D.h
     include/earthview3d/EntityDiff.h
     include/earthview3d/MapConfig.h
+    include/earthview3d/ModelTable.h
+    include/earthview3d/Picking.h
     include/earthview3d/RuntimePaths.h
     src/EntityDiff.cpp
     src/MapConfig.cpp
+    src/ModelTable.cpp
+    src/Picking.cpp
     src/RuntimePaths.cpp
 )
 add_library(earthview3d::core ALIAS earthview3d_core)
