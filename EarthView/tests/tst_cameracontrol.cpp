@@ -170,6 +170,19 @@ void TestCameraControl::hudShowsAllFields()
     hud.target.clear();
     QVERIFY(formatHud(hud).contains(QStringLiteral("AGL   --")));
     QVERIFY(formatHud(hud).contains(QStringLiteral("TGT   --")));
+    QVERIFY(!formatHud(hud).contains(QStringLiteral("MSL")));
+    hud.haveMsl = true;
+    hud.mslM = 1282.0;
+    QVERIFY(formatHud(hud).contains(QStringLiteral("MSL   1282 m")));
+    QVERIFY(!formatHud(hud).contains(QStringLiteral("GND")));
+    hud.showGroundOffset = true;
+    hud.groundOffsets.add(-20.0);
+    hud.groundOffsets.add(-30.0);
+    hud.haveTargetOffset = true;
+    hud.targetOffsetM = -22.5;
+    const QString withOffsets = formatHud(hud);
+    QVERIFY(withOffsets.contains(QStringLiteral("-22.5 m (target)")));
+    QVERIFY(withOffsets.contains(QStringLiteral("n=2 mean -25.0 min -30.0 max -20.0")));
 }
 
 QTEST_GUILESS_MAIN(TestCameraControl)

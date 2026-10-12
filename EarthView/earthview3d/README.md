@@ -45,7 +45,12 @@ folders of this build tree). Explicit `GDAL_DATA`/`PROJ_DATA` variables still wi
 Mouse: left-click selects an entity (`entityPicked`); left-drag rotates (orbit) or looks around
 (other modes); wheel zooms (orbit) or sets chase range / stealth eye height / free-fly speed.
 Keyboard: O orbit, T chase, F stealth, P first person, G free-fly (W/A/S/D, Q/E down/up,
-Shift ×4), L chase free-look, J HUD, N next entity, U untether (= orbit), H home.
+Shift ×4), L chase free-look, J HUD, K ground-offset overlay, N next entity, U untether
+(= orbit), H home.
+
+Heights are WGS-84 ellipsoid heights (HAE). The DTED layer is declared `vdatum="egm96"`
+(D-021); `geoidHeight()` converts to MSL. `heightAt()` (cached, any thread) and
+`sourceHeightAt()` (full resolution) are the terrain query API (E5).
 
 `GlobeView3D::entityPosition(id, &lat, &lon, &alt)` returns where an entity was actually
 placed (after terrain clamping) — used by `earthview3d_demo --check-agreement`.

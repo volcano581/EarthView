@@ -38,7 +38,7 @@ Entries with `id == 0` are ignored; a repeated id in one snapshot keeps the firs
 | --------------------- | ------- | ------------------------------------------- |
 | `id` | stable per entity, 64-bit | `RenderEntity::id` (flecs entity id) |
 | `latDeg`, `lonDeg` | WGS-84, double | `RenderEntity::lat_rad`, `lon_rad` × 180/π |
-| `altM` | height above the **WGS-84 ellipsoid** | `RenderEntity::alt_m` |
+| `altM` | height above the **WGS-84 ellipsoid** (HAE, not MSL — D-021) | `RenderEntity::alt_m` (if the sim stores MSL, add `view->geoidHeight(lat, lon)`) |
 | `headingDeg` | clockwise from north | `RenderEntity::heading_rad` × 180/π |
 | `pitchDeg`, `rollDeg` (E3) | attitude, degrees (nose up / right wing down positive) | not in the snapshot yet — 0 until added |
 | `kindKey` (E3) | model-table key, e.g. SISO `"1.1.225.1.1.3"` or `"ground/armour"`; empty = use `shape` | SISO kind when available; empty until then |
@@ -58,6 +58,13 @@ drawn as placeholder markers. A broken table is reported via `loadFailed` and ig
 Selection and picking (E3): left-click on an entity selects it and emits
 `entityPicked(quint64 id)`; `setSelected(id)` selects from the host (0 clears) and emits
 `selectionChanged(label)`. `setLabelsVisible(bool)` toggles the decluttered labels.
+
+Terrain services (E5, `TerrainServices.h`): `heightAt(lat, lon, &hae)` returns the drawn
+terrain height (cached; callable from the sim thread — a miss returns false and is resolved
+on the next frame, ask again). `sourceHeightAt()` samples the elevation source at full
+resolution (slow; tools/spot checks). `geoidHeight(lat, lon)` gives EGM96 N (MSL = HAE − N).
+`setGroundOffsetOverlay(true)` / key K shows terrain − host altitude for clamped entities on
+the HUD and `groundOffsetStats()` returns it — use it in L1 to measure I-015.
 
 Cameras (E4, `CameraControl.h`): `setCameraMode(CameraMode)` with `Orbit`, `Chase`,
 `Stealth`, `FirstPerson`, `FreeFly` (smooth 1 s transition; chase/stealth/first person follow

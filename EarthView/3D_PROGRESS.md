@@ -59,8 +59,8 @@ Cloud agents can only syntax-check osgEarth code (E3 review).
 | E1 | `earthview3d` library + vcpkg manifest + Windows CI | Merged | `3d/e1-earthview3d` | [#4](https://github.com/volcano581/EarthView/pull/4) | `351de51` | ✓ (2026-10-11, local) |
 | E2 | `earthview3d_demo` with synthetic host feed | Merged | `3d/e2-demo` | [#5](https://github.com/volcano581/EarthView/pull/5) | `2242208` | ✓ (2026-10-11, local; imagery note I-022) |
 | E3 | Entity layer (models, labels, LOD, picking) | Merged | `3d/e3-entities` | [#6](https://github.com/volcano581/EarthView/pull/6) | `9233edc` | ✓ (2026-10-12, owner, local) |
-| E4 | Camera controllers + HUD | In review | `3d/e4-cameras` | [#8](https://github.com/volcano581/EarthView/pull/8) | — | pending (Windows) |
-| E5 | Terrain services | Not started | | | | |
+| E4 | Camera controllers + HUD | Merged | `3d/e4-cameras` | [#8](https://github.com/volcano581/EarthView/pull/8) | `840eaec` | pending (Windows) |
+| E5 | Terrain services | In review | `3d/e5-terrain` | PR (this branch) | — | pending (Windows) |
 | E6 | Offline data pipeline | Not started | | | | |
 | E7 | Packaging + runtime deploy | Not started | | | | |
 | E8 | Wiring kit / host contract test | Not started | | | | |
@@ -75,7 +75,28 @@ Cloud agents can only syntax-check osgEarth code (E3 review).
 
 ## Change log (newest first)
 
-### 2026-10-12 — E4: cameras (orbit, chase, stealth, first person, free-fly) + HUD  (In review)
+### 2026-10-12 — E5: terrain services, vertical datum, ground-offset overlay  (In review)
+- **Branch / PR:** `3d/e5-terrain` / PR — merge —
+- **Author:** cloud agent
+- **Changes:**
+  - `TerrainServices.h/.cpp` (core, GL-free): thread-safe `HeightCache` (~1 m cells, bounded,
+    extent invalidation, request queue for other threads) and `GroundOffsetStats`.
+  - `GlobeView3D`: `heightAt()` (cached drawn-terrain height; any thread — misses from other
+    threads are resolved on the next frame), `sourceHeightAt()` (full-resolution
+    `ElevationPool` sample), `geoidHeight()`/`haveGeoid()` (EGM96), ground-offset overlay
+    (`setGroundOffsetOverlay()`, key K, `groundOffsetStats()`). Entity clamping and the E4
+    cameras use the cache; a `TerrainCallback` invalidates it under every loaded tile.
+  - HUD: MSL line (EGM96) next to HAE; optional terrain − host offset lines (I-015).
+  - `Data/maps/earthview.earth`: DTED layer declared `vdatum="egm96"` (D-021) — terrain was
+    ~47 m too high near Islamabad (DTED MSL heights were read as ellipsoid heights).
+  - Demo: `--spot lat,lon[,msl]` (datum check, e.g. OPIS 33.5497,72.8253,537),
+    `--ground-offsets` (overlay + statistics at the end).
+- **Existing files touched:** earthview3d, the earth file; no 2D code.
+- **Tests:** new `tst_terrainservices` (8 cases); `tst_cameracontrol` HUD case extended. Linux ctest 10/10.
+- **Verified:** Linux build + ctest ✓ · osgEarth code syntax-checked (C++17/20); EGM96 N computed from osgEarth's own grid: −47.7 m at OPIS, −46.1 m at the demo origin (17.16 m at 0°/0° matches the published value); Windows CI pending · Visual check / spot check pending (Windows)
+- **Follow-ups:** I-015 updated, I-026 closed, I-028.
+
+### 2026-10-12 — E4: cameras (orbit, chase, stealth, first person, free-fly) + HUD  (Merged `840eaec`, 2026-10-12)
 - **Branch / PR:** `3d/e4-cameras` / [#8](https://github.com/volcano581/EarthView/pull/8) — merge —
 - **Author:** cloud agent
 - **Changes:**
@@ -373,6 +394,8 @@ Cloud agents can only syntax-check osgEarth code (E3 review).
 | D-017 | `earthview3d` sets its own runtime paths: `configureRuntime(RuntimePaths)` adds the OSG plugin folder to `osgDB::Registry` and sets GDAL/PROJ data before first use (env vars set in `main()` are too late for osgDB). Build-tree defaults come from CMake; E7's deploy helper supplies install paths. | 2026-10-08 | E1 review |
 | D-018 | E3 picking is screen-space (project entity anchors, nearest within 12 px, nearer eye wins ties) instead of OSG ray intersection: small icons stay easy to hit and the logic is unit tested. Placeholder markers are the LOD icon; model-table `scale` applies to model files only. | 2026-10-11 | E3 |
 | D-020 | E4 cameras: orbit is osgEarth's EarthManipulator; chase, stealth, first person and free-fly are GlobeView3D's own controller (manipulator detached, view matrix set from a geodetic `CameraPose` each frame) so the +2 m terrain clearance is enforced every frame with the last good height, and transitions are one eased blend. Pose maths is GL-free and unit tested. | 2026-10-12 | E4 |
+| D-021 | Vertical datum: everything in the 3D view is WGS-84 ellipsoid height (HAE). DTED is orthometric (EGM96 MSL), so the elevation layer is declared `vdatum="egm96"` and osgEarth converts it (geoid embedded in the `vdatum_egm96` plugin, offline-safe). Near Islamabad N ≈ −47 m, i.e. terrain had been drawn ~47 m too high. MSL readouts use the same geoid. Check: `earthview3d_demo --spot 33.5497,72.8253,537` (OPIS airport). | 2026-10-12 | E5 |
+| D-022 | Terrain heights: per-frame users (clamping, cameras) read the *drawn* terrain through a ~1 m-cell `HeightCache`, invalidated per loaded tile (`TerrainCallback`); other threads get cache hits or queue misses for the next frame. Full-resolution `ElevationPool` samples are for spot checks/tools only. | 2026-10-12 | E5 |
 | D-019 | CI vcpkg binary cache: every run restores, only `master` saves (complete or partial); a weekly scheduled master run keeps it from the 7-day eviction. Dependency changes build once on their PR without saving and once on master after merge. | 2026-10-12 | CI cache scope |
 | D-011 | The integration target is **Conquer** (`D:\Source\Conquer`: Doctrine + cgf-engine + EarthView superbuild, already MSVC), not the standalone `D:\Source\cgf-engine`. 3D code lives in an isolated library so osgEarth includes never reach other TUs. | 2026-10-08 | Conquer test |
 
@@ -395,7 +418,7 @@ Cloud agents can only syntax-check osgEarth code (E3 review).
 | I-012 | Doctrine/cgf-engine is not under version control; agents cannot work on it until O0. | O0 | Open |
 | I-013 | In Conquer `RenderEntity` already has EntityID, lat/lon (double), alt, heading; still missing pitch/roll and SISO kind (for models). | O5/O6 | Partly resolved |
 | I-014 | ~~No geodetic origin in Doctrine.~~ Conquer has `GeodeticOrigin` + `CoordBridge`. | O5 | Closed (Conquer) |
-| I-015 | Conquer ground units ride a flat plane at the origin altitude, ~20–24 m below the DTED surface near Islamabad; sim terrain must use the same DEM (or the 3D view keeps clamping ground units). | O5 | Open |
+| I-015 | Conquer ground units ride a flat plane at the origin altitude, ~20–24 m below the DTED surface near Islamabad (measured before D-021; with the EGM96 correction the terrain drops ~47 m, so re-measure); sim terrain must use the same DEM and datum (or the 3D view keeps clamping ground units). E5 adds the measurement: HUD overlay (K) / `groundOffsetStats()` / demo `--ground-offsets`. | O5 / L1 | Open (measure in L1) |
 | I-016 | Conquer test uses the spike's vcpkg tree via `DOCTRINE_OSGEARTH_PREFIX` and online OSM imagery; replace with a pinned manifest (O3) and offline imagery (O8). Pinned manifest now at the repo root (`vcpkg.json`, E1); offline imagery still open (E6). | E1/E6 | Partly resolved (E1) |
 | I-006 | `spike.earth` / `osm_style.json` use absolute `D:/Source/...` data paths. The library's map (`Data/maps/earthview.earth`, E1) uses relative paths; the spike files go away in E2. | S1 / E2 | Partly resolved (E1) |
 | I-017 | Linux CI does not build `earthview3d` yet (roadmap: "once green"). Cloud containers cannot build osgEarth through vcpkg either: the environment's network policy blocks `sqlite.org` (sqlite3 source). Add a cached Linux vcpkg job after E1. | E1 follow-up | Open |
@@ -405,8 +428,9 @@ Cloud agents can only syntax-check osgEarth code (E3 review).
 | I-022 | 3D imagery still coarse after 30 s in the demo (sharp by then in the host test). Likely the 2D map and osgEarth both pulling from tile.openstreetmap.org (throttling). Re-check once E6's offline imagery and the osgEarth cache are in. | E6 | Open |
 | I-023 | Only a generated test model ships (`test_armour.osgt`, armour); other kinds use placeholder shapes. Add real `.osgb`/glTF models (and licence check) with E6/E7. | E3 | Open |
 | I-024 | Label declutter and model/icon LOD thresholds need a visual check on Windows with 200 entities (`earthview3d_demo --select 5 --snapshot3d`). | E3 | Open |
-| I-026 | HUD "ALT" is height above the WGS-84 ellipsoid, not MSL: the map has no geoid model (difference near Islamabad ~−30 m). Add a geoid (EGM96) to the earth file or the HUD when MSL is needed (E6). | E4 | Open |
+| I-026 | ~~HUD "ALT" is height above the WGS-84 ellipsoid, not MSL (no geoid model).~~ E5: the HUD shows HAE and MSL (EGM96); near Islamabad N ≈ −47 m (the −30 m estimate here was wrong). | E4 | Closed (E5) |
 | I-027 | Orbit mode keeps osgEarth's own terrain avoidance (≥ 5 m from the terrain under the focal point), not the +2 m eye clamp of the other modes; orbit can still look from very low over steep slopes. | E4 | Open |
+| I-028 | `HeightCache` is invalidated under every loaded tile; while many tiles stream in (start-up, fast camera moves) clamped entities miss the cache and query the terrain as before. Measure with the E10 profiling (I-025) before tuning (e.g. invalidate only when the tile LOD is finer than the cached sample). | E10 | Open |
 | I-025 | 3D frame time scales ~linearly with entity count (~0.25–0.35 ms/entity): RTX 3050 Ti, 1400×900, 20 entities 14.6 ms (~68 FPS), 200 entities 64–86 ms (~12–15 FPS), 200 with declutter off 59.1 ms (owner, `579d8eb`). Suspects: per-entity `Terrain::getHeight()` every frame for clamped units, one `osgText::Text` + geode per entity, per-entity `AutoTransform`s (marker + ring). First steps: cache terrain height and refresh only on movement > N m or every few frames, share label/marker state, profile with osgEarth stats. Target 1,000 entities at 60 FPS. | E10 | Open |
 | I-018 | `MapConfig.cacheDir` is applied through `OSGEARTH_CACHE_PATH` before the widget's first `osgEarth::initialize()`; it is ignored if the host initialised osgEarth earlier or set the variable itself. Verify the cache fills on Windows (E6 owns caching). | E6 | Open |
 

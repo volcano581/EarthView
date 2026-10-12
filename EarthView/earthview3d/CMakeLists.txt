@@ -21,12 +21,14 @@ add_library(earthview3d_core STATIC
     include/earthview3d/ModelTable.h
     include/earthview3d/Picking.h
     include/earthview3d/RuntimePaths.h
+    include/earthview3d/TerrainServices.h
     src/CameraControl.cpp
     src/EntityDiff.cpp
     src/MapConfig.cpp
     src/ModelTable.cpp
     src/Picking.cpp
     src/RuntimePaths.cpp
+    src/TerrainServices.cpp
 )
 add_library(earthview3d::core ALIAS earthview3d_core)
 target_include_directories(earthview3d_core PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")

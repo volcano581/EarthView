@@ -2,6 +2,8 @@
 #ifndef EARTHVIEW3D_CAMERACONTROL_H
 #define EARTHVIEW3D_CAMERACONTROL_H
 
+#include "earthview3d/TerrainServices.h"
+
 #include <QString>
 
 namespace earthview3d {
@@ -99,12 +101,19 @@ struct HudData
     CameraMode mode = CameraMode::Orbit;
     double headingDeg = 0.0;
     double pitchDeg = 0.0;
-    double altM = 0.0;        ///< Eye height above the ellipsoid
+    double altM = 0.0;        ///< Eye height above the ellipsoid (HAE)
+    bool haveMsl = false;
+    double mslM = 0.0;        ///< Eye height above mean sea level (EGM96), when the geoid is known
     bool haveAgl = false;
     double aglM = 0.0;        ///< Eye height above terrain
     double speedMps = 0.0;    ///< Eye speed
     QString target;           ///< Tracked entity label (empty: none)
     bool chaseFreeLook = false;
+    // Ground-offset debug overlay (E5, I-015): terrain minus host altitude, clamped entities.
+    bool showGroundOffset = false;
+    bool haveTargetOffset = false;
+    double targetOffsetM = 0.0;
+    GroundOffsetStats groundOffsets;
 };
 
 /// HUD text, one item per line.

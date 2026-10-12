@@ -161,10 +161,20 @@ QString formatHud(const HudData& hud)
     lines << QStringLiteral("MODE  %1").arg(mode);
     lines << QStringLiteral("HDG   %1°").arg(normalizeHeading(hud.headingDeg), 5, 'f', 1, QLatin1Char('0'));
     lines << QStringLiteral("PITCH %1°").arg(hud.pitchDeg, 0, 'f', 1);
-    lines << QStringLiteral("ALT   %1 m").arg(hud.altM, 0, 'f', 0);
+    lines << QStringLiteral("ALT   %1 m HAE").arg(hud.altM, 0, 'f', 0);
+    if (hud.haveMsl)
+        lines << QStringLiteral("MSL   %1 m").arg(hud.mslM, 0, 'f', 0);
     lines << (hud.haveAgl ? QStringLiteral("AGL   %1 m").arg(hud.aglM, 0, 'f', 0) : QStringLiteral("AGL   --"));
     lines << QStringLiteral("SPD   %1 m/s").arg(hud.speedMps, 0, 'f', 1);
     lines << QStringLiteral("TGT   %1").arg(hud.target.isEmpty() ? QStringLiteral("--") : hud.target);
+    if (hud.showGroundOffset) {
+        lines << (hud.haveTargetOffset ? QStringLiteral("GND\u0394 %1 m (target)").arg(hud.targetOffsetM, 0, 'f', 1)
+                                       : QStringLiteral("GND\u0394 -- (target)"));
+        if (hud.groundOffsets.count > 0)
+            lines << QStringLiteral("GND\u0394 n=%1 mean %2 min %3 max %4 m").arg(hud.groundOffsets.count)
+                         .arg(hud.groundOffsets.meanM(), 0, 'f', 1).arg(hud.groundOffsets.minM, 0, 'f', 1)
+                         .arg(hud.groundOffsets.maxM, 0, 'f', 1);
+    }
     return lines.join(QLatin1Char('\n'));
 }
 

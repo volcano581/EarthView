@@ -64,8 +64,8 @@
 | E1 | `earthview3d` library from the reference widget + vcpkg manifest + Windows CI | — | M | yes | **Done** ([#4](https://github.com/volcano581/EarthView/pull/4), `351de51`) |
 | E2 | `earthview3d_demo` app with synthetic host feed (replaces the spike app) | E1 | M | yes | In review (`3d/e2-demo`, [#5](https://github.com/volcano581/EarthView/pull/5)) |
 | E3 | Entity layer: API, model table, labels, LOD, attitude, picking + selection | E1 | L | yes | Done |
-| E4 | Camera controllers (orbit, chase, stealth, first-person, free-fly) + HUD | E1 | M | yes | In review |
-| E5 | Terrain services: height query API, clamping, vertical datum check | E1 | S | yes | |
+| E4 | Camera controllers (orbit, chase, stealth, first-person, free-fly) + HUD | E1 | M | yes | Done |
+| E5 | Terrain services: height query API, clamping, vertical datum check | E1 | S | yes | In review |
 | E6 | Offline data pipeline (imagery, DEM overviews, overlays, earth template, cache) | E1 | M | yes | |
 | E7 | Packaging: CMake package/`add_subdirectory`, `earthview3d_deploy_runtime()`, install, offline build doc | E1 | M | no | |
 | E8 | Wiring kit: keep `DOCTRINE_WIRING.md` + host contract test in sync; integration checklist | E3, E4, E7 | S | no | |
@@ -119,7 +119,7 @@ demonstrated).
 - Tests: model table matching, diffing, visibility.
 - Acceptance (demo): 200 entities readable at all ranges; click-select works.
 
-### E4 — Cameras — IN REVIEW (branch `3d/e4-cameras`)
+### E4 — Cameras — DONE ([#8](https://github.com/volcano581/EarthView/pull/8))
 - Orbit, chase (tether, heading-locked/free-look), stealth (eye height above terrain
   configurable, default ~10 m), first-person (entity attitude), free-fly (WASD + mouse,
   speed scales with AGL); terrain clearance never below +2 m (query, keep last good).
@@ -127,7 +127,7 @@ demonstrated).
 - Acceptance (demo): attach to a moving ground and air entity, look around, detach, fly;
   no frame shows the camera below terrain.
 
-### E5 — Terrain services
+### E5 — Terrain services — IN REVIEW (branch `3d/e5-terrain`)
 - `heightAt(lat, lon)` (async-safe, cached), clamping used by E3/E4.
 - Vertical datum: decide ellipsoid vs EGM96 for DTED; verify against a known spot height;
   document. Report the ground-plane offset for hosts (I-015) via a debug overlay.

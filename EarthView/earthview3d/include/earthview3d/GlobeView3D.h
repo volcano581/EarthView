@@ -35,7 +35,8 @@ namespace earthview3d {
  * Cameras (CameraControl.h): orbit, chase, stealth, first person and free-fly, with a HUD
  * overlay. Every mode except orbit keeps the eye at least 2 m above the terrain each frame.
  * Keys: O orbit, T chase, F stealth, P first person, G free-fly (WASD, Q/E down/up, Shift
- * fast), L chase free-look, J HUD, N next entity, H home. Left-drag looks around.
+ * fast), L chase free-look, J HUD, K ground-offset overlay, N next entity, H home. Left-drag
+ * looks around.
  *
  * Diagnostics (environment): EARTHVIEW3D_NO_SKY=1 disables the sky,
  * EARTHVIEW3D_LOGDEPTH=1 installs osgEarth's logarithmic depth buffer (off by default, D-010).
@@ -82,6 +83,23 @@ public:
     /// HUD overlay: mode, heading, pitch, altitude, AGL, speed, target (on by default).
     void setHudVisible(bool visible);
     bool hudVisible() const;
+
+    // ── Terrain services (E5) ── heights are metres above the WGS-84 ellipsoid (HAE).
+    /// Height of the drawn terrain at a point, cached (~1 m cells, refreshed as tiles load).
+    /// Safe from any thread: on the GUI thread a miss is queried at once; on other threads a
+    /// miss returns false and is resolved on the next frame (ask again later).
+    bool heightAt(double latDeg, double lonDeg, double* altM) const;
+    /// Height from the elevation source at full resolution (independent of the tiles drawn;
+    /// slower, may read files). For spot checks and tools, not per-frame use.
+    bool sourceHeightAt(double latDeg, double lonDeg, double* altM, double* resolutionM = nullptr) const;
+    /// EGM96 geoid height N (m) at a point: MSL = HAE − N. 0 when the geoid is unavailable.
+    double geoidHeight(double latDeg, double lonDeg) const;
+    bool haveGeoid() const;
+    /// Debug overlay (HUD) of terrain − host altitude for clamped entities (I-015); key K.
+    void setGroundOffsetOverlay(bool show);
+    bool groundOffsetOverlay() const;
+    /// Terrain − host altitude over the clamped entities of the last setEntities() call.
+    GroundOffsetStats groundOffsetStats() const;
 
     std::uint64_t selectedId() const;
     /// Select entity @p id (0 clears): highlight ring + label emphasis, emits selectionChanged.

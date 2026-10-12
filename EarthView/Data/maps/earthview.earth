@@ -27,8 +27,12 @@
          dted_1arc.vrt (relative paths to the .dt2 files next to it).
          For faster zoomed-out loading, build overviews once:
            gdaladdo -ro dted_1arc.vrt 2 4 8 16 32 64 -->
+    <!-- DTED heights are orthometric (EGM96 mean sea level). vdatum="egm96" makes osgEarth
+         convert them to WGS-84 ellipsoid heights (HAE), the frame of every other position in
+         the 3D view (D-021). Near Islamabad the geoid is ~47 m below the ellipsoid. -->
     <GDALElevation name="SRTM 1arc DTED2">
         <url>../DEM/dted_1arc.vrt</url>
+        <vdatum>egm96</vdatum>
     </GDALElevation>
 
     <!-- Vector overlay straight from EarthView's shapefile, clamped to terrain. -->
