@@ -53,7 +53,7 @@ Status values: `Not started` · `In progress` · `In review` · `Changes request
 | T1 | Local Doctrine integration test (Conquer, branch `earthview-3d-test`) | Done (local) | — | — | `1fd3d89` (Conquer) | ✓ (2026-10-08) |
 | O0–O11 | Earlier osgEarth plan | Superseded by E1–E10 + L1 (D-012) | | | | |
 | E1 | `earthview3d` library + vcpkg manifest + Windows CI | Merged | `3d/e1-earthview3d` | [#4](https://github.com/volcano581/EarthView/pull/4) | `351de51` | ✓ (2026-10-11, local) |
-| E2 | `earthview3d_demo` with synthetic host feed | In review | `3d/e2-demo` | [#5](https://github.com/volcano581/EarthView/pull/5) | — | ✓ (2026-10-11, local; imagery note I-022) |
+| E2 | `earthview3d_demo` with synthetic host feed | Merged | `3d/e2-demo` | [#5](https://github.com/volcano581/EarthView/pull/5) | `2242208` | ✓ (2026-10-11, local; imagery note I-022) |
 | E3 | Entity layer (models, labels, LOD, picking) | Not started | | | | |
 | E4 | Camera controllers + HUD | Not started | | | | |
 | E5 | Terrain services | Not started | | | | |
@@ -71,7 +71,23 @@ Status values: `Not started` · `In progress` · `In review` · `Changes request
 
 ## Change log (newest first)
 
-### 2026-10-11 — E2: `earthview3d_demo` host simulator  (In review)
+### 2026-10-12 — CI: vcpkg cache saved by master only, weekly keep-alive  (In review)
+- **Branch / PR:** `ci/vcpkg-cache-scope` / PR — merge —
+- **Author:** cloud agent
+- **Changes:** `.github/workflows/ci.yml` — the Windows job still restores the vcpkg binary
+  cache on every run (exact key, then newest partial) but the "Save complete" and "Save
+  partial" steps run only on `refs/heads/master`; new weekly `schedule` trigger (Monday
+  03:00 UTC) on master keeps the cache from GitHub's 7-day-unused eviction; cache policy
+  comment in `ci.yml` (D-019). Cache key format unchanged. Also: E2 status row → Merged.
+- **Why:** GitHub cache scoping hides branch/PR caches from other branches; #5 had to rebuild
+  osgEarth (~4–5 h) after retargeting to master, and duplicate per-branch copies of the same
+  cache used ~5.5 GB of the 10 GB repo limit.
+- **Existing files touched:** CI workflow and this file only.
+- **Tests:** none (CI-only); ctest unchanged.
+- **Verified:** Linux CI pending · Windows CI pending (PR runs restore but no longer save) · Visual check n.a.
+- **Follow-ups:** owner decides whether to delete the redundant branch/PR caches (listed in the PR).
+
+### 2026-10-11 — E2: `earthview3d_demo` host simulator  (Merged `2242208`, 2026-10-12)
 - **Branch / PR:** `3d/e2-demo` / [#5](https://github.com/volcano581/EarthView/pull/5) — merge — (retargeted to `master` after #4 merged)
 - **Author:** cloud agent
 - **Applied from the E1 review:** `configureRuntime()` before the first `GlobeView3D`; MSVC
@@ -294,6 +310,7 @@ Status values: `Not started` · `In progress` · `In review` · `Changes request
 | D-015 | Windows CI: `windows-latest`, MSVC (runner has VS 2026 / MSVC 14.51) via Ninja, Qt **6.11.0** `msvc2022_64` from `install-qt-action` (same as developer machines and the host; was 6.8.3 before review round 1), vcpkg checked out at the manifest baseline, `files` binary cache stored with `actions/cache` (vcpkg no longer supports `x-gha`). | 2026-10-08 | E1 |
 | D-016 | MSVC builds of EarthView use **C++20** (Qt 6.11 moc output does not compile with MSVC in C++17); MinGW/GCC builds stay C++17. | 2026-10-08 | E1 review |
 | D-017 | `earthview3d` sets its own runtime paths: `configureRuntime(RuntimePaths)` adds the OSG plugin folder to `osgDB::Registry` and sets GDAL/PROJ data before first use (env vars set in `main()` are too late for osgDB). Build-tree defaults come from CMake; E7's deploy helper supplies install paths. | 2026-10-08 | E1 review |
+| D-019 | CI vcpkg binary cache: every run restores, only `master` saves (complete or partial); a weekly scheduled master run keeps it from the 7-day eviction. Dependency changes build once on their PR without saving and once on master after merge. | 2026-10-12 | CI cache scope |
 | D-011 | The integration target is **Conquer** (`D:\Source\Conquer`: Doctrine + cgf-engine + EarthView superbuild, already MSVC), not the standalone `D:\Source\cgf-engine`. 3D code lives in an isolated library so osgEarth includes never reach other TUs. | 2026-10-08 | Conquer test |
 
 ---
