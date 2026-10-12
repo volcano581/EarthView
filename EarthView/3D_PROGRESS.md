@@ -60,7 +60,7 @@ Cloud agents can only syntax-check osgEarth code (E3 review).
 | E2 | `earthview3d_demo` with synthetic host feed | Merged | `3d/e2-demo` | [#5](https://github.com/volcano581/EarthView/pull/5) | `2242208` | ✓ (2026-10-11, local; imagery note I-022) |
 | E3 | Entity layer (models, labels, LOD, picking) | Merged | `3d/e3-entities` | [#6](https://github.com/volcano581/EarthView/pull/6) | `9233edc` | ✓ (2026-10-12, owner, local) |
 | E4 | Camera controllers + HUD | Merged | `3d/e4-cameras` | [#8](https://github.com/volcano581/EarthView/pull/8) | `840eaec` | pending (Windows) |
-| E5 | Terrain services | In review | `3d/e5-terrain` | PR (this branch) | — | pending (Windows) |
+| E5 | Terrain services | In review | `3d/e5-terrain` | [#9](https://github.com/volcano581/EarthView/pull/9) | — | pending (Windows) |
 | E6 | Offline data pipeline | Not started | | | | |
 | E7 | Packaging + runtime deploy | Not started | | | | |
 | E8 | Wiring kit / host contract test | Not started | | | | |
@@ -76,7 +76,7 @@ Cloud agents can only syntax-check osgEarth code (E3 review).
 ## Change log (newest first)
 
 ### 2026-10-12 — E5: terrain services, vertical datum, ground-offset overlay  (In review)
-- **Branch / PR:** `3d/e5-terrain` / PR — merge —
+- **Branch / PR:** `3d/e5-terrain` / [#9](https://github.com/volcano581/EarthView/pull/9) — merge —
 - **Author:** cloud agent
 - **Changes:**
   - `TerrainServices.h/.cpp` (core, GL-free): thread-safe `HeightCache` (~1 m cells, bounded,
@@ -93,7 +93,7 @@ Cloud agents can only syntax-check osgEarth code (E3 review).
     `--ground-offsets` (overlay + statistics at the end).
 - **Existing files touched:** earthview3d, the earth file; no 2D code.
 - **Tests:** new `tst_terrainservices` (8 cases); `tst_cameracontrol` HUD case extended. Linux ctest 10/10.
-- **Verified:** Linux build + ctest ✓ · osgEarth code syntax-checked (C++17/20); EGM96 N computed from osgEarth's own grid: −47.7 m at OPIS, −46.1 m at the demo origin (17.16 m at 0°/0° matches the published value); Windows CI pending · Visual check / spot check pending (Windows)
+- **Verified:** Linux build + ctest ✓ · osgEarth code syntax-checked (C++17/20); EGM96 N computed from osgEarth's own grid: −47.7 m at OPIS, −46.1 m at the demo origin (17.16 m at 0°/0° matches the published value); Windows CI ✓ (`04693b5`) · Visual check / spot check pending (Windows)
 - **Follow-ups:** I-015 updated, I-026 closed, I-028.
 
 ### 2026-10-12 — E4: cameras (orbit, chase, stealth, first person, free-fly) + HUD  (Merged `840eaec`, 2026-10-12)
