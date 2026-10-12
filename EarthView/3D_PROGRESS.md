@@ -107,7 +107,7 @@ Cloud agents can only syntax-check osgEarth code (E3 review).
   race), adds tether start/end log lines and frame time, and documents the CascadiaCode font
   message. Owner checklist keeps 3× stealth/chase runs — don't touch the window while they run.
   Optional follow-up (E4/E10): selection ring radius = max(ring px, marker bound) up close.
-- **Follow-ups:** I-023, I-024.
+- **Follow-ups:** I-023, I-024, I-025 (performance, E10).
 
 ### 2026-10-11 — E2: `earthview3d_demo` host simulator  (Merged `2242208`, 2026-10-12)
 - **Branch / PR:** `3d/e2-demo` / [#5](https://github.com/volcano581/EarthView/pull/5) — merge — (retargeted to `master` after #4 merged)
@@ -364,6 +364,7 @@ Cloud agents can only syntax-check osgEarth code (E3 review).
 | I-022 | 3D imagery still coarse after 30 s in the demo (sharp by then in the host test). Likely the 2D map and osgEarth both pulling from tile.openstreetmap.org (throttling). Re-check once E6's offline imagery and the osgEarth cache are in. | E6 | Open |
 | I-023 | Only a generated test model ships (`test_armour.osgt`, armour); other kinds use placeholder shapes. Add real `.osgb`/glTF models (and licence check) with E6/E7. | E3 | Open |
 | I-024 | Label declutter and model/icon LOD thresholds need a visual check on Windows with 200 entities (`earthview3d_demo --select 5 --snapshot3d`). | E3 | Open |
+| I-025 | 3D frame time scales ~linearly with entity count (~0.25–0.35 ms/entity): RTX 3050 Ti, 1400×900, 20 entities 14.6 ms (~68 FPS), 200 entities 64–86 ms (~12–15 FPS), 200 with declutter off 59.1 ms (owner, `579d8eb`). Suspects: per-entity `Terrain::getHeight()` every frame for clamped units, one `osgText::Text` + geode per entity, per-entity `AutoTransform`s (marker + ring). First steps: cache terrain height and refresh only on movement > N m or every few frames, share label/marker state, profile with osgEarth stats. Target 1,000 entities at 60 FPS. | E10 | Open |
 | I-018 | `MapConfig.cacheDir` is applied through `OSGEARTH_CACHE_PATH` before the widget's first `osgEarth::initialize()`; it is ignored if the host initialised osgEarth earlier or set the variable itself. Verify the cache fills on Windows (E6 owns caching). | E6 | Open |
 
 ---
