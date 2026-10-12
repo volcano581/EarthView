@@ -11,6 +11,7 @@
 #include <QLabel>
 #include <QMouseEvent>
 #include <QSurfaceFormat>
+#include <QThread>
 #include <QTimer>
 #include <QWheelEvent>
 
@@ -32,6 +33,7 @@
 #include <osgEarth/AnnotationUtils>
 #include <osgEarth/Common>
 #include <osgEarth/EarthManipulator>
+#include <osgEarth/ElevationPool>
 #include <osgEarth/GeoTransform>
 #include <osgEarth/GLUtils>
 #include <osgEarth/LogarithmicDepthBuffer>
@@ -41,6 +43,7 @@
 #include <osgEarth/Sky>
 #include <osgEarth/Terrain>
 #include <osgEarth/TextSymbol>
+#include <osgEarth/VerticalDatum>
 #include <osgEarth/Viewpoint>
 
 #include <algorithm>
@@ -145,6 +148,8 @@ public:
         bool visible = true;
         double groundAltM = 0.0;    // last terrain height found (tiles may still be loading)
         bool haveGround = false;
+        bool haveGroundOffset = false;
+        double groundOffsetM = 0.0; // terrain - host altitude (clamped entities; I-015 overlay)
         double headingDeg = 0.0;    // latest attitude, for the first-person camera
         double pitchDeg = 0.0;
         double rollDeg = 0.0;
@@ -169,6 +174,9 @@ public:
     bool eyePose(CameraPose* pose) const;
     void applyPose(const CameraPose& pose);
     bool groundAt(double latDeg, double lonDeg, double* altM) const;
+    bool terrainHeight(double latDeg, double lonDeg, double* altM) const;
+    void installTileCallback();
+    void resolveHeightRequests();
     bool targetPose(double dt, CameraPose* pose);
     void updateCamera(double dt);
     void hideOwnEntity(std::uint64_t id);
@@ -230,6 +238,14 @@ public:
     QElapsedTimer blendClock;
     TerrainClearance eyeGround;     // last good terrain height under the eye
     std::uint64_t hiddenId = 0;     // first person: the target's own marker/label are hidden
+
+    // Terrain services (E5): cached heights of the drawn terrain, refreshed per loaded tile.
+    mutable HeightCache heights;
+    osg::ref_ptr<TerrainCallback> tileCallback;
+    osg::observer_ptr<Terrain> tileCallbackTerrain;
+    const VerticalDatum* egm96 = nullptr;   // owned by osgEarth's datum cache
+    bool groundOffsetOverlay = false;
+    GroundOffsetStats groundOffsets;        // filled per setEntities() call
     QElapsedTimer stepClock;
     QPointF lastMousePos;
     bool looking = false;           // left button dragged beyond the click slop
@@ -287,6 +303,10 @@ GlobeView3D::~GlobeView3D()
 {
     // Release every OSG object while the context is current so GL resources are freed.
     makeCurrent();
+    osg::ref_ptr<Terrain> terrain;
+    if (d->tileCallback.valid() && d->tileCallbackTerrain.lock(terrain))
+        terrain->removeTerrainCallback(d->tileCallback.get());
+    d->tileCallback = nullptr;
     d->entities.clear();
     d->modelCache.clear();
     d->labelStateSet = nullptr;
@@ -383,6 +403,12 @@ void GlobeView3D::Private::buildScene()
     labelSymbol->alignment() = TextSymbol::ALIGN_LEFT_CENTER;
     labelSymbol->declutter() = true;
     labelFont = loadLabelFont();
+
+    // EGM96 geoid (embedded in osgEarth's vdatum_egm96 plugin; works offline). Used for MSL
+    // readouts; the DTED layer itself is declared vdatum="egm96" in the earth file (D-021).
+    egm96 = VerticalDatum::get("egm96");
+    if (!egm96)
+        emit q->loadFailed(QStringLiteral("EGM96 vertical datum not available (osgdb_osgearth_vdatum_egm96 plugin missing); MSL readouts disabled"));
 
     const QString tablePath = config.resolvedModelTable();
     if (!tablePath.isEmpty()) {
@@ -595,13 +621,16 @@ void GlobeView3D::Private::updateEntity(EntityVisual& visual, const EntityState3
     double altM = state.altM;
     if (style.clampToTerrain) {
         double terrainM = 0.0;
-        Terrain* terrain = mapNode->getTerrain();
-        if (terrain && terrain->getHeight(wgs84, state.lonDeg, state.latDeg, &terrainM)) {
+        if (terrainHeight(state.latDeg, state.lonDeg, &terrainM)) {
             visual.groundAltM = terrainM;
             visual.haveGround = true;
         }
-        if (visual.haveGround)
+        if (visual.haveGround) {
             altM = visual.groundAltM;
+            visual.groundOffsetM = altM - state.altM;
+            visual.haveGroundOffset = true;
+            groundOffsets.add(visual.groundOffsetM);
+        }
     }
     visual.geo->setPosition(GeoPoint(wgs84, state.lonDeg, state.latDeg, altM, ALTMODE_ABSOLUTE));
     visual.headingDeg = state.headingDeg;
@@ -661,6 +690,7 @@ void GlobeView3D::setEntities(const std::vector<EntityState3D>& entities)
     if (!d->mapNode.valid())
         return;
 
+    d->groundOffsets = GroundOffsetStats();
     const EntityDiff::Changes changes = d->diff.apply(entities);
     for (std::size_t index : changes.added) {
         const EntityState3D& state = entities[index];
@@ -862,8 +892,57 @@ void GlobeView3D::Private::applyPose(const CameraPose& pose)
 
 bool GlobeView3D::Private::groundAt(double latDeg, double lonDeg, double* altM) const
 {
+    return terrainHeight(latDeg, lonDeg, altM);
+}
+
+bool GlobeView3D::Private::terrainHeight(double latDeg, double lonDeg, double* altM) const
+{
+    // GUI thread only: Terrain::getHeight intersects the drawn tiles.
+    if (heights.lookup(latDeg, lonDeg, altM))
+        return true;
     Terrain* terrain = mapNode.valid() ? mapNode->getTerrain() : nullptr;
-    return terrain && terrain->getHeight(mapNode->getMapSRS()->getGeographicSRS(), lonDeg, latDeg, altM);
+    double h = 0.0;
+    if (!terrain || !terrain->getHeight(mapNode->getMapSRS()->getGeographicSRS(), lonDeg, latDeg, &h))
+        return false;
+    heights.store(latDeg, lonDeg, h);
+    if (altM)
+        *altM = h;
+    return true;
+}
+
+namespace {
+// Drops cached heights under every tile that loads or refines.
+class TileInvalidator : public TerrainCallback
+{
+public:
+    explicit TileInvalidator(HeightCache* cache) : m_cache(cache) {}
+    void onTileUpdate(const TileKey& key, osg::Node*, TerrainCallbackContext&) override
+    {
+        const GeoExtent e = key.getExtent().transform(SpatialReference::get("wgs84"));
+        if (e.isValid())
+            m_cache->invalidate(e.south(), e.west(), e.north(), e.east());
+    }
+
+private:
+    HeightCache* m_cache;   // lives in GlobeView3D::Private; callback removed in ~GlobeView3D
+};
+} // namespace
+
+void GlobeView3D::Private::installTileCallback()
+{
+    Terrain* terrain = mapNode.valid() ? mapNode->getTerrain() : nullptr;
+    if (tileCallback.valid() || !terrain)   // the terrain exists only after the first frame
+        return;
+    tileCallback = new TileInvalidator(&heights);
+    terrain->addTerrainCallback(tileCallback.get());
+    tileCallbackTerrain = terrain;
+}
+
+void GlobeView3D::Private::resolveHeightRequests()
+{
+    // Points asked for from other threads; resolved here, then available from the cache.
+    for (const auto& [lat, lon] : heights.takeRequests(256))
+        terrainHeight(lat, lon, nullptr);
 }
 
 bool GlobeView3D::Private::targetPose(double dt, CameraPose* pose)
@@ -1026,11 +1105,76 @@ void GlobeView3D::Private::updateHud(double dt)
         data.haveAgl = true;
         data.aglM = pose.altM - ground;
     }
+    if (egm96) {
+        data.haveMsl = true;
+        data.mslM = egm96->hae2msl(pose.latDeg, pose.lonDeg, pose.altM);
+    }
     data.speedMps = eyeSpeedMps;
     if (needsTarget(mode))
         data.target = q->selectedLabel();
+    if (groundOffsetOverlay) {
+        data.showGroundOffset = true;
+        data.groundOffsets = groundOffsets;
+        if (auto it = entities.find(selectedId); it != entities.end() && it->second.haveGroundOffset) {
+            data.haveTargetOffset = true;
+            data.targetOffsetM = it->second.groundOffsetM;
+        }
+    }
     hud->setText(formatHud(data));
     hud->adjustSize();
+}
+
+bool GlobeView3D::heightAt(double latDeg, double lonDeg, double* altM) const
+{
+    if (QThread::currentThread() == thread())
+        return d->terrainHeight(latDeg, lonDeg, altM);
+    // Other threads must not touch the scene graph: answer from the cache, queue a miss.
+    if (d->heights.lookup(latDeg, lonDeg, altM))
+        return true;
+    d->heights.request(latDeg, lonDeg);
+    return false;
+}
+
+bool GlobeView3D::sourceHeightAt(double latDeg, double lonDeg, double* altM, double* resolutionM) const
+{
+    if (!d->mapNode.valid())
+        return false;
+    const SpatialReference* geo = d->mapNode->getMapSRS()->getGeographicSRS();
+    const ElevationSample sample = d->mapNode->getMap()->getElevationPool()->getSample(
+        GeoPoint(geo, lonDeg, latDeg, 0.0, ALTMODE_ABSOLUTE), nullptr);
+    const double h = sample.elevation().as(Units::METERS);
+    if (!(h > -1.0e5))   // NO_DATA_VALUE
+        return false;
+    if (altM)
+        *altM = h;
+    if (resolutionM)
+        *resolutionM = sample.resolution().as(Units::METERS);
+    return true;
+}
+
+bool GlobeView3D::haveGeoid() const
+{
+    return d->egm96 != nullptr;
+}
+
+double GlobeView3D::geoidHeight(double latDeg, double lonDeg) const
+{
+    return d->egm96 ? d->egm96->msl2hae(latDeg, lonDeg, 0.0) : 0.0;
+}
+
+void GlobeView3D::setGroundOffsetOverlay(bool show)
+{
+    d->groundOffsetOverlay = show;
+}
+
+bool GlobeView3D::groundOffsetOverlay() const
+{
+    return d->groundOffsetOverlay;
+}
+
+GroundOffsetStats GlobeView3D::groundOffsetStats() const
+{
+    return d->groundOffsets;
 }
 
 void GlobeView3D::setCameraMode(CameraMode mode)
@@ -1139,8 +1283,11 @@ void GlobeView3D::paintGL()
 
     const double dt = d->stepClock.isValid() ? std::min(double(d->stepClock.nsecsElapsed()) / 1.0e9, 0.25) : 0.0;
     d->stepClock.restart();
-    if (d->mapNode.valid())
+    if (d->mapNode.valid()) {
+        d->installTileCallback();
+        d->resolveHeightRequests();
         d->updateCamera(dt);
+    }
     d->viewer->frame();
 
     // Before the first frame the manipulator is not attached to the MapNode yet.
@@ -1269,6 +1416,7 @@ void GlobeView3D::keyPressEvent(QKeyEvent* e)
     case Qt::Key_G: freeFly(); return;
     case Qt::Key_L: setChaseFreeLook(!d->chaseFreeLook); return;
     case Qt::Key_J: setHudVisible(!d->hudVisible); return;
+    case Qt::Key_K: setGroundOffsetOverlay(!d->groundOffsetOverlay); return;
     case Qt::Key_U: untether(); return;
     case Qt::Key_H: goHome(); return;
     default: break;

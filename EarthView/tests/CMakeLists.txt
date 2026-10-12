@@ -14,7 +14,7 @@ foreach(test_name tst_geodesy tst_camera3d)
     add_test(NAME ${test_name} COMMAND ${test_name})
 endforeach()
 
-foreach(test_name tst_mapconfig tst_entitydiff)
+foreach(test_name tst_mapconfig tst_entitydiff tst_terrainservices)
     add_executable(${test_name} ${test_name}.cpp)
     target_link_libraries(${test_name} PRIVATE earthview3d_core Qt6::Core Qt6::Test)
     add_test(NAME ${test_name} COMMAND ${test_name})

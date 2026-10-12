@@ -23,6 +23,8 @@
 #include <QTimeZone>
 #include <QTimer>
 
+#include <cmath>
+
 #include <cstdio>
 
 namespace {
@@ -97,6 +99,12 @@ int main(int argc, char** argv)
         {QStringLiteral("snapshot3d"), QStringLiteral("Save the 3D view to this PNG (opens the 3D view)."), QStringLiteral("png")},
         {QStringLiteral("eye-height"), QStringLiteral("Stealth camera eye height above terrain (m, default 10)."),
          QStringLiteral("m")},
+        {QStringLiteral("spot"),
+         QStringLiteral("Vertical-datum check: print terrain HAE, geoid and MSL at lat,lon[,expectedMslM] when"
+                        " --after expires, e.g. --spot 33.5497,72.8253,537 (OPIS airport, 537 m AMSL)."),
+         QStringLiteral("lat,lon[,msl]")},
+        {QStringLiteral("ground-offsets"),
+         QStringLiteral("Show the terrain − host altitude overlay (I-015) and print its statistics at the end.")},
         {QStringLiteral("select"), QStringLiteral("Select this entity id in the 3D view (highlight + label)."),
          QStringLiteral("id")},
         {QStringLiteral("models"), QStringLiteral("Model table (absolute or relative to --data-root)."),
@@ -126,6 +134,27 @@ int main(int argc, char** argv)
         fail(QStringLiteral("--view must be one of home, chase, stealth, fp, free, tour"));
         return 2;
     }
+    // Spot height check (E5): Islamabad International Airport (OPIS) ARP, 537 m (1761 ft) AMSL.
+    double spotLat = 33.5497;
+    double spotLon = 72.8253;
+    double spotMsl = 537.0;
+    const bool spotCheck = parser.isSet(QStringLiteral("spot"));
+    if (spotCheck) {
+        const QStringList parts = parser.value(QStringLiteral("spot")).split(QLatin1Char(','));
+        bool okA = false;
+        bool okB = false;
+        bool okC = true;
+        if (parts.size() >= 2) {
+            spotLat = parts[0].toDouble(&okA);
+            spotLon = parts[1].toDouble(&okB);
+            spotMsl = parts.size() >= 3 ? parts[2].toDouble(&okC) : qQNaN();
+        }
+        if (!okA || !okB || !okC) {
+            fail(QStringLiteral("--spot must be lat,lon or lat,lon,expectedMslM"));
+            return 2;
+        }
+    }
+    const bool groundOffsets = parser.isSet(QStringLiteral("ground-offsets"));
     double eyeHeightM = 10.0;
     if (parser.isSet(QStringLiteral("eye-height"))) {
         eyeHeightM = parser.value(QStringLiteral("eye-height")).toDouble(&ok);
@@ -162,11 +191,12 @@ int main(int argc, char** argv)
     const QString snapshot2D = parser.value(QStringLiteral("snapshot2d"));
     const QString snapshot3D = parser.value(QStringLiteral("snapshot3d"));
     const bool checkAgreement = parser.isSet(QStringLiteral("check-agreement"));
-    if (!view.isEmpty() || !snapshot3D.isEmpty() || checkAgreement) {
+    if (!view.isEmpty() || !snapshot3D.isEmpty() || checkAgreement || spotCheck || groundOffsets) {
         const quint64 selectId = parser.value(QStringLiteral("select")).toULongLong();
-        QTimer::singleShot(500, &window, [&window, view, startMode, selectId, eyeHeightM] {
+        QTimer::singleShot(500, &window, [&window, view, startMode, selectId, eyeHeightM, groundOffsets] {
             earthview3d::GlobeView3D* view3D = window.open3DView();
             view3D->setStealthEyeHeight(eyeHeightM);
+            view3D->setGroundOffsetOverlay(groundOffsets);
             if (selectId != 0)
                 QTimer::singleShot(1000, view3D, [view3D, selectId] { view3D->setSelected(selectId); });
             // Applied once the home viewpoint is set and entities exist (pending otherwise).
@@ -177,10 +207,35 @@ int main(int argc, char** argv)
         });
     }
 
-    if (!snapshot2D.isEmpty() || !snapshot3D.isEmpty() || checkAgreement) {
+    if (!snapshot2D.isEmpty() || !snapshot3D.isEmpty() || checkAgreement || spotCheck || groundOffsets) {
         const int afterMs = int(parser.value(QStringLiteral("after")).toDouble() * 1000.0);
-        auto finish = [&window, snapshot2D, snapshot3D, checkAgreement] {
+        auto finish = [&window, snapshot2D, snapshot3D, checkAgreement, spotCheck, spotLat, spotLon, spotMsl,
+                       groundOffsets] {
             bool allSaved = true;
+            earthview3d::GlobeView3D* v3 = window.view3D();
+            if (spotCheck && v3) {
+                double hae = 0.0;
+                double res = 0.0;
+                const bool ok = v3->sourceHeightAt(spotLat, spotLon, &hae, &res);
+                const double n = v3->geoidHeight(spotLat, spotLon);
+                if (!ok) {
+                    std::fprintf(stderr, "Spot %.5f,%.5f: no elevation data\n", spotLat, spotLon);
+                    allSaved = false;
+                }
+                else {
+                    std::fprintf(stderr, "Spot %.5f,%.5f: terrain %.1f m HAE (source resolution %.1f m), geoid N %.2f m%s,"
+                                         " terrain MSL %.1f m", spotLat, spotLon, hae, res, n,
+                                 v3->haveGeoid() ? "" : " (geoid unavailable)", hae - n);
+                    if (!std::isnan(spotMsl))
+                        std::fprintf(stderr, ", expected MSL %.1f m, difference %+.1f m", spotMsl, hae - n - spotMsl);
+                    std::fprintf(stderr, "\n");
+                }
+            }
+            if (groundOffsets && v3) {
+                const earthview3d::GroundOffsetStats s = v3->groundOffsetStats();
+                std::fprintf(stderr, "Ground offset (terrain - host) over %d clamped entities: mean %.1f m, min %.1f m, max %.1f m\n",
+                             s.count, s.meanM(), s.minM, s.maxM);
+            }
             if (checkAgreement) {
                 // Both views now hold the same (last) tick, so positions must match exactly.
                 const earthview3d::demo::AgreementReport r = window.checkAgreement();
