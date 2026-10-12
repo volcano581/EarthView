@@ -58,7 +58,7 @@ Cloud agents can only syntax-check osgEarth code (E3 review).
 | O0–O11 | Earlier osgEarth plan | Superseded by E1–E10 + L1 (D-012) | | | | |
 | E1 | `earthview3d` library + vcpkg manifest + Windows CI | Merged | `3d/e1-earthview3d` | [#4](https://github.com/volcano581/EarthView/pull/4) | `351de51` | ✓ (2026-10-11, local) |
 | E2 | `earthview3d_demo` with synthetic host feed | Merged | `3d/e2-demo` | [#5](https://github.com/volcano581/EarthView/pull/5) | `2242208` | ✓ (2026-10-11, local; imagery note I-022) |
-| E3 | Entity layer (models, labels, LOD, picking) | In review | `3d/e3-entities` | [#6](https://github.com/volcano581/EarthView/pull/6) | — | pending (Windows) |
+| E3 | Entity layer (models, labels, LOD, picking) | Merged | `3d/e3-entities` | [#6](https://github.com/volcano581/EarthView/pull/6) | `9233edc` | ✓ (2026-10-12, owner, local) |
 | E4 | Camera controllers + HUD | Not started | | | | |
 | E5 | Terrain services | Not started | | | | |
 | E6 | Offline data pipeline | Not started | | | | |
@@ -75,7 +75,23 @@ Cloud agents can only syntax-check osgEarth code (E3 review).
 
 ## Change log (newest first)
 
-### 2026-10-11 — E3: entity layer — model table, labels, LOD, attitude, picking  (In review)
+### 2026-10-12 — CI: vcpkg cache saved by master only, weekly keep-alive  (In review)
+- **Branch / PR:** `ci/vcpkg-cache-scope` / PR — merge —
+- **Author:** cloud agent
+- **Changes:** `.github/workflows/ci.yml` — the Windows job still restores the vcpkg binary
+  cache on every run (exact key, then newest partial) but the "Save complete" and "Save
+  partial" steps run only on `refs/heads/master`; new weekly `schedule` trigger (Monday
+  03:00 UTC) on master keeps the cache from GitHub's 7-day-unused eviction; cache policy
+  comment in `ci.yml` (D-019). Cache key format unchanged. Also: E2 status row → Merged.
+- **Why:** GitHub cache scoping hides branch/PR caches from other branches; #5 had to rebuild
+  osgEarth (~4–5 h) after retargeting to master, and duplicate per-branch copies of the same
+  cache used ~5.5 GB of the 10 GB repo limit.
+- **Existing files touched:** CI workflow and this file only.
+- **Tests:** none (CI-only); ctest unchanged.
+- **Verified:** Linux CI pending · Windows CI pending (PR runs restore but no longer save) · Visual check n.a.
+- **Follow-ups:** owner decides whether to delete the redundant branch/PR caches (listed in the PR).
+
+### 2026-10-11 — E3: entity layer — model table, labels, LOD, attitude, picking  (Merged `9233edc`, 2026-10-12)
 - **Branch / PR:** `3d/e3-entities` / [#6](https://github.com/volcano581/EarthView/pull/6) (retargeted to `master` after #5 merged) — merge —
 - **Author:** cloud agent
 - **Changes:**
@@ -333,6 +349,7 @@ Cloud agents can only syntax-check osgEarth code (E3 review).
 | D-016 | MSVC builds of EarthView use **C++20** (Qt 6.11 moc output does not compile with MSVC in C++17); MinGW/GCC builds stay C++17. | 2026-10-08 | E1 review |
 | D-017 | `earthview3d` sets its own runtime paths: `configureRuntime(RuntimePaths)` adds the OSG plugin folder to `osgDB::Registry` and sets GDAL/PROJ data before first use (env vars set in `main()` are too late for osgDB). Build-tree defaults come from CMake; E7's deploy helper supplies install paths. | 2026-10-08 | E1 review |
 | D-018 | E3 picking is screen-space (project entity anchors, nearest within 12 px, nearer eye wins ties) instead of OSG ray intersection: small icons stay easy to hit and the logic is unit tested. Placeholder markers are the LOD icon; model-table `scale` applies to model files only. | 2026-10-11 | E3 |
+| D-019 | CI vcpkg binary cache: every run restores, only `master` saves (complete or partial); a weekly scheduled master run keeps it from the 7-day eviction. Dependency changes build once on their PR without saving and once on master after merge. | 2026-10-12 | CI cache scope |
 | D-011 | The integration target is **Conquer** (`D:\Source\Conquer`: Doctrine + cgf-engine + EarthView superbuild, already MSVC), not the standalone `D:\Source\cgf-engine`. 3D code lives in an isolated library so osgEarth includes never reach other TUs. | 2026-10-08 | Conquer test |
 
 ---

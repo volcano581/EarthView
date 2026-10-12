@@ -3,6 +3,10 @@ name: CI
 on:
   push:
   pull_request:
+  # Weekly master run: restores (touches) the vcpkg cache so GitHub's 7-day-unused eviction
+  # never drops the osgEarth build. See the cache policy at the Windows cache steps.
+  schedule:
+    - cron: '0 3 * * 1'   # Monday 03:00 UTC (scheduled runs use the default branch)
 
 # Push and pull_request runs of one branch share a group, so a newer run replaces an older
 # one instead of building osgEarth twice in parallel (the partial vcpkg cache is kept).
@@ -78,8 +82,14 @@ jobs:
           & "$env:EV_VCPKG_ROOT\bootstrap-vcpkg.bat" -disableMetrics
           New-Item -ItemType Directory -Force -Path $env:VCPKG_CACHE | Out-Null
 
-      # Complete caches are keyed by manifest; a run that fails part-way saves a partial
-      # cache so the next run resumes instead of starting over.
+      # Cache policy (D-019): every run restores the vcpkg binary cache (exact key, then the
+      # newest partial), but only master saves it. GitHub scopes caches by branch: a cache
+      # saved on a PR/feature branch is invisible to master and other branches, so per-branch
+      # saves only duplicated the ~1 GB osgEarth cache and pushed the repo toward the 10 GB
+      # limit. Master saves a complete cache when keyed by manifest, or a partial one when a
+      # run fails part-way, so an interrupted master build resumes instead of starting over.
+      # A dependency change (vcpkg.json / baseline) therefore builds once on its PR without
+      # saving, and again on master after merge, which then serves every branch.
       - name: Restore vcpkg binary cache
         id: vcpkg-cache
         uses: actions/cache/restore@v4
@@ -105,14 +115,14 @@ jobs:
           -DEARTHVIEW_BUILD_3D=ON
 
       - name: Save complete vcpkg cache
-        if: success() && steps.vcpkg-cache.outputs.cache-hit != 'true'
+        if: success() && github.ref == 'refs/heads/master' && steps.vcpkg-cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
         with:
           path: C:\ev-vcpkg-cache
           key: vcpkg-win-x64-${{ env.VCPKG_COMMIT }}-${{ hashFiles('vcpkg.json') }}-full
 
       - name: Save partial vcpkg cache
-        if: (failure() || cancelled()) && steps.vcpkg-cache.outputs.cache-hit != 'true'
+        if: (failure() || cancelled()) && github.ref == 'refs/heads/master' && steps.vcpkg-cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
         with:
           path: C:\ev-vcpkg-cache
