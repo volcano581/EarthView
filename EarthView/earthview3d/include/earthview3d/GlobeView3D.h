@@ -2,6 +2,7 @@
 #ifndef EARTHVIEW3D_GLOBEVIEW3D_H
 #define EARTHVIEW3D_GLOBEVIEW3D_H
 
+#include "earthview3d/CameraControl.h"
 #include "earthview3d/EntityState3D.h"
 #include "earthview3d/MapConfig.h"
 
@@ -31,6 +32,11 @@ namespace earthview3d {
  * iconBelowPixels) are drawn as placeholder markers that never get smaller than a few pixels.
  * Labels are decluttered by osgEarth's screen-space layout. Left-click picks an entity.
  *
+ * Cameras (CameraControl.h): orbit, chase, stealth, first person and free-fly, with a HUD
+ * overlay. Every mode except orbit keeps the eye at least 2 m above the terrain each frame.
+ * Keys: O orbit, T chase, F stealth, P first person, G free-fly (WASD, Q/E down/up, Shift
+ * fast), L chase free-look, J HUD, N next entity, H home. Left-drag looks around.
+ *
  * Diagnostics (environment): EARTHVIEW3D_NO_SKY=1 disables the sky,
  * EARTHVIEW3D_LOGDEPTH=1 installs osgEarth's logarithmic depth buffer (off by default, D-010).
  */
@@ -53,11 +59,29 @@ public:
     /// Number of entity visuals currently in the scene.
     int entityCount() const;
 
-    void goHome();
+    void goHome();            ///< Orbit mode, fly to the home viewpoint
     void selectNextEntity();
-    void chaseSelected();     ///< Tethered camera behind the selected entity
-    void stealthSelected();   ///< Close, near eye level
-    void untether();
+
+    /// Switch camera mode with a smooth transition. Chase, stealth and first person follow the
+    /// selected entity (the first entity if none is selected). A mode requested before the
+    /// first frame (or before any entity exists) is applied as soon as possible.
+    void setCameraMode(CameraMode mode);
+    CameraMode cameraMode() const;
+    void chaseSelected();       ///< setCameraMode(Chase)
+    void stealthSelected();     ///< setCameraMode(Stealth)
+    void firstPersonSelected(); ///< setCameraMode(FirstPerson)
+    void freeFly();             ///< setCameraMode(FreeFly)
+    void untether();            ///< setCameraMode(Orbit) from the current eye
+
+    /// Stealth eye height above the terrain (metres, default 10, at least 2).
+    void setStealthEyeHeight(double metres);
+    double stealthEyeHeight() const;
+    /// Chase: false = camera stays behind the target heading; true = drag to orbit the target.
+    void setChaseFreeLook(bool freeLook);
+    bool chaseFreeLook() const;
+    /// HUD overlay: mode, heading, pitch, altitude, AGL, speed, target (on by default).
+    void setHudVisible(bool visible);
+    bool hudVisible() const;
 
     std::uint64_t selectedId() const;
     /// Select entity @p id (0 clears): highlight ring + label emphasis, emits selectionChanged.
@@ -69,6 +93,8 @@ public:
     /// metres above the ellipsoid. Returns false if the entity is unknown. For checks/tests.
     bool entityPosition(std::uint64_t id, double* latDeg, double* lonDeg, double* altM) const;
     QString selectedLabel() const;
+    /// Camera state for logs/checks: orbit → osgEarth viewpoint; other modes → eye position,
+    /// AGL, heading/pitch and range to the target. Ends with the smoothed frame time.
     QString viewpointDescription() const;
     bool saveSnapshot(const QString& pngPath);
 
@@ -76,6 +102,8 @@ signals:
     void selectionChanged(QString label);
     /// The user clicked entity @p id in the view (it is selected as well).
     void entityPicked(quint64 id);
+    /// The camera mode changed (also when a pending mode is applied).
+    void cameraModeChanged(earthview3d::CameraMode mode);
     void loadFailed(QString reason);
 
 protected:
@@ -90,6 +118,7 @@ protected:
     void wheelEvent(QWheelEvent* e) override;
     void keyPressEvent(QKeyEvent* e) override;
     void keyReleaseEvent(QKeyEvent* e) override;
+    void focusOutEvent(QFocusEvent* e) override;
 
 private:
     class Private;

@@ -14,12 +14,14 @@ cmake_minimum_required(VERSION 3.21)
 find_package(Qt6 REQUIRED COMPONENTS Core Widgets OpenGLWidgets)
 
 add_library(earthview3d_core STATIC
+    include/earthview3d/CameraControl.h
     include/earthview3d/EntityState3D.h
     include/earthview3d/EntityDiff.h
     include/earthview3d/MapConfig.h
     include/earthview3d/ModelTable.h
     include/earthview3d/Picking.h
     include/earthview3d/RuntimePaths.h
+    src/CameraControl.cpp
     src/EntityDiff.cpp
     src/MapConfig.cpp
     src/ModelTable.cpp
