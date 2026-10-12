@@ -59,7 +59,7 @@ Cloud agents can only syntax-check osgEarth code (E3 review).
 | E1 | `earthview3d` library + vcpkg manifest + Windows CI | Merged | `3d/e1-earthview3d` | [#4](https://github.com/volcano581/EarthView/pull/4) | `351de51` | ✓ (2026-10-11, local) |
 | E2 | `earthview3d_demo` with synthetic host feed | Merged | `3d/e2-demo` | [#5](https://github.com/volcano581/EarthView/pull/5) | `2242208` | ✓ (2026-10-11, local; imagery note I-022) |
 | E3 | Entity layer (models, labels, LOD, picking) | Merged | `3d/e3-entities` | [#6](https://github.com/volcano581/EarthView/pull/6) | `9233edc` | ✓ (2026-10-12, owner, local) |
-| E4 | Camera controllers + HUD | Not started | | | | |
+| E4 | Camera controllers + HUD | In review | `3d/e4-cameras` | [#8](https://github.com/volcano581/EarthView/pull/8) | — | pending (Windows) |
 | E5 | Terrain services | Not started | | | | |
 | E6 | Offline data pipeline | Not started | | | | |
 | E7 | Packaging + runtime deploy | Not started | | | | |
@@ -74,6 +74,29 @@ Cloud agents can only syntax-check osgEarth code (E3 review).
 ---
 
 ## Change log (newest first)
+
+### 2026-10-12 — E4: cameras (orbit, chase, stealth, first person, free-fly) + HUD  (In review)
+- **Branch / PR:** `3d/e4-cameras` / [#8](https://github.com/volcano581/EarthView/pull/8) — merge —
+- **Author:** cloud agent
+- **Changes:**
+  - `CameraControl.h/.cpp` (core, GL-free): `CameraMode`, `CameraPose`, eased `blendPose`
+    (short-way heading, antimeridian-safe), `TerrainClearance` (last good ground),
+    `clampEyeAltitude` (+2 m), `freeFlySpeed(AGL)`, `offsetLatLon`, `lookAtAngles`, `formatHud`.
+  - `GlobeView3D`: orbit stays osgEarth's EarthManipulator; chase (heading-locked or free-look,
+    wheel = range), stealth (eye height above terrain, default 10 m, wheel = height), first
+    person (entity attitude, drag to look, own marker hidden) and free-fly (WASD, Q/E, Shift,
+    drag to look, wheel = speed; speed scales with AGL) set the view matrix directly with the
+    manipulator detached (D-020); 1 s eased transitions; eye clamped ≥ terrain + 2 m each
+    frame with the last good height; HUD overlay (child `QLabel`, in `--snapshot3d` too).
+  - API: `setCameraMode()`, `cameraMode()`, `cameraModeChanged`, `firstPersonSelected()`,
+    `freeFly()`, `setStealthEyeHeight()`, `setChaseFreeLook()`, `setHudVisible()`;
+    `viewpointDescription()` reports eye, AGL and target range outside orbit.
+  - Demo: `--view fp|free` are real (I-020 closed), `--eye-height`, `--view tour` (scripted
+    acceptance run), mode in the status bar and key hints.
+- **Existing files touched:** earthview3d only; no 2D code.
+- **Tests:** new `tst_cameracontrol` (11 cases). Linux ctest 9/9.
+- **Verified:** Linux build + ctest ✓ · osgEarth code syntax-checked (C++17/20); Windows CI ✓ (`7801361`) · Visual check pending (Windows)
+- **Follow-ups:** I-026, I-027.
 
 ### 2026-10-12 — CI: vcpkg cache saved by master only, weekly keep-alive  (In review)
 - **Branch / PR:** `ci/vcpkg-cache-scope` / PR — merge —
@@ -349,6 +372,7 @@ Cloud agents can only syntax-check osgEarth code (E3 review).
 | D-016 | MSVC builds of EarthView use **C++20** (Qt 6.11 moc output does not compile with MSVC in C++17); MinGW/GCC builds stay C++17. | 2026-10-08 | E1 review |
 | D-017 | `earthview3d` sets its own runtime paths: `configureRuntime(RuntimePaths)` adds the OSG plugin folder to `osgDB::Registry` and sets GDAL/PROJ data before first use (env vars set in `main()` are too late for osgDB). Build-tree defaults come from CMake; E7's deploy helper supplies install paths. | 2026-10-08 | E1 review |
 | D-018 | E3 picking is screen-space (project entity anchors, nearest within 12 px, nearer eye wins ties) instead of OSG ray intersection: small icons stay easy to hit and the logic is unit tested. Placeholder markers are the LOD icon; model-table `scale` applies to model files only. | 2026-10-11 | E3 |
+| D-020 | E4 cameras: orbit is osgEarth's EarthManipulator; chase, stealth, first person and free-fly are GlobeView3D's own controller (manipulator detached, view matrix set from a geodetic `CameraPose` each frame) so the +2 m terrain clearance is enforced every frame with the last good height, and transitions are one eased blend. Pose maths is GL-free and unit tested. | 2026-10-12 | E4 |
 | D-019 | CI vcpkg binary cache: every run restores, only `master` saves (complete or partial); a weekly scheduled master run keeps it from the 7-day eviction. Dependency changes build once on their PR without saving and once on master after merge. | 2026-10-12 | CI cache scope |
 | D-011 | The integration target is **Conquer** (`D:\Source\Conquer`: Doctrine + cgf-engine + EarthView superbuild, already MSVC), not the standalone `D:\Source\cgf-engine`. 3D code lives in an isolated library so osgEarth includes never reach other TUs. | 2026-10-08 | Conquer test |
 
@@ -376,11 +400,13 @@ Cloud agents can only syntax-check osgEarth code (E3 review).
 | I-006 | `spike.earth` / `osm_style.json` use absolute `D:/Source/...` data paths. The library's map (`Data/maps/earthview.earth`, E1) uses relative paths; the spike files go away in E2. | S1 / E2 | Partly resolved (E1) |
 | I-017 | Linux CI does not build `earthview3d` yet (roadmap: "once green"). Cloud containers cannot build osgEarth through vcpkg either: the environment's network policy blocks `sqlite.org` (sqlite3 source). Add a cached Linux vcpkg job after E1. | E1 follow-up | Open |
 | I-019 | **VS 2022** + Qt 6.11 + C++20: QtTest headers hit an MSVC internal compiler error (`qrangemodel_impl.h(991): C1001`). Windows CI with **VS 2026 (MSVC 14.51)** compiles all six test suites fine, so the minimum compiler for Qt 6.11 builds is VS 2026. Developer machines on VS 2022 must upgrade (and rebuild vcpkg packages, I-009). | E1 | Open (documented) |
-| I-020 | `earthview3d_demo --view fp` / `--view free` fall back to stealth / home until E4 adds first-person and free-fly cameras. | E4 | Open |
+| I-020 | ~~`earthview3d_demo --view fp` / `--view free` fall back to stealth / home.~~ Real modes since E4. | E4 | Closed (E4) |
 | I-021 | The demo's 2D entity overlay is a QWidget painted over `MapWidget` (no 2D API for entities). E9 ("Open 3D" hook in the 2D viewer) should decide whether EarthView 2D gets a proper entity layer. | E9 | Open |
 | I-022 | 3D imagery still coarse after 30 s in the demo (sharp by then in the host test). Likely the 2D map and osgEarth both pulling from tile.openstreetmap.org (throttling). Re-check once E6's offline imagery and the osgEarth cache are in. | E6 | Open |
 | I-023 | Only a generated test model ships (`test_armour.osgt`, armour); other kinds use placeholder shapes. Add real `.osgb`/glTF models (and licence check) with E6/E7. | E3 | Open |
 | I-024 | Label declutter and model/icon LOD thresholds need a visual check on Windows with 200 entities (`earthview3d_demo --select 5 --snapshot3d`). | E3 | Open |
+| I-026 | HUD "ALT" is height above the WGS-84 ellipsoid, not MSL: the map has no geoid model (difference near Islamabad ~−30 m). Add a geoid (EGM96) to the earth file or the HUD when MSL is needed (E6). | E4 | Open |
+| I-027 | Orbit mode keeps osgEarth's own terrain avoidance (≥ 5 m from the terrain under the focal point), not the +2 m eye clamp of the other modes; orbit can still look from very low over steep slopes. | E4 | Open |
 | I-025 | 3D frame time scales ~linearly with entity count (~0.25–0.35 ms/entity): RTX 3050 Ti, 1400×900, 20 entities 14.6 ms (~68 FPS), 200 entities 64–86 ms (~12–15 FPS), 200 with declutter off 59.1 ms (owner, `579d8eb`). Suspects: per-entity `Terrain::getHeight()` every frame for clamped units, one `osgText::Text` + geode per entity, per-entity `AutoTransform`s (marker + ring). First steps: cache terrain height and refresh only on movement > N m or every few frames, share label/marker state, profile with osgEarth stats. Target 1,000 entities at 60 FPS. | E10 | Open |
 | I-018 | `MapConfig.cacheDir` is applied through `OSGEARTH_CACHE_PATH` before the widget's first `osgEarth::initialize()`; it is ignored if the host initialised osgEarth earlier or set the variable itself. Verify the cache fills on Windows (E6 owns caching). | E6 | Open |
 

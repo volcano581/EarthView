@@ -42,7 +42,10 @@ setting it in the application does nothing. Call `earthview3d::configureRuntime(
 otherwise the first `GlobeView3D` uses `RuntimePaths::buildTreeDefaults()` (the vcpkg
 folders of this build tree). Explicit `GDAL_DATA`/`PROJ_DATA` variables still win.
 
-Mouse: left-click selects an entity (`entityPicked`). Keyboard: N next entity, T chase, F stealth, U untether, H home.
+Mouse: left-click selects an entity (`entityPicked`); left-drag rotates (orbit) or looks around
+(other modes); wheel zooms (orbit) or sets chase range / stealth eye height / free-fly speed.
+Keyboard: O orbit, T chase, F stealth, P first person, G free-fly (W/A/S/D, Q/E down/up,
+Shift ×4), L chase free-look, J HUD, N next entity, U untether (= orbit), H home.
 
 `GlobeView3D::entityPosition(id, &lat, &lon, &alt)` returns where an entity was actually
 placed (after terrain clamping) — used by `earthview3d_demo --check-agreement`.
@@ -96,3 +99,6 @@ vcpkg OSG plugins and GDAL/PROJ data of the build tree by itself; Qt DLLs come f
    labels placed at -FLT_MAX). The label font is loaded after `configureRuntime()`
    (`EARTHVIEW3D_LABEL_FONT` overrides; `EARTHVIEW3D_NO_DECLUTTER=1` for debugging).
 11. Labels go through osgEarth's `ScreenSpaceLayout` (declutter); the selected label gets top priority.
+12. Cameras other than orbit detach the EarthManipulator and set the view matrix from a
+   geodetic `CameraPose` (`CameraControl.h`); the eye is clamped ≥ terrain + 2 m every frame
+   using the last good terrain height (D-020). Orbit keeps osgEarth's terrain avoidance.

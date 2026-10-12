@@ -31,3 +31,7 @@ add_test(NAME tst_syntheticfeed COMMAND tst_syntheticfeed)
 add_executable(tst_modeltable tst_modeltable.cpp)
 target_link_libraries(tst_modeltable PRIVATE earthview3d_core Qt6::Core Qt6::Test)
 add_test(NAME tst_modeltable COMMAND tst_modeltable)
+
+add_executable(tst_cameracontrol tst_cameracontrol.cpp)
+target_link_libraries(tst_cameracontrol PRIVATE earthview3d_core earthview_scene3d Qt6::Core Qt6::Test)
+add_test(NAME tst_cameracontrol COMMAND tst_cameracontrol)

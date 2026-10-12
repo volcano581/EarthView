@@ -8,6 +8,7 @@
 #include <QDir>
 #include <QElapsedTimer>
 #include <QKeyEvent>
+#include <QLabel>
 #include <QMouseEvent>
 #include <QSurfaceFormat>
 #include <QTimer>
@@ -45,6 +46,7 @@
 #include <algorithm>
 #include <cfloat>
 #include <cmath>
+#include <set>
 #include <unordered_map>
 
 using namespace osgEarth;
@@ -143,6 +145,9 @@ public:
         bool visible = true;
         double groundAltM = 0.0;    // last terrain height found (tiles may still be loading)
         bool haveGround = false;
+        double headingDeg = 0.0;    // latest attitude, for the first-person camera
+        double pitchDeg = 0.0;
+        double rollDeg = 0.0;
     };
 
     Private(GlobeView3D* view, const MapConfig& config, double homeLat, double homeLon)
@@ -160,7 +165,14 @@ public:
     EntityVisual& createEntity(const EntityState3D& state);
     void updateEntity(EntityVisual& visual, const EntityState3D& state);
     void removeEntity(std::uint64_t id);
-    void tether(double rangeMeters, double pitchDeg);
+    void enterMode(CameraMode mode);
+    bool eyePose(CameraPose* pose) const;
+    void applyPose(const CameraPose& pose);
+    bool groundAt(double latDeg, double lonDeg, double* altM) const;
+    bool targetPose(double dt, CameraPose* pose);
+    void updateCamera(double dt);
+    void hideOwnEntity(std::uint64_t id);
+    void updateHud(double dt);
     Viewpoint homeViewpoint() const;
     osgGA::EventQueue* eventQueue() const { return window->getEventQueue(); }
     float scaledX(double x) const { return float(x * q->devicePixelRatioF()); }
@@ -191,12 +203,44 @@ public:
     std::unordered_map<std::uint64_t, EntityVisual> entities;
     std::uint64_t selectedId = 0;
     bool homeApplied = false;
-    // A tether requested before the home viewpoint was applied (first frame) waits here;
-    // otherwise the home viewpoint, applied right after frame 1, would replace it (E3 review).
-    bool tetherPending = false;
-    double pendingRangeM = 0.0;
-    double pendingPitchDeg = 0.0;
-    bool wasTethering = false;      // for the tether start/end log lines
+    // A camera mode requested before the home viewpoint was applied (first frame), or before
+    // any entity exists, waits here; otherwise the home viewpoint, applied right after frame 1,
+    // would replace it (E3 review).
+    bool modePending = false;
+    CameraMode pendingMode = CameraMode::Orbit;
+
+    // Cameras (E4). Orbit = EarthManipulator; the other modes set the view matrix directly
+    // (manipulator detached) so the eye is clamped above the terrain every frame.
+    CameraMode mode = CameraMode::Orbit;
+    bool chaseFreeLook = false;
+    double chaseRangeM = 250.0;
+    double chaseElevationDeg = 20.0;
+    double stealthEyeHeightM = 10.0;
+    double stealthBackM = 60.0;
+    double lookYawDeg = 0.0;        // mouse look offsets (chase free-look, stealth, first person)
+    double lookPitchDeg = 0.0;
+    double smoothHeadingDeg = 0.0;  // target heading, low-pass filtered (chase/stealth follow)
+    bool haveSmoothHeading = false;
+    double freeLookBaseDeg = 0.0;   // chase free-look: heading frozen when free look starts
+    CameraPose flyPose;             // free-fly state
+    double flySpeedScale = 1.0;
+    std::set<int> keysDown;         // free-fly movement keys
+    CameraPose blendFrom;           // smooth transition into a mode
+    bool blending = false;
+    QElapsedTimer blendClock;
+    TerrainClearance eyeGround;     // last good terrain height under the eye
+    std::uint64_t hiddenId = 0;     // first person: the target's own marker/label are hidden
+    QElapsedTimer stepClock;
+    QPointF lastMousePos;
+    bool looking = false;           // left button dragged beyond the click slop
+
+    // HUD overlay (child QLabel; composited over the GL content by Qt).
+    QLabel* hud = nullptr;
+    bool hudVisible = true;
+    QElapsedTimer hudClock;
+    osg::Vec3d lastEyeWorld;
+    bool haveLastEye = false;
+    double eyeSpeedMps = 0.0;
     QElapsedTimer frameClock;
     double frameMsAvg = 0.0;        // smoothed frame time, reported by viewpointDescription()
 
@@ -225,6 +269,15 @@ GlobeView3D::GlobeView3D(const MapConfig& config, double homeLatDeg, double home
     d->viewer = new osgViewer::Viewer();
     d->viewer->setThreadingModel(osgViewer::Viewer::SingleThreaded);
     d->window = d->viewer->setUpViewerAsEmbeddedInWindow(0, 0, width(), height());
+
+    // HUD overlay (E4): a child label, composited by Qt over the GL content.
+    d->hud = new QLabel(this);
+    d->hud->setObjectName(QStringLiteral("earthview3dHud"));
+    d->hud->setAttribute(Qt::WA_TransparentForMouseEvents);
+    d->hud->setStyleSheet(QStringLiteral(
+        "QLabel { background: rgba(0, 0, 0, 150); color: #e8f4e8; padding: 6px 8px; border-radius: 3px;"
+        " font-family: Consolas, 'DejaVu Sans Mono', monospace; font-size: 12px; }"));
+    d->hud->move(10, 10);
 
     connect(&d->frameTimer, &QTimer::timeout, this, qOverload<>(&QWidget::update));
     d->frameTimer.start(0);
@@ -551,6 +604,9 @@ void GlobeView3D::Private::updateEntity(EntityVisual& visual, const EntityState3
             altM = visual.groundAltM;
     }
     visual.geo->setPosition(GeoPoint(wgs84, state.lonDeg, state.latDeg, altM, ALTMODE_ABSOLUTE));
+    visual.headingDeg = state.headingDeg;
+    visual.pitchDeg = state.pitchDeg;
+    visual.rollDeg = state.rollDeg;
     visual.attitude->setMatrix(
         attitudeMatrix(style.headingOffsetDeg, style.pitchOffsetDeg, style.rollOffsetDeg)
         * attitudeMatrix(state.headingDeg, state.pitchDeg, state.rollDeg));
@@ -635,9 +691,10 @@ Viewpoint GlobeView3D::Private::homeViewpoint() const
 
 void GlobeView3D::goHome()
 {
-    d->tetherPending = false;
+    d->modePending = false;
     if (!d->manip.valid())
         return;
+    d->enterMode(CameraMode::Orbit);
     d->manip->clearViewpoint();
     d->manip->setViewpoint(d->homeViewpoint(), 1.0);
 }
@@ -658,7 +715,7 @@ void GlobeView3D::setSelected(quint64 id)
     if (auto old = d->entities.find(d->selectedId); old != d->entities.end())
         d->applySelectionLook(old->second, false);
     d->selectedId = id;
-    if (auto now = d->entities.find(id); now != d->entities.end())
+    if (auto now = d->entities.find(id); now != d->entities.end() && id != d->hiddenId)
         d->applySelectionLook(now->second, true);
     emit selectionChanged(selectedLabel());
 }
@@ -667,7 +724,7 @@ void GlobeView3D::setLabelsVisible(bool visible)
 {
     d->labelsVisible = visible;
     for (auto& [id, visual] : d->entities)
-        visual.labelGeode->setNodeMask(visible ? ~0u : 0u);
+        visual.labelGeode->setNodeMask(visible && id != d->hiddenId ? ~0u : 0u);
 }
 
 std::uint64_t GlobeView3D::selectedId() const
@@ -698,54 +755,369 @@ QString GlobeView3D::selectedLabel() const
     return it->second.style.label;
 }
 
-void GlobeView3D::Private::tether(double rangeMeters, double pitchDeg)
+// ── Cameras (E4) ─────────────────────────────────────────────────────────────
+
+namespace {
+bool needsTarget(CameraMode mode)
+{
+    return mode == CameraMode::Chase || mode == CameraMode::Stealth || mode == CameraMode::FirstPerson;
+}
+
+constexpr double kBlendSeconds = 1.0;          // smooth transition into a mode
+constexpr double kHeadingFilterSeconds = 0.6;  // chase/stealth follow the target heading softly
+constexpr double kLookDegPerPixel = 0.2;
+constexpr double kGroundEyeHeightM = 2.5;      // first-person eye above a ground entity's origin
+constexpr double kTargetCentreM = 2.0;         // chase/stealth look at the marker centre
+} // namespace
+
+void GlobeView3D::Private::enterMode(CameraMode newMode)
 {
     if (!manip.valid())
         return;
-    if (!homeApplied || entities.empty()) {
-        tetherPending = true;
-        pendingRangeM = rangeMeters;
-        pendingPitchDeg = pitchDeg;
+    if (!homeApplied || (needsTarget(newMode) && entities.empty())) {
+        modePending = true;
+        pendingMode = newMode;
         return;
     }
-    tetherPending = false;
-    if (selectedId == 0 || !entities.count(selectedId))
-        q->selectNextEntity();
-    auto it = entities.find(selectedId);
-    if (it == entities.end())
-        return;
+    modePending = false;
+    if (needsTarget(newMode)) {
+        if (selectedId == 0 || !entities.count(selectedId))
+            q->selectNextEntity();
+        if (!entities.count(selectedId))
+            return;
+    }
 
-    Viewpoint vp;
-    vp.setNode(it->second.geo.get());
-    vp.heading() = Angle(0.0, Units::DEGREES);
-    vp.pitch() = Angle(pitchDeg, Units::DEGREES);
-    vp.range() = Distance(rangeMeters, Units::METERS);
-    manip->setViewpoint(vp, 1.5);
-    qInfo().noquote() << QStringLiteral("earthview3d: tether to entity %1 (range %2 m, pitch %3)")
-                             .arg(selectedId).arg(rangeMeters).arg(pitchDeg);
+    CameraPose current;
+    const bool haveCurrent = eyePose(&current);
+    if (newMode == CameraMode::Orbit) {
+        if (mode != CameraMode::Orbit) {
+            // Hand the current eye back to the manipulator; it orbits from where we are.
+            viewer->setCameraManipulator(manip.get(), false);
+            manip->setByMatrix(viewer->getCamera()->getInverseViewMatrix());
+        }
+    }
+    else {
+        if (mode == CameraMode::Orbit) {
+            manip->clearViewpoint();
+            viewer->setCameraManipulator(nullptr, false);
+        }
+        lookYawDeg = 0.0;
+        lookPitchDeg = 0.0;
+        haveSmoothHeading = false;
+        keysDown.clear();
+        if (newMode == CameraMode::FreeFly && haveCurrent) {
+            flyPose = current;
+            flyPose.rollDeg = 0.0;
+        }
+        blendFrom = current;
+        blending = haveCurrent && newMode != CameraMode::FreeFly;
+        blendClock.restart();
+    }
+    const bool changed = newMode != mode;
+    mode = newMode;
+    stepClock.restart();
+    qInfo().noquote() << QStringLiteral("earthview3d: camera %1%2").arg(cameraModeName(mode))
+                             .arg(needsTarget(mode) ? QStringLiteral(" on entity %1").arg(selectedId) : QString());
+    if (changed)
+        emit q->cameraModeChanged(mode);
 }
 
-void GlobeView3D::chaseSelected() { d->tether(250.0, -20.0); }
-void GlobeView3D::stealthSelected() { d->tether(60.0, -10.0); }   // eye ~10 m up: lower risks going under rising ground
+bool GlobeView3D::Private::eyePose(CameraPose* pose) const
+{
+    if (!mapNode.valid())
+        return false;
+    const osg::Matrixd inv = viewer->getCamera()->getInverseViewMatrix();
+    const osg::Vec3d eye = inv.getTrans();
+    const osg::Vec3d look = osg::Vec3d(0.0, 0.0, -1.0) * inv - eye;
+    const SpatialReference* geo = mapNode->getMapSRS()->getGeographicSRS();
+    GeoPoint point;
+    if (!point.fromWorld(geo, eye))
+        return false;
+    osg::Matrixd localToWorld;
+    geo->createLocalToWorld(osg::Vec3d(point.x(), point.y(), point.z()), localToWorld);
+    const osg::Vec3d local = osg::Matrixd::transform3x3(localToWorld, look);   // world → east/north/up
+    pose->latDeg = point.y();
+    pose->lonDeg = point.x();
+    pose->altM = point.z();
+    pose->headingDeg = normalizeHeading(osg::RadiansToDegrees(std::atan2(local.x(), local.y())));
+    pose->pitchDeg = osg::RadiansToDegrees(std::atan2(local.z(), std::hypot(local.x(), local.y())));
+    pose->rollDeg = 0.0;
+    return true;
+}
+
+void GlobeView3D::Private::applyPose(const CameraPose& pose)
+{
+    const SpatialReference* geo = mapNode->getMapSRS()->getGeographicSRS();
+    osg::Matrixd localToWorld;   // east/north/up frame at the eye (ECEF, double)
+    geo->createLocalToWorld(osg::Vec3d(pose.lonDeg, pose.latDeg, pose.altM), localToWorld);
+    // OSG cameras look down -Z with +Y up (row-vector order: roll, then camera → looking north,
+    // then pitch about east, then heading about up).
+    const osg::Matrixd cameraToWorld =
+        osg::Matrixd::rotate(osg::DegreesToRadians(-pose.rollDeg), osg::Z_AXIS)
+        * osg::Matrixd::rotate(osg::DegreesToRadians(90.0 + pose.pitchDeg), osg::X_AXIS)
+        * osg::Matrixd::rotate(osg::DegreesToRadians(-pose.headingDeg), osg::Z_AXIS)
+        * localToWorld;
+    viewer->getCamera()->setViewMatrix(osg::Matrixd::inverse(cameraToWorld));
+}
+
+bool GlobeView3D::Private::groundAt(double latDeg, double lonDeg, double* altM) const
+{
+    Terrain* terrain = mapNode.valid() ? mapNode->getTerrain() : nullptr;
+    return terrain && terrain->getHeight(mapNode->getMapSRS()->getGeographicSRS(), lonDeg, latDeg, altM);
+}
+
+bool GlobeView3D::Private::targetPose(double dt, CameraPose* pose)
+{
+    if (mode == CameraMode::FreeFly) {
+        // Movement in the look direction; speed from height above ground (AGL).
+        const double agl = eyeGround.hasGround() ? flyPose.altM - eyeGround.groundAltM() : flyPose.altM;
+        double speed = freeFlySpeed(agl) * flySpeedScale;
+        if (keysDown.count(Qt::Key_Shift))
+            speed *= 4.0;
+        double forward = 0.0;
+        double right = 0.0;
+        double up = 0.0;
+        if (keysDown.count(Qt::Key_W)) forward += 1.0;
+        if (keysDown.count(Qt::Key_S)) forward -= 1.0;
+        if (keysDown.count(Qt::Key_D)) right += 1.0;
+        if (keysDown.count(Qt::Key_A)) right -= 1.0;
+        if (keysDown.count(Qt::Key_E)) up += 1.0;
+        if (keysDown.count(Qt::Key_Q)) up -= 1.0;
+        const double step = speed * dt;
+        const double pitch = osg::DegreesToRadians(flyPose.pitchDeg);
+        if (forward != 0.0)
+            offsetLatLon(flyPose.latDeg, flyPose.lonDeg, flyPose.headingDeg, forward * step * std::cos(pitch),
+                         &flyPose.latDeg, &flyPose.lonDeg);
+        if (right != 0.0)
+            offsetLatLon(flyPose.latDeg, flyPose.lonDeg, flyPose.headingDeg + 90.0, right * step,
+                         &flyPose.latDeg, &flyPose.lonDeg);
+        flyPose.altM += forward * step * std::sin(pitch) + up * step;
+        *pose = flyPose;
+        return true;
+    }
+
+    auto it = entities.find(selectedId);
+    if (it == entities.end())
+        return false;
+    const EntityVisual& target = it->second;
+    const GeoPoint& at = target.geo->getPosition();
+    const double lat = at.y();
+    const double lon = at.x();
+    const double alt = at.z();
+
+    if (mode == CameraMode::FirstPerson) {
+        pose->latDeg = lat;
+        pose->lonDeg = lon;
+        pose->altM = alt + (target.style.clampToTerrain ? kGroundEyeHeightM : 0.0);
+        pose->headingDeg = normalizeHeading(target.headingDeg + lookYawDeg);
+        pose->pitchDeg = std::clamp(target.pitchDeg + lookPitchDeg, -89.0, 89.0);
+        pose->rollDeg = target.rollDeg;
+        return true;
+    }
+
+    // Chase / stealth: follow the target heading through a low-pass filter so turns are smooth.
+    if (!haveSmoothHeading) {
+        smoothHeadingDeg = target.headingDeg;
+        haveSmoothHeading = true;
+    }
+    else {
+        double diff = normalizeHeading(target.headingDeg - smoothHeadingDeg);
+        if (diff > 180.0)
+            diff -= 360.0;
+        const double k = 1.0 - std::exp(-dt / kHeadingFilterSeconds);
+        smoothHeadingDeg = normalizeHeading(smoothHeadingDeg + diff * k);
+    }
+    const double centreAlt = alt + kTargetCentreM;
+
+    if (mode == CameraMode::Chase) {
+        const double base = chaseFreeLook ? freeLookBaseDeg : smoothHeadingDeg;
+        const double azimuth = base + lookYawDeg;
+        const double elevation = std::clamp(chaseElevationDeg + lookPitchDeg, 2.0, 85.0);
+        const double horizontal = chaseRangeM * std::cos(osg::DegreesToRadians(elevation));
+        offsetLatLon(lat, lon, azimuth + 180.0, horizontal, &pose->latDeg, &pose->lonDeg);
+        pose->altM = centreAlt + chaseRangeM * std::sin(osg::DegreesToRadians(elevation));
+    }
+    else {   // stealth: eye height above the terrain under the eye
+        offsetLatLon(lat, lon, smoothHeadingDeg + lookYawDeg + 180.0, stealthBackM, &pose->latDeg, &pose->lonDeg);
+        double ground = 0.0;
+        const bool ok = groundAt(pose->latDeg, pose->lonDeg, &ground);
+        pose->altM = (ok ? ground : alt) + stealthEyeHeightM;
+    }
+    lookAtAngles(*pose, lat, lon, centreAlt, &pose->headingDeg, &pose->pitchDeg);
+    if (mode == CameraMode::Stealth)
+        pose->pitchDeg = std::clamp(pose->pitchDeg + lookPitchDeg, -89.0, 89.0);
+    pose->rollDeg = 0.0;
+    return true;
+}
+
+void GlobeView3D::Private::hideOwnEntity(std::uint64_t id)
+{
+    if (id == hiddenId)
+        return;
+    if (auto old = entities.find(hiddenId); old != entities.end()) {
+        old->second.attitude->setNodeMask(~0u);
+        old->second.labelGeode->setNodeMask(labelsVisible ? ~0u : 0u);
+        applySelectionLook(old->second, hiddenId == selectedId);
+    }
+    if (auto now = entities.find(id); now != entities.end()) {
+        now->second.attitude->setNodeMask(0u);
+        now->second.labelGeode->setNodeMask(0u);
+        now->second.highlight->setNodeMask(0u);
+    }
+    hiddenId = id;
+}
+
+void GlobeView3D::Private::updateCamera(double dt)
+{
+    // First person looks out of the target: its own marker/model would block the view.
+    hideOwnEntity(mode == CameraMode::FirstPerson ? selectedId : 0);
+    if (mode == CameraMode::Orbit)
+        return;
+    CameraPose pose;
+    if (!targetPose(dt, &pose)) {   // target removed: back to orbit where we are
+        enterMode(CameraMode::Orbit);
+        return;
+    }
+    if (blending) {
+        const double t = double(blendClock.nsecsElapsed()) / 1.0e9 / kBlendSeconds;
+        pose = blendPose(blendFrom, pose, t);
+        if (t >= 1.0)
+            blending = false;
+    }
+    // Never below terrain + 2 m: query under the final eye, keep the last good height.
+    double ground = 0.0;
+    eyeGround.update(groundAt(pose.latDeg, pose.lonDeg, &ground), ground);
+    pose.altM = eyeGround.clamp(pose.altM);
+    if (mode == CameraMode::FreeFly)
+        flyPose.altM = pose.altM;
+    applyPose(pose);
+}
+
+void GlobeView3D::Private::updateHud(double dt)
+{
+    if (!hud)
+        return;
+    CameraPose pose;
+    if (!eyePose(&pose))
+        return;
+    const osg::Vec3d eye = viewer->getCamera()->getInverseViewMatrix().getTrans();
+    if (haveLastEye && dt > 0.0) {
+        const double speed = (eye - lastEyeWorld).length() / dt;
+        eyeSpeedMps = 0.8 * eyeSpeedMps + 0.2 * speed;
+    }
+    lastEyeWorld = eye;
+    haveLastEye = true;
+    if (!hudVisible || (hudClock.isValid() && hudClock.elapsed() < 100))
+        return;
+    hudClock.restart();
+
+    HudData data;
+    data.mode = mode;
+    data.chaseFreeLook = chaseFreeLook;
+    data.headingDeg = pose.headingDeg;
+    data.pitchDeg = pose.pitchDeg;
+    data.altM = pose.altM;
+    double ground = 0.0;
+    if (mode != CameraMode::Orbit && eyeGround.hasGround()) {
+        data.haveAgl = true;
+        data.aglM = pose.altM - eyeGround.groundAltM();
+    }
+    else if (groundAt(pose.latDeg, pose.lonDeg, &ground)) {
+        data.haveAgl = true;
+        data.aglM = pose.altM - ground;
+    }
+    data.speedMps = eyeSpeedMps;
+    if (needsTarget(mode))
+        data.target = q->selectedLabel();
+    hud->setText(formatHud(data));
+    hud->adjustSize();
+}
+
+void GlobeView3D::setCameraMode(CameraMode mode)
+{
+    d->enterMode(mode);
+}
+
+CameraMode GlobeView3D::cameraMode() const
+{
+    return d->mode;
+}
+
+void GlobeView3D::setStealthEyeHeight(double metres)
+{
+    d->stealthEyeHeightM = std::clamp(metres, kMinTerrainClearanceM, 1000.0);
+}
+
+double GlobeView3D::stealthEyeHeight() const
+{
+    return d->stealthEyeHeightM;
+}
+
+void GlobeView3D::setChaseFreeLook(bool freeLook)
+{
+    if (freeLook && !d->chaseFreeLook)
+        d->freeLookBaseDeg = d->smoothHeadingDeg + d->lookYawDeg;
+    d->chaseFreeLook = freeLook;
+    d->lookYawDeg = 0.0;
+}
+
+bool GlobeView3D::chaseFreeLook() const
+{
+    return d->chaseFreeLook;
+}
+
+void GlobeView3D::setHudVisible(bool visible)
+{
+    d->hudVisible = visible;
+    if (d->hud)
+        d->hud->setVisible(visible);
+}
+
+bool GlobeView3D::hudVisible() const
+{
+    return d->hudVisible;
+}
+
+void GlobeView3D::chaseSelected() { setCameraMode(CameraMode::Chase); }
+void GlobeView3D::stealthSelected() { setCameraMode(CameraMode::Stealth); }
+void GlobeView3D::firstPersonSelected() { setCameraMode(CameraMode::FirstPerson); }
+void GlobeView3D::freeFly() { setCameraMode(CameraMode::FreeFly); }
 
 void GlobeView3D::untether()
 {
-    d->tetherPending = false;
-    if (d->manip.valid())
-        d->manip->clearViewpoint();
+    d->modePending = false;
+    setCameraMode(CameraMode::Orbit);
 }
 
 QString GlobeView3D::viewpointDescription() const
 {
     if (!d->manip.valid())
         return QString();
-    return QStringLiteral("%1, frame %2 ms").arg(QString::fromStdString(d->manip->getViewpoint().toString()))
-        .arg(d->frameMsAvg, 0, 'f', 1);
+    if (d->mode == CameraMode::Orbit)
+        return QStringLiteral("orbit: %1, frame %2 ms").arg(QString::fromStdString(d->manip->getViewpoint().toString()))
+            .arg(d->frameMsAvg, 0, 'f', 1);
+    CameraPose pose;
+    d->eyePose(&pose);
+    QString text = QStringLiteral("%1: lat %2, lon %3, alt %4 m").arg(cameraModeName(d->mode))
+        .arg(pose.latDeg, 0, 'f', 6).arg(pose.lonDeg, 0, 'f', 6).arg(pose.altM, 0, 'f', 1);
+    if (d->eyeGround.hasGround())
+        text += QStringLiteral(" (AGL %1 m)").arg(pose.altM - d->eyeGround.groundAltM(), 0, 'f', 1);
+    text += QStringLiteral(", hdg %1, pitch %2").arg(pose.headingDeg, 0, 'f', 1).arg(pose.pitchDeg, 0, 'f', 1);
+    double lat = 0.0;
+    double lon = 0.0;
+    double alt = 0.0;
+    if (needsTarget(d->mode) && entityPosition(d->selectedId, &lat, &lon, &alt)) {
+        const osg::Vec3d eye = d->viewer->getCamera()->getInverseViewMatrix().getTrans();
+        osg::Vec3d target;
+        GeoPoint(d->mapNode->getMapSRS()->getGeographicSRS(), lon, lat, alt, ALTMODE_ABSOLUTE).toWorld(target);
+        text += QStringLiteral(", target %1 range %2 m").arg(d->selectedId).arg((target - eye).length(), 0, 'f', 0);
+    }
+    return text + QStringLiteral(", frame %1 ms").arg(d->frameMsAvg, 0, 'f', 1);
 }
 
 bool GlobeView3D::saveSnapshot(const QString& pngPath)
 {
-    return grabFramebuffer().save(pngPath);
+    return grab().save(pngPath);   // includes the HUD overlay
 }
 
 void GlobeView3D::resizeGL(int w, int h)
@@ -764,6 +1136,11 @@ void GlobeView3D::paintGL()
     d->window->setDefaultFboId(defaultFramebufferObject());
     if (d->mapNode.valid() && d->preFrame)
         d->preFrame();
+
+    const double dt = d->stepClock.isValid() ? std::min(double(d->stepClock.nsecsElapsed()) / 1.0e9, 0.25) : 0.0;
+    d->stepClock.restart();
+    if (d->mapNode.valid())
+        d->updateCamera(dt);
     d->viewer->frame();
 
     // Before the first frame the manipulator is not attached to the MapNode yet.
@@ -771,32 +1148,30 @@ void GlobeView3D::paintGL()
         d->homeApplied = true;
         d->manip->setViewpoint(d->homeViewpoint(), 0.0);
     }
-    else if (d->tetherPending && !d->entities.empty()) {
-        d->tether(d->pendingRangeM, d->pendingPitchDeg);
+    else if (d->modePending && (d->pendingMode == CameraMode::FreeFly || !d->entities.empty())) {
+        d->enterMode(d->pendingMode);
     }
 
-    // Diagnostics: frame time and the end of a tether (user input or a new viewpoint).
+    // Diagnostics: smoothed frame time (viewpointDescription) and the HUD.
     if (d->frameClock.isValid()) {
         const double ms = double(d->frameClock.nsecsElapsed()) / 1.0e6;
         d->frameMsAvg = d->frameMsAvg <= 0.0 ? ms : 0.9 * d->frameMsAvg + 0.1 * ms;
     }
     d->frameClock.restart();
-    if (d->manip.valid()) {
-        const bool tethering = d->manip->isTethering();
-        if (d->wasTethering && !tethering)
-            qInfo().noquote() << QStringLiteral("earthview3d: tether ended (%1)")
-                                     .arg(QString::fromStdString(d->manip->getViewpoint().toString()));
-        d->wasTethering = tethering;
-    }
+    if (d->mapNode.valid())
+        d->updateHud(dt);
 }
 
 void GlobeView3D::mousePressEvent(QMouseEvent* e)
 {
     if (e->button() == Qt::LeftButton) {
         d->pressPos = e->position();
+        d->lastMousePos = e->position();
         d->leftPressed = true;
+        d->looking = false;
     }
-    d->eventQueue()->mouseButtonPress(d->scaledX(e->position().x()), d->scaledY(e->position().y()), toOsgButton(e->button()));
+    if (d->mode == CameraMode::Orbit)
+        d->eventQueue()->mouseButtonPress(d->scaledX(e->position().x()), d->scaledY(e->position().y()), toOsgButton(e->button()));
 }
 
 void GlobeView3D::mouseReleaseEvent(QMouseEvent* e)
@@ -805,51 +1180,116 @@ void GlobeView3D::mouseReleaseEvent(QMouseEvent* e)
     if (e->button() == Qt::LeftButton && d->leftPressed && d->mapNode.valid()) {
         d->leftPressed = false;
         const QPointF delta = e->position() - d->pressPos;
-        if (std::hypot(delta.x(), delta.y()) <= kClickSlopPixels) {
+        if (!d->looking && std::hypot(delta.x(), delta.y()) <= kClickSlopPixels) {
             if (const std::uint64_t id = d->pickAt(e->position().x(), e->position().y())) {
                 setSelected(id);
                 emit entityPicked(id);
             }
         }
+        d->looking = false;
     }
-    d->eventQueue()->mouseButtonRelease(d->scaledX(e->position().x()), d->scaledY(e->position().y()), toOsgButton(e->button()));
+    if (d->mode == CameraMode::Orbit)
+        d->eventQueue()->mouseButtonRelease(d->scaledX(e->position().x()), d->scaledY(e->position().y()), toOsgButton(e->button()));
 }
 
 void GlobeView3D::mouseMoveEvent(QMouseEvent* e)
 {
-    d->eventQueue()->mouseMotion(d->scaledX(e->position().x()), d->scaledY(e->position().y()));
+    if (d->mode == CameraMode::Orbit) {
+        d->eventQueue()->mouseMotion(d->scaledX(e->position().x()), d->scaledY(e->position().y()));
+        return;
+    }
+    // Left-drag looks around (chase free-look orbits the target; free-fly turns the eye).
+    if (!d->leftPressed)
+        return;
+    const QPointF fromPress = e->position() - d->pressPos;
+    if (!d->looking && std::hypot(fromPress.x(), fromPress.y()) > kClickSlopPixels)
+        d->looking = true;
+    const QPointF delta = e->position() - d->lastMousePos;
+    d->lastMousePos = e->position();
+    if (!d->looking)
+        return;
+    const double yaw = delta.x() * kLookDegPerPixel;
+    const double pitch = -delta.y() * kLookDegPerPixel;
+    if (d->mode == CameraMode::FreeFly) {
+        d->flyPose.headingDeg = normalizeHeading(d->flyPose.headingDeg + yaw);
+        d->flyPose.pitchDeg = std::clamp(d->flyPose.pitchDeg + pitch, -89.0, 89.0);
+    }
+    else if (d->mode != CameraMode::Chase || d->chaseFreeLook) {
+        d->lookYawDeg += yaw;
+        d->lookPitchDeg = std::clamp(d->lookPitchDeg + pitch, -80.0, 80.0);
+    }
 }
 
 void GlobeView3D::mouseDoubleClickEvent(QMouseEvent* e)
 {
-    d->eventQueue()->mouseDoubleButtonPress(d->scaledX(e->position().x()), d->scaledY(e->position().y()), toOsgButton(e->button()));
+    if (d->mode == CameraMode::Orbit)
+        d->eventQueue()->mouseDoubleButtonPress(d->scaledX(e->position().x()), d->scaledY(e->position().y()), toOsgButton(e->button()));
 }
 
 void GlobeView3D::wheelEvent(QWheelEvent* e)
 {
-    d->eventQueue()->mouseScroll(e->angleDelta().y() > 0
-        ? osgGA::GUIEventAdapter::SCROLL_UP
-        : osgGA::GUIEventAdapter::SCROLL_DOWN);
+    const bool in = e->angleDelta().y() > 0;
+    switch (d->mode) {
+    case CameraMode::Orbit:
+        d->eventQueue()->mouseScroll(in ? osgGA::GUIEventAdapter::SCROLL_UP : osgGA::GUIEventAdapter::SCROLL_DOWN);
+        return;
+    case CameraMode::Chase:
+        d->chaseRangeM = std::clamp(d->chaseRangeM * (in ? 0.85 : 1.15), 20.0, 5000.0);
+        return;
+    case CameraMode::Stealth:
+        setStealthEyeHeight(d->stealthEyeHeightM * (in ? 0.85 : 1.15));
+        return;
+    case CameraMode::FreeFly:
+        d->flySpeedScale = std::clamp(d->flySpeedScale * (in ? 1.25 : 0.8), 0.05, 20.0);
+        return;
+    case CameraMode::FirstPerson:
+        return;
+    }
 }
 
 void GlobeView3D::keyPressEvent(QKeyEvent* e)
 {
+    if (d->mode == CameraMode::FreeFly) {
+        switch (e->key()) {
+        case Qt::Key_W: case Qt::Key_A: case Qt::Key_S: case Qt::Key_D:
+        case Qt::Key_Q: case Qt::Key_E: case Qt::Key_Shift:
+            d->keysDown.insert(e->key());
+            return;
+        default: break;
+        }
+    }
+    if (e->isAutoRepeat())
+        return;
     switch (e->key()) {
     case Qt::Key_N: selectNextEntity(); return;
+    case Qt::Key_O: untether(); return;
     case Qt::Key_T: chaseSelected(); return;
     case Qt::Key_F: stealthSelected(); return;
+    case Qt::Key_P: firstPersonSelected(); return;
+    case Qt::Key_G: freeFly(); return;
+    case Qt::Key_L: setChaseFreeLook(!d->chaseFreeLook); return;
+    case Qt::Key_J: setHudVisible(!d->hudVisible); return;
     case Qt::Key_U: untether(); return;
     case Qt::Key_H: goHome(); return;
     default: break;
     }
-    if (!e->text().isEmpty())
+    if (d->mode == CameraMode::Orbit && !e->text().isEmpty())
         d->eventQueue()->keyPress(e->text().at(0).toLatin1());
 }
 
 void GlobeView3D::keyReleaseEvent(QKeyEvent* e)
 {
-    if (!e->text().isEmpty())
+    if (e->isAutoRepeat())
+        return;
+    d->keysDown.erase(e->key());
+    if (d->mode == CameraMode::Orbit && !e->text().isEmpty())
         d->eventQueue()->keyRelease(e->text().at(0).toLatin1());
+}
+
+void GlobeView3D::focusOutEvent(QFocusEvent* e)
+{
+    d->keysDown.clear();   // no stuck free-fly keys after switching windows
+    QOpenGLWidget::focusOutEvent(e);
 }
 
 } // namespace earthview3d

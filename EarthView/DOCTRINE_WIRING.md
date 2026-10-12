@@ -59,6 +59,15 @@ Selection and picking (E3): left-click on an entity selects it and emits
 `entityPicked(quint64 id)`; `setSelected(id)` selects from the host (0 clears) and emits
 `selectionChanged(label)`. `setLabelsVisible(bool)` toggles the decluttered labels.
 
+Cameras (E4, `CameraControl.h`): `setCameraMode(CameraMode)` with `Orbit`, `Chase`,
+`Stealth`, `FirstPerson`, `FreeFly` (smooth 1 s transition; chase/stealth/first person follow
+the selected entity), `cameraMode()`, signal `cameraModeChanged(CameraMode)`.
+`chaseSelected()`, `stealthSelected()`, `firstPersonSelected()`, `freeFly()` and `untether()`
+(= orbit) are shortcuts. `setStealthEyeHeight(m)` (default 10 m), `setChaseFreeLook(bool)`,
+`setHudVisible(bool)` (HUD: mode, heading, pitch, altitude, AGL, speed, target). Every mode
+but orbit keeps the eye at least 2 m above terrain. The widget handles its own keys (O, T, F,
+P, G, L, J, N, H; WASD/Q/E/Shift in free-fly); a host menu can call the same methods.
+
 Rules for the adapter:
 - Read the snapshot the same way the 2D map does (copy on new tick only:
   compare the latest tick count before copying).

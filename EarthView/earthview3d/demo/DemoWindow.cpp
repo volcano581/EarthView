@@ -130,7 +130,12 @@ GlobeView3D* DemoWindow::open3DView()
     auto* view = new GlobeView3D(m_mapConfig, m_feedSettings.originLatDeg, m_feedSettings.originLonDeg, window);
     window->setCentralWidget(view);
     window->statusBar()->showMessage(QStringLiteral(
-        "Click: select  Drag: rotate/pan  Wheel: zoom  N: next entity  T: chase  F: stealth  U: untether  H: home"));
+        "Click: select  N: next  O: orbit  T: chase  F: stealth  P: first person  G: free-fly (WASD QE, Shift)"
+        "  L: chase free-look  J: HUD  H: home  Drag: look  Wheel: range/height/speed"));
+    connect(view, &GlobeView3D::cameraModeChanged, window, [window, view](earthview3d::CameraMode mode) {
+        window->statusBar()->showMessage(QStringLiteral("Camera: %1 %2").arg(earthview3d::cameraModeName(mode),
+                                                                            view->selectedLabel()));
+    });
     connect(view, &GlobeView3D::selectionChanged, window, [window](const QString& label) {
         window->statusBar()->showMessage(label.isEmpty() ? QStringLiteral("No selection")
                                                          : QStringLiteral("Selected %1 — click another entity or press N for the next").arg(label));
