@@ -61,7 +61,7 @@ Cloud agents can only syntax-check osgEarth code (E3 review).
 | E3 | Entity layer (models, labels, LOD, picking) | Merged | `3d/e3-entities` | [#6](https://github.com/volcano581/EarthView/pull/6) | `9233edc` | ✓ (2026-10-12, owner, local) |
 | E4 | Camera controllers + HUD | Merged | `3d/e4-cameras` | [#8](https://github.com/volcano581/EarthView/pull/8) | `840eaec` | pending (Windows) |
 | E5 | Terrain services | Merged | `3d/e5-terrain` | [#9](https://github.com/volcano581/EarthView/pull/9) | `3d6bae2` | pending (Windows) |
-| E6 | Offline data pipeline | In review | `3d/e6-offline-data` | PR (this branch) | — | pending (Windows) |
+| E6 | Offline data pipeline | In review | `3d/e6-offline-data` | [#10](https://github.com/volcano581/EarthView/pull/10) | — | pending (Windows) |
 | E7 | Packaging + runtime deploy | Not started | | | | |
 | E8 | Wiring kit / host contract test | Not started | | | | |
 | E9 | Cleanup pseudo-3D | Not started | | | | |
@@ -76,7 +76,7 @@ Cloud agents can only syntax-check osgEarth code (E3 review).
 ## Change log (newest first)
 
 ### 2026-10-12 — E6: offline data pipeline and offline default map  (In review)
-- **Branch / PR:** `3d/e6-offline-data` / PR — merge —
+- **Branch / PR:** `3d/e6-offline-data` / [#10](https://github.com/volcano581/EarthView/pull/10) — merge —
 - **Author:** cloud agent
 - **Changes:**
   - `tools/offline_data/build_offline_data.py` (Python + GDAL CLI, offline): world land/sea
