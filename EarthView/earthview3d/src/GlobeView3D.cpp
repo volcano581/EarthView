@@ -4,7 +4,9 @@
 #include "earthview3d/Picking.h"
 #include "earthview3d/Runtime.h"
 
+#include <QDebug>
 #include <QDir>
+#include <QElapsedTimer>
 #include <QKeyEvent>
 #include <QMouseEvent>
 #include <QSurfaceFormat>
@@ -189,6 +191,14 @@ public:
     std::unordered_map<std::uint64_t, EntityVisual> entities;
     std::uint64_t selectedId = 0;
     bool homeApplied = false;
+    // A tether requested before the home viewpoint was applied (first frame) waits here;
+    // otherwise the home viewpoint, applied right after frame 1, would replace it (E3 review).
+    bool tetherPending = false;
+    double pendingRangeM = 0.0;
+    double pendingPitchDeg = 0.0;
+    bool wasTethering = false;      // for the tether start/end log lines
+    QElapsedTimer frameClock;
+    double frameMsAvg = 0.0;        // smoothed frame time, reported by viewpointDescription()
 
     std::function<void()> preFrame;
     QTimer frameTimer;
@@ -625,6 +635,7 @@ Viewpoint GlobeView3D::Private::homeViewpoint() const
 
 void GlobeView3D::goHome()
 {
+    d->tetherPending = false;
     if (!d->manip.valid())
         return;
     d->manip->clearViewpoint();
@@ -691,6 +702,13 @@ void GlobeView3D::Private::tether(double rangeMeters, double pitchDeg)
 {
     if (!manip.valid())
         return;
+    if (!homeApplied || entities.empty()) {
+        tetherPending = true;
+        pendingRangeM = rangeMeters;
+        pendingPitchDeg = pitchDeg;
+        return;
+    }
+    tetherPending = false;
     if (selectedId == 0 || !entities.count(selectedId))
         q->selectNextEntity();
     auto it = entities.find(selectedId);
@@ -703,6 +721,8 @@ void GlobeView3D::Private::tether(double rangeMeters, double pitchDeg)
     vp.pitch() = Angle(pitchDeg, Units::DEGREES);
     vp.range() = Distance(rangeMeters, Units::METERS);
     manip->setViewpoint(vp, 1.5);
+    qInfo().noquote() << QStringLiteral("earthview3d: tether to entity %1 (range %2 m, pitch %3)")
+                             .arg(selectedId).arg(rangeMeters).arg(pitchDeg);
 }
 
 void GlobeView3D::chaseSelected() { d->tether(250.0, -20.0); }
@@ -710,6 +730,7 @@ void GlobeView3D::stealthSelected() { d->tether(60.0, -10.0); }   // eye ~10 m u
 
 void GlobeView3D::untether()
 {
+    d->tetherPending = false;
     if (d->manip.valid())
         d->manip->clearViewpoint();
 }
@@ -718,7 +739,8 @@ QString GlobeView3D::viewpointDescription() const
 {
     if (!d->manip.valid())
         return QString();
-    return QString::fromStdString(d->manip->getViewpoint().toString());
+    return QStringLiteral("%1, frame %2 ms").arg(QString::fromStdString(d->manip->getViewpoint().toString()))
+        .arg(d->frameMsAvg, 0, 'f', 1);
 }
 
 bool GlobeView3D::saveSnapshot(const QString& pngPath)
@@ -748,6 +770,23 @@ void GlobeView3D::paintGL()
     if (!d->homeApplied && d->mapNode.valid()) {
         d->homeApplied = true;
         d->manip->setViewpoint(d->homeViewpoint(), 0.0);
+    }
+    else if (d->tetherPending && !d->entities.empty()) {
+        d->tether(d->pendingRangeM, d->pendingPitchDeg);
+    }
+
+    // Diagnostics: frame time and the end of a tether (user input or a new viewpoint).
+    if (d->frameClock.isValid()) {
+        const double ms = double(d->frameClock.nsecsElapsed()) / 1.0e6;
+        d->frameMsAvg = d->frameMsAvg <= 0.0 ? ms : 0.9 * d->frameMsAvg + 0.1 * ms;
+    }
+    d->frameClock.restart();
+    if (d->manip.valid()) {
+        const bool tethering = d->manip->isTethering();
+        if (d->wasTethering && !tethering)
+            qInfo().noquote() << QStringLiteral("earthview3d: tether ended (%1)")
+                                     .arg(QString::fromStdString(d->manip->getViewpoint().toString()));
+        d->wasTethering = tethering;
     }
 }
 

@@ -48,6 +48,12 @@ Mouse: left-click selects an entity (`entityPicked`). Keyboard: N next entity, T
 placed (after terrain clamping) — used by `earthview3d_demo --check-agreement`.
 
 ### Expected log lines
+- `Error reading file ...CascadiaCode.ttf: Could not find plugin` at startup: osgEarth's own
+  default font, resolved when its DLL loads (before `configureRuntime()`). Harmless — labels
+  load their font explicitly afterwards (E3).
+- `earthview3d: tether to entity N (range R m, pitch P)` / `earthview3d: tether ended (...)`:
+  camera tether start and end (user input or a new viewpoint). A tether requested before the
+  first frame is held until the home viewpoint has been applied (E3 review round 2).
 - `Windows Error #2000: ... Unable to restore current OpenGL rendering context` at startup:
   OSG probing contexts while the Qt widget owns the current one. Harmless.
 - `GDAL_DATA environment variable is not set` may still appear before `configureRuntime()`
