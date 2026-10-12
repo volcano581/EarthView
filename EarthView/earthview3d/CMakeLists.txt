@@ -4,7 +4,7 @@
 #   earthview3d_core  GL-free logic (MapConfig, EntityDiff); Qt Core only, always built.
 #   earthview3d       GlobeView3D widget; needs osgEarth (vcpkg manifest at the repo root).
 #                     Built when EARTHVIEW_BUILD_3D is ON (default: ON if osgEarth is found).
-#   earthview3d_viewer  test viewer (ported spike app), with EARTHVIEW_BUILD_3D.
+#   (The demo host app, earthview3d_demo, lives in demo/ and is added by EarthView/CMakeLists.txt.)
 #
 # Public headers (include/earthview3d/) contain only Qt/STL types. osgEarth/OSG include
 # directories stay PRIVATE so vcpkg's include tree never reaches host code (D-011).
@@ -88,11 +88,3 @@ if(MSVC)
     # Keep windows.h min/max macros away from std::min/std::max in OSG/osgEarth headers.
     target_compile_definitions(earthview3d PRIVATE NOMINMAX)
 endif()
-
-# Test viewer (ported spike). Paths below are for running from the build tree only.
-add_executable(earthview3d_viewer examples/earthview3d_viewer.cpp)
-target_link_libraries(earthview3d_viewer PRIVATE earthview3d)
-set_target_properties(earthview3d_viewer PROPERTIES AUTOMOC ON)
-get_filename_component(_earthview3d_data_root "${CMAKE_CURRENT_SOURCE_DIR}/../Data" ABSOLUTE)
-target_compile_definitions(earthview3d_viewer PRIVATE
-    EARTHVIEW3D_DEFAULT_DATA_ROOT="${_earthview3d_data_root}")

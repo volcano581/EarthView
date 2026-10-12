@@ -78,6 +78,9 @@ Prerequisites: Conquer's `msvc` preset builds; osgEarth available (vcpkg tree or
    `earthview3d::configureRuntime(paths)` (`<earthview3d/Runtime.h>`) with the folders of the
    OSG plugins and GDAL/PROJ data next to `doctrine.exe` (E7 provides them); setting
    `OSG_LIBRARY_PATH` in `main()` is too late. Keep the mapping table of §2.
+   Optional (E2): `GlobeView3D::entityPosition(id, &lat, &lon, &alt)` reports where an entity
+   was placed after clamping — useful for a 2D/3D agreement check like the demo's
+   `--check-agreement`.
 3. **Link + define.** In `doctrine/CMakeLists.txt`:
    `target_link_libraries(doctrine PRIVATE earthview3d::earthview3d)` and
    `DOCTRINE_HAVE_OSGEARTH=1`; call `earthview3d_deploy_runtime(doctrine)` (E7) instead of

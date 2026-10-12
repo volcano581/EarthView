@@ -55,6 +55,9 @@ public:
     void untether();
 
     std::uint64_t selectedId() const;
+    /// Where entity @p id is placed in the scene (after terrain clamping): WGS-84 degrees and
+    /// metres above the ellipsoid. Returns false if the entity is unknown. For checks/tests.
+    bool entityPosition(std::uint64_t id, double* latDeg, double* lonDeg, double* altM) const;
     QString selectedLabel() const;
     QString viewpointDescription() const;
     bool saveSnapshot(const QString& pngPath);
