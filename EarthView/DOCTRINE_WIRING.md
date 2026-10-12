@@ -66,6 +66,12 @@ resolution (slow; tools/spot checks). `geoidHeight(lat, lon)` gives EGM96 N (MSL
 `setGroundOffsetOverlay(true)` / key K shows terrain − host altitude for clamped entities on
 the HUD and `groundOffsetStats()` returns it — use it in L1 to measure I-015.
 
+Map data (E6): the default earth file `maps/earthview.earth` is fully offline; build its
+local layers once with `tools/offline_data/build_offline_data.py` (see its README) and set
+`MapConfig::cacheDir` for the osgEarth tile cache. `maps/earthview_online.earth` adds OSM.
+`setLayerVisible(name, bool)`, `layerVisible()`, `layerNames()` toggle earth-file layers
+(e.g. a host menu for "Graticule", "Hillshade", "Places (cities, towns)").
+
 Cameras (E4, `CameraControl.h`): `setCameraMode(CameraMode)` with `Orbit`, `Chase`,
 `Stealth`, `FirstPerson`, `FreeFly` (smooth 1 s transition; chase/stealth/first person follow
 the selected entity), `cameraMode()`, signal `cameraModeChanged(CameraMode)`.

@@ -8,6 +8,7 @@
 
 #include <QOpenGLWidget>
 #include <QString>
+#include <QStringList>
 
 #include <cstdint>
 #include <functional>
@@ -35,7 +36,7 @@ namespace earthview3d {
  * Cameras (CameraControl.h): orbit, chase, stealth, first person and free-fly, with a HUD
  * overlay. Every mode except orbit keeps the eye at least 2 m above the terrain each frame.
  * Keys: O orbit, T chase, F stealth, P first person, G free-fly (WASD, Q/E down/up, Shift
- * fast), L chase free-look, J HUD, K ground-offset overlay, N next entity, H home. Left-drag
+ * fast), L chase free-look, J HUD, K ground-offset overlay, R graticule, N next entity, H home. Left-drag
  * looks around.
  *
  * Diagnostics (environment): EARTHVIEW3D_NO_SKY=1 disables the sky,
@@ -100,6 +101,12 @@ public:
     bool groundOffsetOverlay() const;
     /// Terrain − host altitude over the clamped entities of the last setEntities() call.
     GroundOffsetStats groundOffsetStats() const;
+
+    // ── Map layers (E6) ── names as in the earth file, e.g. "Graticule", "Hillshade".
+    /// Show/hide a map layer; false if there is no such (visible) layer. Key R: graticule.
+    bool setLayerVisible(const QString& name, bool visible);
+    bool layerVisible(const QString& name) const;
+    QStringList layerNames() const;
 
     std::uint64_t selectedId() const;
     /// Select entity @p id (0 clears): highlight ring + label emphasis, emits selectionChanged.

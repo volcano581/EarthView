@@ -45,6 +45,7 @@
 #include <osgEarth/TextSymbol>
 #include <osgEarth/VerticalDatum>
 #include <osgEarth/Viewpoint>
+#include <osgEarth/VisibleLayer>
 
 #include <algorithm>
 #include <cfloat>
@@ -1124,6 +1125,37 @@ void GlobeView3D::Private::updateHud(double dt)
     hud->adjustSize();
 }
 
+bool GlobeView3D::setLayerVisible(const QString& name, bool visible)
+{
+    if (!d->mapNode.valid())
+        return false;
+    auto* layer = dynamic_cast<VisibleLayer*>(d->mapNode->getMap()->getLayerByName(name.toStdString()));
+    if (!layer)
+        return false;
+    layer->setVisible(visible);
+    return true;
+}
+
+bool GlobeView3D::layerVisible(const QString& name) const
+{
+    if (!d->mapNode.valid())
+        return false;
+    auto* layer = dynamic_cast<VisibleLayer*>(d->mapNode->getMap()->getLayerByName(name.toStdString()));
+    return layer && layer->getVisible();
+}
+
+QStringList GlobeView3D::layerNames() const
+{
+    QStringList names;
+    if (!d->mapNode.valid())
+        return names;
+    LayerVector layers;
+    d->mapNode->getMap()->getLayers(layers);
+    for (const auto& layer : layers)
+        names << QString::fromStdString(layer->getName());
+    return names;
+}
+
 bool GlobeView3D::heightAt(double latDeg, double lonDeg, double* altM) const
 {
     if (QThread::currentThread() == thread())
@@ -1417,6 +1449,7 @@ void GlobeView3D::keyPressEvent(QKeyEvent* e)
     case Qt::Key_L: setChaseFreeLook(!d->chaseFreeLook); return;
     case Qt::Key_J: setHudVisible(!d->hudVisible); return;
     case Qt::Key_K: setGroundOffsetOverlay(!d->groundOffsetOverlay); return;
+    case Qt::Key_R: setLayerVisible(QStringLiteral("Graticule"), !layerVisible(QStringLiteral("Graticule"))); return;
     case Qt::Key_U: untether(); return;
     case Qt::Key_H: goHome(); return;
     default: break;

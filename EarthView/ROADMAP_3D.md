@@ -65,8 +65,8 @@
 | E2 | `earthview3d_demo` app with synthetic host feed (replaces the spike app) | E1 | M | yes | In review (`3d/e2-demo`, [#5](https://github.com/volcano581/EarthView/pull/5)) |
 | E3 | Entity layer: API, model table, labels, LOD, attitude, picking + selection | E1 | L | yes | Done |
 | E4 | Camera controllers (orbit, chase, stealth, first-person, free-fly) + HUD | E1 | M | yes | Done |
-| E5 | Terrain services: height query API, clamping, vertical datum check | E1 | S | yes | In review |
-| E6 | Offline data pipeline (imagery, DEM overviews, overlays, earth template, cache) | E1 | M | yes | |
+| E5 | Terrain services: height query API, clamping, vertical datum check | E1 | S | yes | Done |
+| E6 | Offline data pipeline (imagery, DEM overviews, overlays, earth template, cache) | E1 | M | yes | In review |
 | E7 | Packaging: CMake package/`add_subdirectory`, `earthview3d_deploy_runtime()`, install, offline build doc | E1 | M | no | |
 | E8 | Wiring kit: keep `DOCTRINE_WIRING.md` + host contract test in sync; integration checklist | E3, E4, E7 | S | no | |
 | E9 | Cleanup: remove EarthView pseudo-3D; 2D MapViewWindow "Open 3D" hook | E2 | M | yes | |
@@ -127,12 +127,12 @@ demonstrated).
 - Acceptance (demo): attach to a moving ground and air entity, look around, detach, fly;
   no frame shows the camera below terrain.
 
-### E5 — Terrain services — IN REVIEW (branch `3d/e5-terrain`)
+### E5 — Terrain services — DONE ([#9](https://github.com/volcano581/EarthView/pull/9))
 - `heightAt(lat, lon)` (async-safe, cached), clamping used by E3/E4.
 - Vertical datum: decide ellipsoid vs EGM96 for DTED; verify against a known spot height;
   document. Report the ground-plane offset for hosts (I-015) via a debug overlay.
 
-### E6 — Offline data
+### E6 — Offline data — IN REVIEW (branch `3d/e6-offline-data`)
 - Imagery decision + pipeline (raster MBTiles from the OpenMapTiles vector file, or
   satellite) — closes I-007; `gdaladdo` overviews for `dted_1arc.vrt`; borders/cities as
   osgEarth feature layers; graticule; relative-path earth template; filesystem cache.

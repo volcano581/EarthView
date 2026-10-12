@@ -35,3 +35,10 @@ add_test(NAME tst_modeltable COMMAND tst_modeltable)
 add_executable(tst_cameracontrol tst_cameracontrol.cpp)
 target_link_libraries(tst_cameracontrol PRIVATE earthview3d_core earthview_scene3d Qt6::Core Qt6::Test)
 add_test(NAME tst_cameracontrol COMMAND tst_cameracontrol)
+
+# Offline data pipeline (E6): Python unittest; GDAL-dependent cases skip without the GDAL tools.
+find_package(Python3 COMPONENTS Interpreter)
+if(Python3_Interpreter_FOUND)
+    add_test(NAME test_build_offline_data
+             COMMAND Python3::Interpreter "${CMAKE_CURRENT_SOURCE_DIR}/../tools/offline_data/test_build_offline_data.py")
+endif()
