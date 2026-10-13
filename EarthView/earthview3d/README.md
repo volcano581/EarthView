@@ -16,6 +16,7 @@ frame and reads signals. Design: `../OSGEARTH_INTEGRATION.md`; host contract:
 | `../Data/models/models.json` | Example model table (`MapConfig::modelTable`; format in `ModelTable.h`); armour uses `test_armour.osgt` |
 | `tools/make_test_armour.cpp` | Generator for the test model (not built) |
 | `src/Runtime.cpp` | `configureRuntime()`: OSG plugin path + GDAL/PROJ data |
+| `cmake/` | package config + `earthview3d_deploy_runtime()` (E7) |
 | `demo/` | `earthview3d_demo`: host simulator — 2D map + "Open 3D View", synthetic 100 Hz entity feed (E2) |
 | `../Data/maps/earthview.earth` | Default map, offline (E6); layer paths relative to the earth file. `earthview_online.earth` adds OSM. Both carry the `<!--@EARTHVIEW3D_TMS_LAYERS@-->` placeholder used as a TMS template |
 | `../Data/EarthFiles/` | EarthView's own layer-list earth files (one per map source, read by the 2D viewer); see its README |
@@ -80,8 +81,10 @@ view->setPreFrameCallback([&] { view->setEntities(buildEntitiesFromHostSnapshot(
 Runtime files: osgDB reads `OSG_LIBRARY_PATH` when its DLL loads, before `main()`, so
 setting it in the application does nothing. Call `earthview3d::configureRuntime(paths)`
 (`Runtime.h`) before the first view with the OSG plugin folder and GDAL/PROJ data folders;
-otherwise the first `GlobeView3D` uses `RuntimePaths::buildTreeDefaults()` (the vcpkg
-folders of this build tree). Explicit `GDAL_DATA`/`PROJ_DATA` variables still win.
+otherwise the first `GlobeView3D` uses `RuntimePaths::defaults()`: the deployed layout next
+to the executable (`osgPlugins-*/`, `share/gdal`, `share/proj` or `../share/…`, from
+`earthview3d_deploy_runtime()`), else the vcpkg folders of this build tree. Explicit
+`GDAL_DATA`/`PROJ_DATA` variables still win.
 
 Mouse: left-click selects an entity (`entityPicked`); left-drag rotates (orbit) or looks around
 (other modes); wheel zooms (orbit) or sets chase range / stealth eye height / free-fly speed.
@@ -127,7 +130,18 @@ build-msvc\earthview3d\demo\Release\earthview3d_demo.exe --view stealth --snapsh
 root. MSVC builds use C++20 (Qt 6.11 moc output needs it, D-016); use **VS 2026** —
 VS 2022 hits an internal compiler error in Qt 6.11's QtTest headers (I-019). The library finds the
 vcpkg OSG plugins and GDAL/PROJ data of the build tree by itself; Qt DLLs come from
-`windeployqt` or `PATH`. Deployment for other machines is roadmap E7.
+`windeployqt` or `PATH`.
+
+## Using it from a host and deploying (E7)
+```cmake
+find_package(earthview3d 0.7 CONFIG REQUIRED)   # after `cmake --install`; or add_subdirectory(.../earthview3d)
+target_link_libraries(myhost PRIVATE earthview3d::earthview3d)   # earthview3d::core for GL-free logic
+earthview3d_deploy_runtime(myhost INSTALL)      # DLLs, osgPlugins-*, GDAL/PROJ data; +Qt/MSVC on install
+```
+The package is static: configure the host with the same vcpkg toolchain and triplet.
+`earthview3d_demo` uses the same function, so its build folder is a deployed layout.
+Offline machines, caches and the install folder: [`../OFFLINE_BUILD.md`](../OFFLINE_BUILD.md).
+`tests/consumer/` is the minimal host CI builds against the installed package.
 
 ## Rules baked into the widget (do not undo)
 

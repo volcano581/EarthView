@@ -193,7 +193,7 @@ int main(int argc, char** argv)
     }
 
     // Map catalog: EarthView's own layer-list earth files (Data/EarthFiles, as scanned by the
-    // 2D viewer) turned into standard osgEarth earth files, one entry per file (D-026). The
+    // 2D viewer) turned into standard osgEarth earth files, one entry per file (D-027). The
     // --map earth file is always the first entry.
     QList<earthview3d::MapCatalogEntry> catalog;
     {
@@ -243,7 +243,7 @@ int main(int argc, char** argv)
     mapConfig.earthFile = catalog.at(mapIndex).earthFile;
 
     // Before any GlobeView3D exists (E1 review): OSG reads its plugin path too early for env vars.
-    earthview3d::configureRuntime(earthview3d::RuntimePaths::buildTreeDefaults());
+    earthview3d::configureRuntime(earthview3d::RuntimePaths::defaults());
 
     // Host simulation: entities published from a worker thread at 100 Hz.
     const earthview3d::demo::SyntheticFeed feed(feedSettings);

@@ -12,7 +12,7 @@ namespace earthview3d {
  * Adds paths.osgPluginDir to osgDB's library path list (once) and applies the GDAL/PROJ
  * data environment (see RuntimePaths). Safe to call more than once; later calls add new
  * plugin folders only. If a host never calls it, the first GlobeView3D calls it with
- * RuntimePaths::buildTreeDefaults(). GUI thread only.
+ * RuntimePaths::defaults(). GUI thread only.
  */
 void configureRuntime(const RuntimePaths& paths);
 

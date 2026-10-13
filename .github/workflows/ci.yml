@@ -31,6 +31,12 @@ jobs:
         run: ctest --test-dir out --output-on-failure
         env:
           QT_QPA_PLATFORM: offscreen
+      - name: Install earthview3d and build an external consumer (E7)
+        run: |
+          cmake --install out --prefix out/stage
+          cmake -S EarthView/tests/consumer -B out/consumer -G Ninja "-DCMAKE_PREFIX_PATH=$PWD/out/stage"
+          cmake --build out/consumer
+          out/consumer/consumer_core
       - name: Snapshot smoke render
         working-directory: out
         env:
@@ -150,3 +156,30 @@ jobs:
 
       - name: Test
         run: ctest --test-dir build-msvc --output-on-failure
+
+      # E7 acceptance: the installed package (find_package(earthview3d CONFIG)) builds an
+      # external project; earthview3d_deploy_runtime() makes it run without vcpkg on PATH.
+      - name: Install earthview3d and build an external consumer (E7)
+        shell: pwsh
+        env:
+          VCPKG_ROOT: C:\ev-vcpkg
+        run: |
+          cmake --install build-msvc --prefix "${{ github.workspace }}\stage"
+          cmake -S EarthView/tests/consumer -B consumer -G Ninja `
+            -DCMAKE_BUILD_TYPE=Release `
+            "-DCMAKE_PREFIX_PATH=${{ github.workspace }}\stage;$env:QT_ROOT_DIR" `
+            "-DCMAKE_TOOLCHAIN_FILE=$env:EV_VCPKG_ROOT\scripts\buildsystems\vcpkg.cmake" `
+            -DVCPKG_MANIFEST_MODE=OFF `
+            "-DVCPKG_INSTALLED_DIR=${{ github.workspace }}\build-msvc\vcpkg_installed" `
+            -DVCPKG_TARGET_TRIPLET=x64-windows
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          cmake --build consumer
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          cmake --install consumer --prefix "${{ github.workspace }}\consumer-deploy"   # Qt deploy needs an absolute prefix
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          consumer\consumer_core.exe
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          consumer\consumer_3d.exe
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          consumer-deploy\bin\consumer_3d.exe
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
