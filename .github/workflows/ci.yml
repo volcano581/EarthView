@@ -229,10 +229,14 @@ jobs:
           $plugins | ForEach-Object { Copy-Item $_.FullName "$stage\plugins" -Recurse -Force }
           Write-Host "OSG plugins: $(($plugins | ForEach-Object Name) -join ', ')"
 
+          # Fatal, not a warning: without share\gdal and share\proj the package starts and
+          # then misbehaves on projections and imagery, which reads like a code bug rather
+          # than a missing file. Every other guard here is fatal for the same reason.
           New-Item -ItemType Directory -Force -Path "$stage\share" | Out-Null
           foreach ($d in 'gdal', 'proj') {
-            if (Test-Path "$tree\share\$d") { Copy-Item "$tree\share\$d" "$stage\share" -Recurse -Force }
-            else { Write-Host "::warning::$tree\share\$d missing - $d data not packaged" }
+            if (-not (Test-Path "$tree\share\$d")) { throw "$tree\share\$d not found - $d data cannot be packaged" }
+            Copy-Item "$tree\share\$d" "$stage\share" -Recurse -Force
+            Write-Host "$d data: $((Get-ChildItem "$stage\share\$d" -Recurse -File).Count) files"
           }
 
           # 4. Earth files, models and the committed world base imagery.
