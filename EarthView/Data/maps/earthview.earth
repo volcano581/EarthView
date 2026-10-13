@@ -105,9 +105,15 @@
 
     <!-- Lat/lon grid, off by default (GlobeView3D: key R / setLayerVisible("Graticule")). -->
     <GeodeticGraticule name="Graticule" visible="false">
-        <!-- utf8: the labels contain the degree sign (osgText defaults to ASCII, issue #11). -->
-        <grid_label_style>default { text-encoding: utf8; text-fill: #ffffff; text-declutter: false; }</grid_label_style>
-        <edge_label_style>default { text-encoding: utf8; text-fill: #ffffff; text-declutter: false; }</edge_label_style>
+        <!-- ascii, NOT utf8: osgEarth's LatLongFormatter emits the degree sign as the single
+             Latin-1 byte 0xB0, which is not valid UTF-8. osgText's ASCII path maps that byte
+             straight to U+00B0; its UTF-8 path treats 0xB0 as a lead byte and swallows the
+             following digit with it. text-font pins the font here because the graticule is built
+             by osgEarth itself and would otherwise use the font its registry resolved before the
+             freetype plugin was on the path (D-017) — a fallback font that has no degree glyph.
+             Loading it from the earth file happens after configureRuntime(). Issue I-031. -->
+        <grid_label_style>default { text-encoding: ascii; text-font: arial.ttf; text-fill: #ffffff; text-declutter: false; }</grid_label_style>
+        <edge_label_style>default { text-encoding: ascii; text-font: arial.ttf; text-fill: #ffffff; text-declutter: false; }</edge_label_style>
     </GeodeticGraticule>
 
 </map>

@@ -108,5 +108,13 @@ vcpkg OSG plugins and GDAL/PROJ data of the build tree by itself; Qt DLLs come f
 12. Cameras other than orbit detach the EarthManipulator and set the view matrix from a
    geodetic `CameraPose` (`CameraControl.h`); the eye is clamped ≥ terrain + 2 m every frame
    using the last good terrain height (D-020). Orbit keeps osgEarth's terrain avoidance.
-13. Image layers are **RGBA**. RGB GDAL images render black (GL "invalid operation") in the
-   embedded widget; `tools/offline_data` writes 4-band output (D-024, issue #11).
+13. Image layers are **RGBA**; `tools/offline_data` writes 4-band output (D-024, issue #11).
+   RGB was first reported to render black with GL "invalid operation" in the embedded widget,
+   but that did **not** reproduce on re-check (a stale cache was in play), so treat RGBA as the
+   convention — osgEarth's imagery path is RGBA and hillshade needs the nodata alpha — rather
+   than as a fix for a known failure. See the D-024 caveat.
+14. osgText labels whose text comes from osgEarth are **`text-encoding: ascii`**, not `utf8`:
+   osgEarth writes the degree sign as the single Latin-1 byte `0xB0`, which is not valid UTF-8,
+   and the UTF-8 path folds the next character into it. Pin `text-font` on any layer osgEarth
+   builds itself (e.g. `GeodeticGraticule`): those labels never receive the widget's
+   `loadLabelFont()` font and otherwise fall back to a font with no degree glyph (D-017, I-031).
