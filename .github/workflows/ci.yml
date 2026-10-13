@@ -3,6 +3,9 @@ name: CI
 on:
   push:
   pull_request:
+  # Run on demand from the Actions tab, so a Windows build can be produced without pushing
+  # (the windows job uploads a runnable folder as the earthview-win64 artifact).
+  workflow_dispatch:
   # Weekly master run: restores (touches) the vcpkg cache so GitHub's 7-day-unused eviction
   # never drops the osgEarth build. See the cache policy at the Windows cache steps.
   schedule:
@@ -150,3 +153,78 @@ jobs:
 
       - name: Test
         run: ctest --test-dir build-msvc --output-on-failure
+
+      # Package a runnable folder so a Windows build can be downloaded without MSVC, Qt,
+      # vcpkg or osgEarth installed locally. The job already builds and tests all three
+      # executables; without this they were discarded. Visual checks still need a GPU.
+      #
+      # Paths are discovered rather than hard-coded: the generator (Ninja here, Visual
+      # Studio locally) decides whether there is a per-config subdirectory, and vcpkg's
+      # install tree sits under the build directory or the manifest directory depending on
+      # VCPKG_INSTALLED_DIR.
+      - name: Package Windows binaries
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $stage = Join-Path $env:GITHUB_WORKSPACE 'dist\earthview-win64'
+          New-Item -ItemType Directory -Force -Path $stage | Out-Null
+
+          # 1. Executables, minus the unit-test binaries.
+          $exes = Get-ChildItem build-msvc -Recurse -Filter *.exe |
+                  Where-Object { $_.Name -notmatch '^(tst_|test_)' }
+          if (-not $exes) { throw 'no executables found under build-msvc' }
+          $exes | ForEach-Object { Copy-Item $_.FullName $stage -Force }
+          Write-Host "Executables: $(($exes | ForEach-Object Name) -join ', ')"
+
+          # 2. Qt runtime: this job configures with EARTHVIEW_DEPLOY_QT=OFF, so the
+          #    post-build windeployqt never ran. --compiler-runtime adds the MSVC
+          #    redistributable DLLs so the folder runs on a machine without VS.
+          $windeployqt = Join-Path $env:QT_ROOT_DIR 'bin\windeployqt.exe'
+          if (-not (Test-Path $windeployqt)) { throw "windeployqt not found at $windeployqt" }
+          foreach ($exe in Get-ChildItem $stage -Filter *.exe) {
+            & $windeployqt --release --no-translations --compiler-runtime `
+                           --dir $stage $exe.FullName
+            if ($LASTEXITCODE -ne 0) { throw "windeployqt failed for $($exe.Name)" }
+          }
+
+          # 3. osgEarth / OSG / GDAL / PROJ runtime, the OSG plugin folder, and the GDAL and
+          #    PROJ data directories that configureRuntime() resolves at startup (D-017,
+          #    D-025 — the plugin folder is what makes osgdb_freetype and the label fonts
+          #    work, so a package without it loses every non-ASCII glyph).
+          $tree = @(
+            (Join-Path $env:GITHUB_WORKSPACE 'build-msvc\vcpkg_installed\x64-windows'),
+            (Join-Path $env:GITHUB_WORKSPACE 'vcpkg_installed\x64-windows')
+          ) | Where-Object { Test-Path $_ } | Select-Object -First 1
+          if (-not $tree) {
+            $tree = (Get-ChildItem $env:GITHUB_WORKSPACE -Recurse -Directory -Filter 'x64-windows' `
+                       -ErrorAction SilentlyContinue |
+                     Where-Object { $_.FullName -match 'vcpkg_installed' } |
+                     Select-Object -First 1).FullName
+          }
+          if (-not $tree) { throw 'vcpkg installed tree (x64-windows) not found' }
+          Write-Host "vcpkg tree: $tree"
+
+          Copy-Item "$tree\bin\*.dll" $stage -Force
+          $plugins = Get-ChildItem "$tree\bin" -Directory -Filter 'osgPlugins-*' -ErrorAction SilentlyContinue
+          if (-not $plugins) { throw "no osgPlugins-* folder under $tree\bin" }
+          $plugins | ForEach-Object { Copy-Item $_.FullName $stage -Recurse -Force }
+          Write-Host "OSG plugins: $(($plugins | ForEach-Object Name) -join ', ')"
+
+          New-Item -ItemType Directory -Force -Path "$stage\share" | Out-Null
+          foreach ($d in 'gdal', 'proj') {
+            if (Test-Path "$tree\share\$d") { Copy-Item "$tree\share\$d" "$stage\share" -Recurse -Force }
+            else { Write-Host "::warning::$tree\share\$d missing - $d data not packaged" }
+          }
+
+          # 4. Earth files, models and the committed world base imagery.
+          Copy-Item (Join-Path $env:GITHUB_WORKSPACE 'EarthView\Data') $stage -Recurse -Force
+
+          "{0:N1} MB packaged" -f ((Get-ChildItem $stage -Recurse -File |
+              Measure-Object -Property Length -Sum).Sum / 1MB)
+
+      - name: Upload Windows binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: earthview-win64
+          path: dist/earthview-win64
+          retention-days: 14
