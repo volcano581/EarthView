@@ -89,7 +89,8 @@ class GdalTests(unittest.TestCase):
         self.write_dem()
         out = bod.hillshade(self.data, res_arcsec=10.0)
         info = gdalinfo(out)
-        self.assertEqual(len(info["bands"]), 1)
+        self.assertEqual(len(info["bands"]), 4)   # RGBA (issue #11)
+        self.assertEqual(info["bands"][3]["colorInterpretation"], "Alpha")
         self.assertTrue(info["bands"][0]["overviews"])
         stats = info["bands"][0]
         self.assertGreater(stats["maximum"], stats["minimum"])   # relief is visible
@@ -117,14 +118,30 @@ class GdalTests(unittest.TestCase):
         out = bod.vector_base(self.data, mbt, (73.0, 33.0, 73.2, 33.2), zoom=12, res_deg=0.001)
         info = gdalinfo(out)
         self.assertEqual(info["size"], [200, 200])
-        self.assertEqual(len(info["bands"]), 3)
+        self.assertEqual(len(info["bands"]), 4)   # RGBA (issue #11)
+        self.assertEqual(info["bands"][3]["colorInterpretation"], "Alpha")
         # Water pixels: blue band dominates; background land: red band highest.
         px = subprocess.run(["gdallocationinfo", "-valonly", "-wgs84", out, "73.05", "33.05"],
                             capture_output=True, text=True, check=True).stdout.split()
-        self.assertEqual([int(v) for v in px], list(bod.SEA_RGB))
+        self.assertEqual([int(v) for v in px], list(bod.SEA_RGB) + [255])
         bg = subprocess.run(["gdallocationinfo", "-valonly", "-wgs84", out, "73.15", "33.05"],
                             capture_output=True, text=True, check=True).stdout.split()
-        self.assertEqual([int(v) for v in bg], list(bod.LAND_RGB))
+        self.assertEqual([int(v) for v in bg], list(bod.LAND_RGB) + [255])
+
+    def test_world_base_is_rgba(self):
+        borders = os.path.join(self.data, "Borders", "World_Countries_Generalized_Shapefile")
+        os.makedirs(borders)
+        src = os.path.join(bod.DEFAULT_DATA, "Borders", "World_Countries_Generalized_Shapefile")
+        for f in os.listdir(src):
+            shutil.copy(os.path.join(src, f), borders)
+        out = bod.world_base(self.data, res_deg=1.0)
+        info = gdalinfo(out)
+        self.assertEqual(info["size"], [360, 180])
+        self.assertEqual([b["colorInterpretation"] for b in info["bands"]], ["Red", "Green", "Blue", "Alpha"])
+
+    def test_committed_world_base_is_rgba(self):
+        info = gdalinfo(os.path.join(bod.DEFAULT_DATA, "imagery", "world_base.tif"))
+        self.assertEqual([b["colorInterpretation"] for b in info["bands"]], ["Red", "Green", "Blue", "Alpha"])
 
     def test_places(self):
         os.makedirs(os.path.join(self.data, "Cities", "pk"))

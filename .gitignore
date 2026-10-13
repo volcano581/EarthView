@@ -367,8 +367,10 @@ FodyWeavers.xsd
 EarthView/build/
 # CMake build output
 [Bb]uild/
+[Bb]uild-*/
 cmake-build-*/
 CMakeUserPresets.json
+vcpkg_installed/
 
 # Elevation data (large; keep local)
 *.dt0
@@ -380,4 +382,4 @@ EarthView/Data/imagery/*
 !EarthView/Data/imagery/world_base.tif
 EarthView/Data/Cities/*.gpkg
 EarthView/Data/DEM/*.ovr
-EarthView/Data/cache/
+EarthView/Data/cache*/

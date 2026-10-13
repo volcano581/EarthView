@@ -67,6 +67,8 @@ constexpr double kDegToRad = kPi / 180.0;
 constexpr float kMinMarkerPixels = 14.0f;
 constexpr float kSelectionRingPixels = 18.0f;   // radius of the selection highlight
 constexpr double kPickRadiusPixels = 12.0;
+constexpr double kNearFarRatio = 2.0e-5;          // D-010 (no logarithmic depth buffer)
+constexpr double kLowEyeNearFarRatio = 2.0e-6;    // first person / stealth (issue #11)
 constexpr double kClickSlopPixels = 4.0;      // a press/release further apart is a drag
 
 osg::Matrix attitudeMatrix(double headingDeg, double pitchDeg, double rollDeg)
@@ -367,7 +369,7 @@ void GlobeView3D::Private::buildScene()
         static LogarithmicDepthBuffer logDepth;
         logDepth.install(camera);
     }
-    camera->setNearFarRatio(0.00002);
+    camera->setNearFarRatio(kNearFarRatio);
 
     osg::ref_ptr<osg::Group> root;
     if (config.sky && qEnvironmentVariableIntValue("EARTHVIEW3D_NO_SKY") != 1) {
@@ -867,11 +869,21 @@ bool GlobeView3D::Private::eyePose(CameraPose* pose) const
     osg::Matrixd localToWorld;
     geo->createLocalToWorld(osg::Vec3d(point.x(), point.y(), point.z()), localToWorld);
     const osg::Vec3d local = osg::Matrixd::transform3x3(localToWorld, look);   // world → east/north/up
+    const osg::Vec3d upWorld = osg::Vec3d(0.0, 1.0, 0.0) * inv - eye;
+    const osg::Vec3d upLocal = osg::Matrixd::transform3x3(localToWorld, upWorld);
     pose->latDeg = point.y();
     pose->lonDeg = point.x();
     pose->altM = point.z();
-    pose->headingDeg = normalizeHeading(osg::RadiansToDegrees(std::atan2(local.x(), local.y())));
     pose->pitchDeg = osg::RadiansToDegrees(std::atan2(local.z(), std::hypot(local.x(), local.y())));
+    // Near straight down/up the look vector has no usable horizontal part: take the heading
+    // from the screen's up direction instead (keeps the picture's orientation, issue #11).
+    if (std::abs(pose->pitchDeg) > 85.0) {
+        const double sign = pose->pitchDeg < 0.0 ? 1.0 : -1.0;
+        pose->headingDeg = normalizeHeading(osg::RadiansToDegrees(std::atan2(sign * upLocal.x(), sign * upLocal.y())));
+    }
+    else {
+        pose->headingDeg = normalizeHeading(osg::RadiansToDegrees(std::atan2(local.x(), local.y())));
+    }
     pose->rollDeg = 0.0;
     return true;
 }
@@ -881,13 +893,15 @@ void GlobeView3D::Private::applyPose(const CameraPose& pose)
     const SpatialReference* geo = mapNode->getMapSRS()->getGeographicSRS();
     osg::Matrixd localToWorld;   // east/north/up frame at the eye (ECEF, double)
     geo->createLocalToWorld(osg::Vec3d(pose.lonDeg, pose.latDeg, pose.altM), localToWorld);
-    // OSG cameras look down -Z with +Y up (row-vector order: roll, then camera → looking north,
-    // then pitch about east, then heading about up).
-    const osg::Matrixd cameraToWorld =
-        osg::Matrixd::rotate(osg::DegreesToRadians(-pose.rollDeg), osg::Z_AXIS)
-        * osg::Matrixd::rotate(osg::DegreesToRadians(90.0 + pose.pitchDeg), osg::X_AXIS)
-        * osg::Matrixd::rotate(osg::DegreesToRadians(-pose.headingDeg), osg::Z_AXIS)
-        * localToWorld;
+    // OSG cameras look down -Z with +Y up; rows map camera X/Y/Z to local east/north/up
+    // (row-vector convention). cameraBasis() is right-handed at every pitch (unit tested).
+    const CameraBasis b = cameraBasis(pose);
+    const osg::Matrixd cameraToLocal(
+        b.right[0], b.right[1], b.right[2], 0.0,
+        b.up[0], b.up[1], b.up[2], 0.0,
+        -b.forward[0], -b.forward[1], -b.forward[2], 0.0,
+        0.0, 0.0, 0.0, 1.0);
+    const osg::Matrixd cameraToWorld = cameraToLocal * localToWorld;
     viewer->getCamera()->setViewMatrix(osg::Matrixd::inverse(cameraToWorld));
 }
 
@@ -1051,6 +1065,10 @@ void GlobeView3D::Private::updateCamera(double dt)
 {
     // First person looks out of the target: its own marker/model would block the view.
     hideOwnEntity(mode == CameraMode::FirstPerson ? selectedId : 0);
+    // Eye 1-10 m above the ground: a smaller near/far ratio keeps the ground next to the camera
+    // from being clipped (black band at the bottom, issue #11). Default elsewhere (D-010).
+    const bool lowEye = mode == CameraMode::FirstPerson || mode == CameraMode::Stealth;
+    viewer->getCamera()->setNearFarRatio(lowEye ? kLowEyeNearFarRatio : kNearFarRatio);
     if (mode == CameraMode::Orbit)
         return;
     CameraPose pose;
@@ -1065,8 +1083,11 @@ void GlobeView3D::Private::updateCamera(double dt)
             blending = false;
     }
     // Never below terrain + 2 m: query under the final eye, keep the last good height.
+    // Two statements on purpose: argument evaluation order is unspecified (MSVC evaluates
+    // right to left and passed the old 0 m height — issue #11).
     double ground = 0.0;
-    eyeGround.update(groundAt(pose.latDeg, pose.lonDeg, &ground), ground);
+    const bool haveGround = groundAt(pose.latDeg, pose.lonDeg, &ground);
+    eyeGround.update(haveGround, ground);
     pose.altM = eyeGround.clamp(pose.altM);
     if (mode == CameraMode::FreeFly)
         flyPose.altM = pose.altM;

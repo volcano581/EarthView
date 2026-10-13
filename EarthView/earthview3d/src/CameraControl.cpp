@@ -56,6 +56,25 @@ bool parseCameraMode(const QString& name, CameraMode* mode)
     return true;
 }
 
+CameraBasis cameraBasis(const CameraPose& pose)
+{
+    const double h = pose.headingDeg * kDegToRad;
+    const double p = pose.pitchDeg * kDegToRad;
+    const double r = pose.rollDeg * kDegToRad;
+    const double fwd[3] = {std::cos(p) * std::sin(h), std::cos(p) * std::cos(h), std::sin(p)};
+    const double right0[3] = {std::cos(h), -std::sin(h), 0.0};   // from heading: no pole singularity
+    const double up0[3] = {right0[1] * fwd[2] - right0[2] * fwd[1],   // right × forward
+                           right0[2] * fwd[0] - right0[0] * fwd[2],
+                           right0[0] * fwd[1] - right0[1] * fwd[0]};
+    CameraBasis b;
+    for (int i = 0; i < 3; ++i) {
+        b.forward[i] = fwd[i];
+        b.right[i] = right0[i] * std::cos(r) - up0[i] * std::sin(r);   // roll right: right side down
+        b.up[i] = up0[i] * std::cos(r) + right0[i] * std::sin(r);
+    }
+    return b;
+}
+
 double smoothStep(double t)
 {
     t = std::clamp(t, 0.0, 1.0);

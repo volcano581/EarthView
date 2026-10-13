@@ -28,7 +28,9 @@ cmake -S EarthView -B EarthView/build -G "MinGW Makefiles"
 cmake --build EarthView/build -j
 ```
 
-Windows, 3D (MSVC + Qt `msvc2022_64`; osgEarth via the repo vcpkg manifest from roadmap E1):
+Windows, 3D (MSVC + Qt `msvc2022_64`; osgEarth via the repo vcpkg manifest from roadmap E1).
+Needs CMake ≥ 4.2 for the VS 2026 generator — use the CMake bundled with VS 2026 if the one on
+`PATH` is older:
 ```
 cmake -S EarthView -B build-msvc -G "Visual Studio 18 2026" -A x64 -DCMAKE_PREFIX_PATH=C:/Qt/6.11.0/msvc2022_64 -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
 cmake --build build-msvc --config Release

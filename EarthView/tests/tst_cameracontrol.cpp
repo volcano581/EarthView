@@ -23,6 +23,8 @@ private slots:
     void offsetMatchesGeodesy();
     void lookAtNorthAndUp();
     void hudShowsAllFields();
+    void basisIsRightHandedEverywhere();
+    void basisLookingDownKeepsNorthUp();
 };
 
 void TestCameraControl::modeNamesRoundTrip()
@@ -183,6 +185,46 @@ void TestCameraControl::hudShowsAllFields()
     const QString withOffsets = formatHud(hud);
     QVERIFY(withOffsets.contains(QStringLiteral("-22.5 m (target)")));
     QVERIFY(withOffsets.contains(QStringLiteral("n=2 mean -25.0 min -30.0 max -20.0")));
+}
+
+void TestCameraControl::basisIsRightHandedEverywhere()
+{
+    // det[right, up, -forward] must be +1 (a reflection would mirror the picture, issue #11).
+    for (double heading = 0.0; heading < 360.0; heading += 22.5) {
+        for (double pitch : {-90.0, -89.99, -60.0, -35.0, 0.0, 35.0, 89.99, 90.0}) {
+            for (double roll : {0.0, 20.0, -45.0}) {
+                CameraPose pose;
+                pose.headingDeg = heading;
+                pose.pitchDeg = pitch;
+                pose.rollDeg = roll;
+                const CameraBasis b = cameraBasis(pose);
+                const double* r = b.right;
+                const double* u = b.up;
+                const double back[3] = {-b.forward[0], -b.forward[1], -b.forward[2]};
+                const double det = r[0] * (u[1] * back[2] - u[2] * back[1]) - r[1] * (u[0] * back[2] - u[2] * back[0])
+                                   + r[2] * (u[0] * back[1] - u[1] * back[0]);
+                QVERIFY2(std::abs(det - 1.0) < 1e-9,
+                         qPrintable(QStringLiteral("h %1 p %2 r %3 det %4").arg(heading).arg(pitch).arg(roll).arg(det)));
+                const double dotRU = r[0] * u[0] + r[1] * u[1] + r[2] * u[2];
+                QVERIFY(std::abs(dotRU) < 1e-9);
+            }
+        }
+    }
+}
+
+void TestCameraControl::basisLookingDownKeepsNorthUp()
+{
+    CameraPose pose;
+    pose.pitchDeg = -90.0;
+    pose.headingDeg = 0.0;
+    CameraBasis b = cameraBasis(pose);
+    QVERIFY(std::abs(b.forward[2] + 1.0) < 1e-9);   // down
+    QVERIFY(std::abs(b.up[1] - 1.0) < 1e-9);        // screen up = north
+    QVERIFY(std::abs(b.right[0] - 1.0) < 1e-9);     // screen right = east (not west: no mirror)
+    pose.headingDeg = 90.0;
+    b = cameraBasis(pose);
+    QVERIFY(std::abs(b.up[0] - 1.0) < 1e-9);        // facing east: screen up = east
+    QVERIFY(std::abs(b.right[1] + 1.0) < 1e-9);     // screen right = south
 }
 
 QTEST_GUILESS_MAIN(TestCameraControl)

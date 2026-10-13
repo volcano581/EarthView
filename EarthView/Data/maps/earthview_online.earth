@@ -111,6 +111,16 @@
     </FeatureModel>
 
     <!-- Lat/lon grid, off by default (GlobeView3D: key R / setLayerVisible("Graticule")). -->
-    <GeodeticGraticule name="Graticule" visible="false"/>
+    <GeodeticGraticule name="Graticule" visible="false">
+        <!-- ascii, NOT utf8: osgEarth's LatLongFormatter emits the degree sign as the single
+             Latin-1 byte 0xB0, which is not valid UTF-8. osgText's ASCII path maps that byte
+             straight to U+00B0; its UTF-8 path treats 0xB0 as a lead byte and swallows the
+             following digit with it. ascii is also osgText's default, so this line documents
+             the trap rather than changing behaviour. The missing glyph itself was the font:
+             configureRuntime() now re-reads osgEarth's default font once the OSG plugin folder
+             is registered (D-025), so no font is pinned here. -->
+        <grid_label_style>default { text-encoding: ascii; text-fill: #ffffff; text-declutter: false; }</grid_label_style>
+        <edge_label_style>default { text-encoding: ascii; text-fill: #ffffff; text-declutter: false; }</edge_label_style>
+    </GeodeticGraticule>
 
 </map>
