@@ -238,6 +238,16 @@ jobs:
           # 4. Earth files, models and the committed world base imagery.
           Copy-Item (Join-Path $env:GITHUB_WORKSPACE 'EarthView\Data') $stage -Recurse -Force
 
+          # 4b. GLSL shaders. All three targets have a POST_BUILD step copying shaders\ next
+          #     to their own executable, and ShaderUtils searches
+          #     applicationDirPath()/shaders first. Staging the .exe files alone drops that
+          #     sibling folder, and the 2D app then logs "Could not find shader files ..."
+          #     for every program. One copy serves all three, since they now share a folder.
+          $shaders = Join-Path $env:GITHUB_WORKSPACE 'EarthView\shaders'
+          if (-not (Test-Path $shaders)) { throw "shaders folder not found at $shaders" }
+          Copy-Item $shaders $stage -Recurse -Force
+          Write-Host "Shaders: $((Get-ChildItem "$stage\shaders" -File).Count) files"
+
           # 5. Launchers. Without these the package starts but cannot work:
           #    RuntimePaths::buildTreeDefaults() carries only the compile-time CI build-tree
           #    paths, which do not exist on a downloaded copy, and configureRuntime() skips a
@@ -258,13 +268,21 @@ jobs:
           set "GDAL_DATA=%EV_HOME%share\gdal"
           set "PROJ_DATA=%EV_HOME%share\proj"
           set "PROJ_LIB=%EV_HOME%share\proj"
-          "%EV_HOME%__EXE__" %*
+          "%EV_HOME%__EXE__" __ARGS__ %*
           '@
+          # earthview3d_demo's --data-root defaults to EARTHVIEW3D_DEFAULT_DATA_ROOT, which
+          # CMake bakes in as an absolute path into the source tree it was built from. On a
+          # downloaded copy that directory does not exist, MapConfig::validate() returns
+          # "Data root ... does not exist" and main() exits 2 before a window appears -- the
+          # 3D demo closing immediately. Point it at the Data folder in this package; a
+          # --data-root the user passes still wins, because it comes later on the line.
+          $extraArgs = @{ 'earthview3d_demo.exe' = '--data-root "%EV_HOME%Data"' }
           foreach ($name in $wanted) {
             $cmd = 'run-' + [IO.Path]::GetFileNameWithoutExtension($name) + '.cmd'
-            $template.Replace('__EXE__', $name) |
+            $extra = if ($extraArgs.ContainsKey($name)) { $extraArgs[$name] } else { '' }
+            $template.Replace('__EXE__', $name).Replace('__ARGS__', $extra) |
               Set-Content -Path (Join-Path $stage $cmd) -Encoding ASCII
-            Write-Host "Launcher: $cmd -> $name"
+            Write-Host "Launcher: $cmd -> $name $extra"
           }
 
           $readme = @'
@@ -287,6 +305,15 @@ jobs:
           fonts and imagery. Any argument you pass to a launcher is forwarded, e.g.
 
             run-earthview3d_demo.cmd --view stealth --entities 50
+
+          What the launchers set up for you
+          ---------------------------------
+          OSG_LIBRARY_PATH, GDAL_DATA and PROJ_DATA point at this folder, and the 3D demo
+          is given --data-root for the Data folder here. Both are needed because the
+          executables have absolute paths from the CI build machine compiled in: the 3D
+          demo would otherwise exit immediately with "Data root ... does not exist", and
+          osgEarth would find no plugins or projection data. The shaders folder must also
+          stay next to the executables, or the 2D app logs "Could not find shader files".
 
           Offline map data
           ----------------
