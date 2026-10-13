@@ -4,11 +4,15 @@
 
 #include "SyntheticFeed.h"
 
+#include <earthview3d/EarthFileCatalog.h>
 #include <earthview3d/MapConfig.h>
 
+#include <QList>
 #include <QMainWindow>
 #include <QPointer>
 #include <QWidget>
+
+class QComboBox;
 
 class MapWidget;
 
@@ -54,6 +58,12 @@ public:
     DemoWindow(const MapConfig& mapConfig, const SyntheticFeed::Settings& feedSettings,
                const SnapshotBuffer* buffer, QWidget* parent = nullptr);
 
+    /// Maps offered in the "Map" dropdown; entry @p currentIndex is the one in use. Selecting
+    /// another entry switches MapConfig::earthFile and rebuilds the 3D view if it is open.
+    void setMapCatalog(const QList<MapCatalogEntry>& entries, int currentIndex);
+    /// The map currently selected (index into the catalog; 0 when there is no catalog).
+    int currentMapIndex() const { return m_mapIndex; }
+
     MapWidget* mapWidget() const { return m_map; }
     /// The open 3D view, or nullptr.
     GlobeView3D* view3D() const;
@@ -66,12 +76,17 @@ public:
     AgreementReport checkAgreement() const;
 
 private:
+    void selectMap(int index);
+
     MapConfig m_mapConfig;
     SyntheticFeed::Settings m_feedSettings;
     const SnapshotBuffer* m_buffer;
     QWidget* m_mapContainer = nullptr;
     MapWidget* m_map = nullptr;
     EntityOverlay2D* m_overlay = nullptr;
+    QComboBox* m_mapCombo = nullptr;
+    QList<MapCatalogEntry> m_catalog;
+    int m_mapIndex = 0;
     QPointer<QMainWindow> m_window3D;
     QPointer<GlobeView3D> m_view3D;
 };

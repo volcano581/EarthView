@@ -7,10 +7,14 @@
 #include <earthview3d/GlobeView3D.h>
 
 #include <QAction>
+#include <QComboBox>
+#include <QFileInfo>
+#include <QLabel>
 #include <QMenu>
 #include <QGridLayout>
 #include <QMenuBar>
 #include <QPainter>
+#include <QSignalBlocker>
 #include <QStatusBar>
 #include <QTimer>
 #include <QToolBar>
@@ -97,7 +101,17 @@ DemoWindow::DemoWindow(const MapConfig& mapConfig, const SyntheticFeed::Settings
     open3D->setShortcut(QKeySequence(QStringLiteral("Ctrl+3")));
     connect(open3D, &QAction::triggered, this, [this] { open3DView(); });
     menuBar()->addMenu(QStringLiteral("&View"))->addAction(open3D);
-    addToolBar(QStringLiteral("View"))->addAction(open3D);
+    QToolBar* toolBar = addToolBar(QStringLiteral("View"));
+    toolBar->addAction(open3D);
+
+    // Map source dropdown: one entry per earth file found (filled by setMapCatalog).
+    toolBar->addSeparator();
+    toolBar->addWidget(new QLabel(QStringLiteral(" Map: "), toolBar));
+    m_mapCombo = new QComboBox(toolBar);
+    m_mapCombo->setToolTip(QStringLiteral("Map source for the 3D view (one entry per earth file found)."));
+    m_mapCombo->setEnabled(false);
+    toolBar->addWidget(m_mapCombo);
+    connect(m_mapCombo, &QComboBox::currentIndexChanged, this, &DemoWindow::selectMap);
     statusBar()->showMessage(QStringLiteral("%1 synthetic entities around %2, %3 — Ctrl+3 opens the 3D view")
                                  .arg(feedSettings.entityCount)
                                  .arg(feedSettings.originLatDeg, 0, 'f', 4)
@@ -109,6 +123,38 @@ DemoWindow::DemoWindow(const MapConfig& mapConfig, const SyntheticFeed::Settings
         m_map->camera()->setCenter(MercatorProjection::latLonToMercator(m_feedSettings.originLatDeg,
                                                                         m_feedSettings.originLonDeg));
     });
+}
+
+void DemoWindow::setMapCatalog(const QList<MapCatalogEntry>& entries, int currentIndex)
+{
+    m_catalog = entries;
+    m_mapIndex = (currentIndex >= 0 && currentIndex < entries.size()) ? currentIndex : 0;
+
+    QSignalBlocker blocker(m_mapCombo);
+    m_mapCombo->clear();
+    for (const MapCatalogEntry& entry : entries)
+        m_mapCombo->addItem(entry.label, entry.earthFile);
+    m_mapCombo->setCurrentIndex(m_mapIndex);
+    m_mapCombo->setEnabled(entries.size() > 1);
+    if (!entries.isEmpty())
+        m_mapConfig.earthFile = entries.at(m_mapIndex).earthFile;
+}
+
+void DemoWindow::selectMap(int index)
+{
+    if (index < 0 || index >= m_catalog.size() || index == m_mapIndex)
+        return;
+    m_mapIndex = index;
+    const MapCatalogEntry& entry = m_catalog.at(index);
+    m_mapConfig.earthFile = entry.earthFile;
+    statusBar()->showMessage(QStringLiteral("Map: %1 (%2)").arg(entry.label, QFileInfo(entry.earthFile).fileName()));
+    if (!m_window3D)
+        return;
+    // osgEarth loads the map when the view is built, so switching rebuilds the 3D window.
+    m_window3D->close();        // WA_DeleteOnClose; m_window3D/m_view3D are QPointers
+    m_window3D = nullptr;
+    m_view3D = nullptr;
+    open3DView();
 }
 
 GlobeView3D* DemoWindow::view3D() const
