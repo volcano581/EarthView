@@ -108,3 +108,5 @@ vcpkg OSG plugins and GDAL/PROJ data of the build tree by itself; Qt DLLs come f
 12. Cameras other than orbit detach the EarthManipulator and set the view matrix from a
    geodetic `CameraPose` (`CameraControl.h`); the eye is clamped ≥ terrain + 2 m every frame
    using the last good terrain height (D-020). Orbit keeps osgEarth's terrain avoidance.
+13. Image layers are **RGBA**. RGB GDAL images render black (GL "invalid operation") in the
+   embedded widget; `tools/offline_data` writes 4-band output (D-024, issue #11).

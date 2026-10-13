@@ -104,6 +104,10 @@
     </FeatureModel>
 
     <!-- Lat/lon grid, off by default (GlobeView3D: key R / setLayerVisible("Graticule")). -->
-    <GeodeticGraticule name="Graticule" visible="false"/>
+    <GeodeticGraticule name="Graticule" visible="false">
+        <!-- utf8: the labels contain the degree sign (osgText defaults to ASCII, issue #11). -->
+        <grid_label_style>default { text-encoding: utf8; text-fill: #ffffff; text-declutter: false; }</grid_label_style>
+        <edge_label_style>default { text-encoding: utf8; text-fill: #ffffff; text-declutter: false; }</edge_label_style>
+    </GeodeticGraticule>
 
 </map>

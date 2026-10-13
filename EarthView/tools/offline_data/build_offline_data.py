@@ -5,6 +5,9 @@ Everything here runs without a network. It needs Python 3.8+ and the GDAL comman
 tools on PATH (gdal_translate, gdaldem, gdaladdo, gdal_rasterize, gdal_create, ogr2ogr):
 OSGeo4W / QGIS on Windows, `gdal-bin` on Linux, or vcpkg `gdal[tools]`.
 
+Every imagery output is RGBA (4 bands): osgEarth embedded in a QOpenGLWidget renders RGB
+GDAL images black with GL "invalid operation" errors (issue #11, D-024).
+
 Outputs go into the data tree next to the earth file (EarthView/Data), so the relative
 paths in Data/maps/earthview.earth find them:
 
@@ -119,11 +122,11 @@ def world_base(data, res_deg=0.05):
         run(["ogr2ogr", "-f", "GPKG", "-t_srs", "EPSG:4326", "-nln", "borders", geo, shp])
         args = ["gdal_rasterize", "-l", "borders", "-ot", "Byte", "-a_srs", "EPSG:4326",
                 "-te", -180, -90, 180, 90, "-tr", res_deg, res_deg, "-at"]
-        for v in LAND_RGB:
+        for v in LAND_RGB + (255,):
             args += ["-burn", v]
-        for v in SEA_RGB:
+        for v in SEA_RGB + (255,):
             args += ["-init", v]
-        run(args + tiff_options() + [geo, out])
+        run(args + ["-co", "PHOTOMETRIC=RGB", "-co", "ALPHA=YES"] + tiff_options() + [geo, out])
     add_overviews(out, levels=(2, 4, 8, 16))
     return out
 
@@ -146,9 +149,12 @@ def hillshade(data, res_arcsec=3.0):
         run(["gdal_translate", "-of", "VRT", "-tr", res, res, "-r", "average", vrt, dem])
         if os.path.exists(out):
             os.remove(out)
+        grey = os.path.join(tmp, "hillshade_grey.tif")
         # -s 111120: degrees to metres; multidirectional light reads well under a sky light.
-        run(["gdaldem", "hillshade", "-s", 111120, "-multidirectional", "-compute_edges", "-z", 1.5]
-            + tiff_options() + [dem, out])
+        run(["gdaldem", "hillshade", "-s", 111120, "-multidirectional", "-compute_edges", "-z", 1.5, dem, grey])
+        # Grey → RGBA: the shade in R=G=B, opaque except where the DEM has no data (issue #11, D-024).
+        run(["gdal_translate", "-b", 1, "-b", 1, "-b", 1, "-b", "mask", "-colorinterp", "red,green,blue,alpha",
+             "-co", "PHOTOMETRIC=RGB"] + tiff_options() + [grey, out])
     add_overviews(out)
     return out
 
@@ -166,11 +172,11 @@ def vector_base(data, mbtiles, aoi, zoom=13, res_deg=0.0002):
         os.remove(out)
     cols = int(round((e - w) / res_deg))
     rows = int(round((n - s) / res_deg))
-    args = ["gdal_create", "-of", "GTiff", "-ot", "Byte", "-bands", 3, "-outsize", cols, rows,
+    args = ["gdal_create", "-of", "GTiff", "-ot", "Byte", "-bands", 4, "-outsize", cols, rows,
             "-a_srs", "EPSG:4326", "-a_ullr", w, n, e, s]
-    for v in LAND_RGB:
+    for v in LAND_RGB + (255,):
         args += ["-burn", v]
-    run(args + tiff_options() + [out])
+    run(args + ["-co", "PHOTOMETRIC=RGB", "-co", "ALPHA=YES"] + tiff_options() + [out])
 
     with tempfile.TemporaryDirectory() as tmp:
         gpkg = os.path.join(tmp, "omt.gpkg")

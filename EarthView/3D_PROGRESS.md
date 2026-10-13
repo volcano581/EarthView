@@ -61,7 +61,7 @@ Cloud agents can only syntax-check osgEarth code (E3 review).
 | E3 | Entity layer (models, labels, LOD, picking) | Merged | `3d/e3-entities` | [#6](https://github.com/volcano581/EarthView/pull/6) | `9233edc` | ✓ (2026-10-12, owner, local) |
 | E4 | Camera controllers + HUD | Merged | `3d/e4-cameras` | [#8](https://github.com/volcano581/EarthView/pull/8) | `840eaec` | pending (Windows) |
 | E5 | Terrain services | Merged | `3d/e5-terrain` | [#9](https://github.com/volcano581/EarthView/pull/9) | `3d6bae2` | pending (Windows) |
-| E6 | Offline data pipeline | In review | `3d/e6-offline-data` | [#10](https://github.com/volcano581/EarthView/pull/10) | — | pending (Windows) |
+| E6 | Offline data pipeline | Merged | `3d/e6-offline-data` | [#10](https://github.com/volcano581/EarthView/pull/10) | `27583f5` | ✗ issue #11 (fixes in `3d/e6-local-check-fixes`) |
 | E7 | Packaging + runtime deploy | Not started | | | | |
 | E8 | Wiring kit / host contract test | Not started | | | | |
 | E9 | Cleanup pseudo-3D | Not started | | | | |
@@ -75,7 +75,20 @@ Cloud agents can only syntax-check osgEarth code (E3 review).
 
 ## Change log (newest first)
 
-### 2026-10-12 — E6: offline data pipeline and offline default map  (In review)
+### 2026-10-13 — Fixes from the local Windows check of `master` `27583f5` (issue #11)  (In review)
+- **Branch / PR:** `3d/e6-local-check-fixes` / PR — merge —
+- **Author:** cloud agent
+- **Owner's check (VS 2026, Qt 6.11, RTX 3050 Ti):** build 0 errors/warnings, ctest 11/11, `--check-agreement` 0.000 m, tethers OK, `--spot` OPIS 541.8 m MSL vs 537 m (+4.8 m), 38–49 ms/frame at 200 entities.
+- **Fixes:**
+  1. *Blocker — offline map black:* RGB `world_base.tif` rendered black with GL "invalid operation" errors; RGBA works (owner). `build_offline_data.py` now writes RGBA for world base, base map and hillshade (grey → RGB + mask alpha); committed `world_base.tif` regenerated (0.9 MB, 4 bands); tests assert 4 bands (D-024).
+  2. *HUD AGL = altitude in chase/stealth/fp/free:* `eyeGround.update(groundAt(…, &ground), ground)` — MSVC evaluates arguments right to left, so the old 0 m was passed. Split into two statements. Also fixes the +2 m clamp and `viewpointDescription()` AGL in those modes on MSVC.
+  3. *Free-fly straight down mirrored:* the pose → camera math is now one GL-free `cameraBasis()` (right-handed by construction, heading-based so no pole singularity), unit tested for det = +1 at every heading/pitch/roll incl. ±90°; it matches the previous matrices to 1e-15. Near ±90° the eye pose now takes the heading from the screen's up vector (no jump). The reflection itself is **not reproduced** by the math — re-check requested.
+  4. *Minor:* near/far ratio 2e-6 in first person/stealth (ground clipped at 1–2 m eye height); graticule labels `text-encoding: utf8` (degree sign); `CLAUDE.md`: CMake ≥ 4.2 / VS 2026's bundled CMake.
+- **Tests:** `tst_cameracontrol` +2 (basis handedness, looking-down orientation); offline data tests +2 (world base RGBA, committed file RGBA) and RGBA asserts. Linux ctest 11/11.
+- **Verified:** Linux ✓; osgEarth code syntax-checked; Windows CI pending · Visual check pending (Windows)
+- **Follow-ups:** I-030.
+
+### 2026-10-12 — E6: offline data pipeline and offline default map  (Merged `27583f5`, 2026-10-13)
 - **Branch / PR:** `3d/e6-offline-data` / [#10](https://github.com/volcano581/EarthView/pull/10) — merge —
 - **Author:** cloud agent
 - **Changes:**
@@ -415,6 +428,7 @@ Cloud agents can only syntax-check osgEarth code (E3 review).
 | D-021 | Vertical datum: everything in the 3D view is WGS-84 ellipsoid height (HAE). DTED is orthometric (EGM96 MSL), so the elevation layer is declared `vdatum="egm96"` and osgEarth converts it (geoid embedded in the `vdatum_egm96` plugin, offline-safe). Near Islamabad N ≈ −47 m, i.e. terrain had been drawn ~47 m too high. MSL readouts use the same geoid. Check: `earthview3d_demo --spot 33.5497,72.8253,537` (OPIS airport). | 2026-10-12 | E5 |
 | D-022 | Terrain heights: per-frame users (clamping, cameras) read the *drawn* terrain through a ~1 m-cell `HeightCache`, invalidated per loaded tile (`TerrainCallback`); other threads get cache hits or queue misses for the next frame. Full-resolution `ElevationPool` samples are for spot checks/tools only. | 2026-10-12 | E5 |
 | D-023 | Offline imagery = rasters pre-rendered with GDAL (`tools/offline_data`): world land/sea base (in git), AOI base map rasterised from the OpenMapTiles vector MBTiles at one zoom level, DTED hillshade modulating both. Not osgEarth's runtime MapBoxGL/OGR on the vector file (renders nothing / hangs, I-007). The default earth file is offline; online OSM is a separate earth file. | 2026-10-12 | E6 |
+| D-024 | Image layers given to osgEarth are RGBA GeoTIFFs; 3-band RGB renders black with GL errors in the embedded widget (issue #11). The offline pipeline writes RGBA (hillshade: grey → RGB + nodata mask as alpha). | 2026-10-13 | issue #11 |
 | D-019 | CI vcpkg binary cache: every run restores, only `master` saves (complete or partial); a weekly scheduled master run keeps it from the 7-day eviction. Dependency changes build once on their PR without saving and once on master after merge. | 2026-10-12 | CI cache scope |
 | D-011 | The integration target is **Conquer** (`D:\Source\Conquer`: Doctrine + cgf-engine + EarthView superbuild, already MSVC), not the standalone `D:\Source\cgf-engine`. 3D code lives in an isolated library so osgEarth includes never reach other TUs. | 2026-10-08 | Conquer test |
 
@@ -451,6 +465,7 @@ Cloud agents can only syntax-check osgEarth code (E3 review).
 | I-027 | Orbit mode keeps osgEarth's own terrain avoidance (≥ 5 m from the terrain under the focal point), not the +2 m eye clamp of the other modes; orbit can still look from very low over steep slopes. | E4 | Open |
 | I-028 | `HeightCache` is invalidated under every loaded tile; while many tiles stream in (start-up, fast camera moves) clamped entities miss the cache and query the terrain as before. Measure with the E10 profiling (I-025) before tuning (e.g. invalidate only when the tile LOD is finer than the cached sample). | E10 | Open |
 | I-029 | Place labels: 45 k cities/towns and 83 k villages/hamlets are paged (100 km / 20 km tiles, 400 km / 40 km max range) and decluttered, but label density and paging cost near cities are unmeasured. Tune ranges or filter by rank after a Windows run (E10). | E6 | Open |
+| I-030 | Free-fly looking straight down showed mirrored street names (issue #11). Camera math verified right-handed (unit test) and unchanged elsewhere; cause not reproduced. Re-check `--view tour` end state and free-fly at pitch −90° after the issue #11 fixes. | E4 | Open (re-check) |
 | I-025 | 3D frame time scales ~linearly with entity count (~0.25–0.35 ms/entity): RTX 3050 Ti, 1400×900, 20 entities 14.6 ms (~68 FPS), 200 entities 64–86 ms (~12–15 FPS), 200 with declutter off 59.1 ms (owner, `579d8eb`). Suspects: per-entity `Terrain::getHeight()` every frame for clamped units, one `osgText::Text` + geode per entity, per-entity `AutoTransform`s (marker + ring). First steps: cache terrain height and refresh only on movement > N m or every few frames, share label/marker state, profile with osgEarth stats. Target 1,000 entities at 60 FPS. | E10 | Open |
 | I-018 | `MapConfig.cacheDir` is applied through `OSGEARTH_CACHE_PATH` before the widget's first `osgEarth::initialize()`; it is ignored if the host initialised osgEarth earlier or set the variable itself. Verify the cache fills on Windows (E6 owns caching). | E6 | Open (demo now defaults to `--cache cache`; verify second offline run, E6) |
 

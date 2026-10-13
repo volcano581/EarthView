@@ -66,7 +66,7 @@
 | E3 | Entity layer: API, model table, labels, LOD, attitude, picking + selection | E1 | L | yes | Done |
 | E4 | Camera controllers (orbit, chase, stealth, first-person, free-fly) + HUD | E1 | M | yes | Done |
 | E5 | Terrain services: height query API, clamping, vertical datum check | E1 | S | yes | Done |
-| E6 | Offline data pipeline (imagery, DEM overviews, overlays, earth template, cache) | E1 | M | yes | In review |
+| E6 | Offline data pipeline (imagery, DEM overviews, overlays, earth template, cache) | E1 | M | yes | Done |
 | E7 | Packaging: CMake package/`add_subdirectory`, `earthview3d_deploy_runtime()`, install, offline build doc | E1 | M | no | |
 | E8 | Wiring kit: keep `DOCTRINE_WIRING.md` + host contract test in sync; integration checklist | E3, E4, E7 | S | no | |
 | E9 | Cleanup: remove EarthView pseudo-3D; 2D MapViewWindow "Open 3D" hook | E2 | M | yes | |
@@ -132,7 +132,7 @@ demonstrated).
 - Vertical datum: decide ellipsoid vs EGM96 for DTED; verify against a known spot height;
   document. Report the ground-plane offset for hosts (I-015) via a debug overlay.
 
-### E6 — Offline data — IN REVIEW (branch `3d/e6-offline-data`)
+### E6 — Offline data — DONE ([#10](https://github.com/volcano581/EarthView/pull/10); local-check fixes: issue #11)
 - Imagery decision + pipeline (raster MBTiles from the OpenMapTiles vector file, or
   satellite) — closes I-007; `gdaladdo` overviews for `dted_1arc.vrt`; borders/cities as
   osgEarth feature layers; graticule; relative-path earth template; filesystem cache.

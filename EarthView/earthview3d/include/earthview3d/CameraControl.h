@@ -41,6 +41,20 @@ struct CameraPose
     double rollDeg = 0.0;     ///< Positive rolls right
 };
 
+/**
+ * @brief Camera axes in the local east/north/up frame of the eye, for @p pose.
+ *
+ * right × up = −forward (right-handed: OSG cameras look down −Z). Built from heading first,
+ * so it stays well defined at pitch ±90° (no "up hint" singularity; issue #11).
+ */
+struct CameraBasis
+{
+    double right[3];
+    double up[3];
+    double forward[3];
+};
+CameraBasis cameraBasis(const CameraPose& pose);
+
 /// 0..1 ease-in/ease-out (smoothstep) of @p t, clamped.
 double smoothStep(double t);
 /// Heading in [0, 360).
