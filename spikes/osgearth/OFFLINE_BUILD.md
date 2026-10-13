@@ -9,6 +9,8 @@ Two separate needs:
 Toolchain on both machines: **Visual Studio 2026** (C++ desktop workload), Qt 6.11
 **`msvc2022_64`** kit (binary-compatible with VS 2026), CMake ≥ 4.x.
 
+> Superseded by [`EarthView/OFFLINE_BUILD.md`](../../EarthView/OFFLINE_BUILD.md) (E7); kept for the spike record.
+
 > **Keep VS 2026 on the same update (18.x.y) on the feeder and offline machines.** The vcpkg
 > binary-cache key includes the exact compiler version. On a mismatch vcpkg rebuilds from
 > the source cache — still offline, but ~30–60 min.

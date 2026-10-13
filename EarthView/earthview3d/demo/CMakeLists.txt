@@ -31,3 +31,7 @@ target_compile_definitions(earthview3d_demo PRIVATE EARTHVIEW3D_DEFAULT_DATA_ROO
 add_custom_command(TARGET earthview3d_demo POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         "${EarthView_SOURCE_DIR}/shaders" "$<TARGET_FILE_DIR:earthview3d_demo>/shaders")
+
+# Deployed layout next to the exe (E7): the demo runs the same way it would on a machine
+# without vcpkg; `cmake --install` is for hosts (see earthview3d_deploy_runtime).
+earthview3d_deploy_runtime(earthview3d_demo)

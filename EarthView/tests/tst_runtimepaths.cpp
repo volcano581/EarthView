@@ -17,6 +17,10 @@ private slots:
     void setsUnsetVariablesToExistingDirs();
     void explicitEnvironmentWins();
     void skipsMissingOrEmptyDirs();
+    void findsBuildTreeDeployLayout();
+    void findsInstalledDeployLayout();
+    void emptyAppDirFindsNothing();
+    void fillFromKeepsSetFields();
 
 private:
     QTemporaryDir m_dir;
@@ -64,6 +68,62 @@ void TestRuntimePaths::skipsMissingOrEmptyDirs()
     QVERIFY(paths.applyDataEnvironment().isEmpty());
     QVERIFY(qEnvironmentVariableIsEmpty("GDAL_DATA"));
     QVERIFY(qEnvironmentVariableIsEmpty("PROJ_DATA"));
+}
+
+void TestRuntimePaths::findsBuildTreeDeployLayout()
+{
+    QTemporaryDir app;
+    QVERIFY(app.isValid());
+    const QDir dir(app.path());
+    QVERIFY(dir.mkpath(QStringLiteral("osgPlugins-3.6.5")));
+    QVERIFY(dir.mkpath(QStringLiteral("share/gdal")));
+    QVERIFY(dir.mkpath(QStringLiteral("share/proj")));
+
+    const RuntimePaths paths = RuntimePaths::fromAppDir(app.path());
+    QCOMPARE(paths.osgPluginDir, QDir::cleanPath(dir.absolutePath()));
+    QCOMPARE(paths.gdalDataDir, QDir::cleanPath(dir.absoluteFilePath(QStringLiteral("share/gdal"))));
+    QCOMPARE(paths.projDataDir, QDir::cleanPath(dir.absoluteFilePath(QStringLiteral("share/proj"))));
+    QVERIFY(paths.isComplete());
+}
+
+void TestRuntimePaths::findsInstalledDeployLayout()
+{
+    QTemporaryDir root;
+    QVERIFY(root.isValid());
+    const QDir dir(root.path());
+    QVERIFY(dir.mkpath(QStringLiteral("bin/osgPlugins-3.6.5")));
+    QVERIFY(dir.mkpath(QStringLiteral("share/gdal")));
+    QVERIFY(dir.mkpath(QStringLiteral("share/proj")));
+
+    const RuntimePaths paths = RuntimePaths::fromAppDir(dir.absoluteFilePath(QStringLiteral("bin")));
+    QCOMPARE(paths.osgPluginDir, QDir::cleanPath(dir.absoluteFilePath(QStringLiteral("bin"))));
+    QCOMPARE(paths.gdalDataDir, QDir::cleanPath(dir.absoluteFilePath(QStringLiteral("share/gdal"))));
+    QCOMPARE(paths.projDataDir, QDir::cleanPath(dir.absoluteFilePath(QStringLiteral("share/proj"))));
+}
+
+void TestRuntimePaths::emptyAppDirFindsNothing()
+{
+    QTemporaryDir app;
+    QVERIFY(app.isValid());
+    const RuntimePaths paths = RuntimePaths::fromAppDir(app.path());
+    QVERIFY(paths.osgPluginDir.isEmpty());
+    QVERIFY(paths.gdalDataDir.isEmpty());
+    QVERIFY(paths.projDataDir.isEmpty());
+    QVERIFY(!paths.isComplete());
+    QVERIFY(RuntimePaths::fromAppDir(QString()).osgPluginDir.isEmpty());
+}
+
+void TestRuntimePaths::fillFromKeepsSetFields()
+{
+    RuntimePaths deployed;
+    deployed.osgPluginDir = QStringLiteral("app");
+    RuntimePaths fallback;
+    fallback.osgPluginDir = QStringLiteral("vcpkg/plugins");
+    fallback.gdalDataDir = QStringLiteral("vcpkg/share/gdal");
+    deployed.fillFrom(fallback);
+    QCOMPARE(deployed.osgPluginDir, QStringLiteral("app"));
+    QCOMPARE(deployed.gdalDataDir, QStringLiteral("vcpkg/share/gdal"));
+    QVERIFY(deployed.projDataDir.isEmpty());
 }
 
 QTEST_GUILESS_MAIN(TestRuntimePaths)
