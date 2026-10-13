@@ -212,9 +212,21 @@ jobs:
           Write-Host "vcpkg tree: $tree"
 
           Copy-Item "$tree\bin\*.dll" $stage -Force
-          $plugins = Get-ChildItem "$tree\bin" -Directory -Filter 'osgPlugins-*' -ErrorAction SilentlyContinue
-          if (-not $plugins) { throw "no osgPlugins-* folder under $tree\bin" }
-          $plugins | ForEach-Object { Copy-Item $_.FullName $stage -Recurse -Force }
+
+          # vcpkg puts the OSG plugins in <tree>\plugins\osgPlugins-<version>, not in bin;
+          # earthview3d/CMakeLists.txt reads the same path for
+          # EARTHVIEW3D_DEV_OSG_PLUGIN_DIR. The package keeps the parent folder, because
+          # configureRuntime() adds the *parent* of osgPlugins-<version> to osgDB's library
+          # path list. The directory listing is logged so a layout change is diagnosable
+          # from the failure alone.
+          Write-Host "vcpkg tree contains: $((Get-ChildItem $tree -Directory | ForEach-Object Name) -join ', ')"
+          $plugins = Get-ChildItem "$tree\plugins" -Directory -Filter 'osgPlugins-*' -ErrorAction SilentlyContinue
+          if (-not $plugins) {
+            $plugins = Get-ChildItem $tree -Recurse -Directory -Filter 'osgPlugins-*' -ErrorAction SilentlyContinue
+          }
+          if (-not $plugins) { throw "no osgPlugins-* folder anywhere under $tree" }
+          New-Item -ItemType Directory -Force -Path "$stage\plugins" | Out-Null
+          $plugins | ForEach-Object { Copy-Item $_.FullName "$stage\plugins" -Recurse -Force }
           Write-Host "OSG plugins: $(($plugins | ForEach-Object Name) -join ', ')"
 
           New-Item -ItemType Directory -Force -Path "$stage\share" | Out-Null
@@ -226,8 +238,68 @@ jobs:
           # 4. Earth files, models and the committed world base imagery.
           Copy-Item (Join-Path $env:GITHUB_WORKSPACE 'EarthView\Data') $stage -Recurse -Force
 
+          # 5. Launchers. Without these the package starts but cannot work:
+          #    RuntimePaths::buildTreeDefaults() carries only the compile-time CI build-tree
+          #    paths, which do not exist on a downloaded copy, and configureRuntime() skips a
+          #    directory that is not there — so no OSG plugin folder is registered and no
+          #    GDAL/PROJ data is found. applyDataEnvironment() deliberately never overrides a
+          #    variable that is already set, and osgDB reads OSG_LIBRARY_PATH when its DLL
+          #    loads, so setting these before launch is the supported way to run from an
+          #    arbitrary folder (D-017, D-025). Resolving deployed paths inside the library is
+          #    roadmap task E7; until then the launcher is what makes the package portable.
+          $template = @'
+          @echo off
+          rem Portable launcher: point the osgEarth runtime at the folders in this package.
+          rem The executables carry the CI build-tree paths compiled in, which do not exist here,
+          rem so the paths must come from the environment (see D-017/D-025 and roadmap E7).
+          setlocal
+          set "EV_HOME=%~dp0"
+          set "OSG_LIBRARY_PATH=%EV_HOME%plugins"
+          set "GDAL_DATA=%EV_HOME%share\gdal"
+          set "PROJ_DATA=%EV_HOME%share\proj"
+          set "PROJ_LIB=%EV_HOME%share\proj"
+          "%EV_HOME%__EXE__" %*
+          '@
+          foreach ($name in $wanted) {
+            $cmd = 'run-' + [IO.Path]::GetFileNameWithoutExtension($name) + '.cmd'
+            $template.Replace('__EXE__', $name) |
+              Set-Content -Path (Join-Path $stage $cmd) -Encoding ASCII
+            Write-Host "Launcher: $cmd -> $name"
+          }
+
+          $readme = @'
+          EarthView - Windows x64 build
+          =============================
+
+          Built by CI with MSVC, Qt 6.11 (msvc2022_64) and osgEarth 3.8.1 from the pinned vcpkg
+          manifest. Nothing needs to be installed: Qt, osgEarth, OSG, GDAL and PROJ are all in
+          this folder, along with the MSVC redistributable DLLs.
+
+          Start it with one of the launchers, NOT the .exe directly:
+
+            run-earthview3d_demo.cmd     3D / stealth view demo host (osgEarth)
+            run-EarthView.cmd            2D map application
+            run-earthview_snapshot.cmd   offscreen snapshot tool
+
+          The launchers set OSG_LIBRARY_PATH, GDAL_DATA and PROJ_DATA to the folders here. The
+          executables have the CI build-tree paths compiled in, so running an .exe directly means
+          osgEarth finds no plugin folder and no GDAL/PROJ data: the 3D view then fails to load
+          fonts and imagery. Any argument you pass to a launcher is forwarded, e.g.
+
+            run-earthview3d_demo.cmd --view stealth --entities 50
+
+          Offline map data
+          ----------------
+          Only the committed world base imagery (Data/imagery/world_base.tif) ships here, so the
+          default map is land/sea at low resolution. For the full offline map - AOI base map,
+          hillshade and place names - run EarthView/tools/offline_data/build_offline_data.py from
+          a checkout; it needs the GDAL command-line tools and is not run by CI.
+          '@
+          $readme | Set-Content -Path (Join-Path $stage 'README.txt') -Encoding ASCII
+
           "{0:N1} MB packaged" -f ((Get-ChildItem $stage -Recurse -File |
               Measure-Object -Property Length -Sum).Sum / 1MB)
+          Get-ChildItem $stage | Select-Object Mode, Name | Format-Table | Out-String
 
       - name: Upload Windows binaries
         uses: actions/upload-artifact@v4
