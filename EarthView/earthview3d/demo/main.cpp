@@ -180,7 +180,7 @@ int main(int argc, char** argv)
     }
 
     // Before any GlobeView3D exists (E1 review): OSG reads its plugin path too early for env vars.
-    earthview3d::configureRuntime(earthview3d::RuntimePaths::buildTreeDefaults());
+    earthview3d::configureRuntime(earthview3d::RuntimePaths::defaults());
 
     // Host simulation: entities published from a worker thread at 100 Hz.
     const earthview3d::demo::SyntheticFeed feed(feedSettings);

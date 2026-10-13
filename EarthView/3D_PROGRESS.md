@@ -61,8 +61,8 @@ Cloud agents can only syntax-check osgEarth code (E3 review).
 | E3 | Entity layer (models, labels, LOD, picking) | Merged | `3d/e3-entities` | [#6](https://github.com/volcano581/EarthView/pull/6) | `9233edc` | ✓ (2026-10-12, owner, local) |
 | E4 | Camera controllers + HUD | Merged | `3d/e4-cameras` | [#8](https://github.com/volcano581/EarthView/pull/8) | `840eaec` | pending (Windows) |
 | E5 | Terrain services | Merged | `3d/e5-terrain` | [#9](https://github.com/volcano581/EarthView/pull/9) | `3d6bae2` | pending (Windows) |
-| E6 | Offline data pipeline | Merged | `3d/e6-offline-data` | [#10](https://github.com/volcano581/EarthView/pull/10) | `27583f5` | ✗ issue #11 (fixes in `3d/e6-local-check-fixes`) |
-| E7 | Packaging + runtime deploy | Not started | | | | |
+| E6 | Offline data pipeline | Merged | `3d/e6-offline-data` | [#10](https://github.com/volcano581/EarthView/pull/10) | `27583f5` | ✓ after issue #11 fixes ([#12](https://github.com/volcano581/EarthView/pull/12), owner, 2026-10-13) |
+| E7 | Packaging + runtime deploy | In review | `3d/e7-packaging` | [#14](https://github.com/volcano581/EarthView/pull/14) | — | pending (Windows) |
 | E8 | Wiring kit / host contract test | Not started | | | | |
 | E9 | Cleanup pseudo-3D | Not started | | | | |
 | E10 | Performance + polish | Not started | | | | |
@@ -75,7 +75,36 @@ Cloud agents can only syntax-check osgEarth code (E3 review).
 
 ## Change log (newest first)
 
-### 2026-10-13 — Fixes from the local Windows check of `master` `27583f5` (issue #11)  (In review)
+### 2026-10-13 — E7: packaging, install/export, runtime deploy  (In review)
+- **Branch / PR:** `3d/e7-packaging` / [#14](https://github.com/volcano581/EarthView/pull/14) — merge —
+- **Author:** cloud agent
+- **Changes:**
+  - `earthview3d` installs and exports a CMake package: `find_package(earthview3d 0.7 CONFIG)`
+    → `earthview3d::core`, `earthview3d::earthview3d` (when built), version file, config
+    that re-finds Qt/OSG/osgEarth/GDAL (static library). `add_subdirectory` keeps working.
+  - `cmake/earthview3dDeploy.cmake`: `earthview3d_deploy_runtime(<exe> [INSTALL]
+    [DESTINATION] [NO_QT])` copies vcpkg DLLs, `osgPlugins-*` and `share/gdal|proj` next to
+    the exe after each build; `INSTALL` adds them + Qt deploy script + MSVC runtime to
+    `cmake --install` (D-026). The demo uses it.
+  - `RuntimePaths::fromAppDir()/defaults()/isComplete()/fillFrom()`: the deployed layout is
+    found next to the exe (build tree `share/…` or installed `../share/…`), falling back to
+    the build-tree vcpkg folders; `GlobeView3D` and the demo now use `defaults()`.
+  - `EarthView/OFFLINE_BUILD.md` generalised from the spike (toolchain table, same VS update
+    on feeder and offline machine, host CMake, package for hosts, data list).
+  - `tests/consumer/`: external CMake project built against the installed package in CI —
+    `consumer_core` (Linux + Windows), `consumer_3d` (Windows: deployed runtime complete,
+    `osgdb_earth`/`vdatum_egm96`/`freetype` plugins and `proj.db` present, run from the build
+    folder and from the installed folder).
+- **Existing files touched:** earthview3d CMake, `RuntimePaths`, `GlobeView3D.cpp` (one call),
+  demo, CI workflow, docs; no 2D code.
+- **Tests:** `tst_runtimepaths` +4 (build-tree and installed layouts, empty dir, `fillFrom`).
+  Linux ctest 11/11; Linux install + consumer ✓; deploy function dry-run against a fake vcpkg
+  tree (build + install copy the right files, vcpkg cmake wrappers excluded).
+- **Verified:** Linux ✓ · Windows CI ✓ (`988b78e`: package install, consumer build, `consumer_3d` from build and install folders) · Visual check pending (Windows): deployed demo
+  and an installed folder on a machine without vcpkg.
+- **Follow-ups:** I-033.
+
+### 2026-10-13 — Fixes from the local Windows check of `master` `27583f5` (issue #11)  (Merged, [#12](https://github.com/volcano581/EarthView/pull/12))
 - **Branch / PR:** `3d/e6-local-check-fixes` / PR — merge —
 - **Author:** cloud agent
 - **Owner's check of `master` `27583f5` (VS 2026, Qt 6.11, RTX 3050 Ti):** build 0 errors/warnings, ctest 11/11, `--check-agreement` 0.000 m, tethers OK, `--spot` OPIS 541.8 m MSL vs 537 m (+4.8 m), 38–49 ms/frame at 200 entities.
@@ -432,6 +461,7 @@ Cloud agents can only syntax-check osgEarth code (E3 review).
 | D-023 | Offline imagery = rasters pre-rendered with GDAL (`tools/offline_data`): world land/sea base (in git), AOI base map rasterised from the OpenMapTiles vector MBTiles at one zoom level, DTED hillshade modulating both. Not osgEarth's runtime MapBoxGL/OGR on the vector file (renders nothing / hangs, I-007). The default earth file is offline; online OSM is a separate earth file. | 2026-10-12 | E6 |
 | D-024 | Image layers given to osgEarth are RGBA GeoTIFFs; 3-band RGB renders black with GL errors in the embedded widget (issue #11). The offline pipeline writes RGBA (hillshade: grey → RGB + nodata mask as alpha). **Caveat (owner, 2026-10-13):** the original black-render blocker could not be reproduced on re-check — master's 3-band RGB file rendered identically, with 0 GL "invalid operation" errors, against a fresh cache. A stale 232 MB `Data/cache` was in play during the first observation. So RGBA is not *demonstrably* the cause of the fix; the symptom is absent either way. RGBA is kept as the deliberate convention (osgEarth's own imagery path is RGBA and the alpha channel is needed for hillshade nodata regardless), but the causal claim is withdrawn. See also I-032. | 2026-10-13 | issue #11, owner re-check |
 | D-025 | `configureRuntime()` re-reads osgEarth's default font after it registers the OSG plugin folder. `osgEarth::Registry` loads that font in its constructor, which runs before any host code, so without the repair `osgdb_freetype` is unreachable, no `.ttf` loads and osgText uses its built-in ASCII-only font — non-ASCII glyphs such as the graticule's degree sign come out blank, while entity labels (own font, loaded later) look fine. Do **not** set `text-encoding: utf8` on osgEarth's own labels: it writes the degree sign as the single Latin-1 byte `0xB0`, which UTF-8 decoding discards. | 2026-10-13 | issue #11 |
+| D-026 | Runtime deployment layout: OSG plugins (`osgPlugins-<ver>/`), vcpkg DLLs and `share/gdal`, `share/proj` sit next to the host exe (installed: `bin/` + `../share/`), put there by `earthview3d_deploy_runtime()`. `RuntimePaths::defaults()` looks there first, then at the build-tree vcpkg folders, so hosts need no runtime code or environment. The package is static and records the build machine's vcpkg paths: hosts use the same vcpkg toolchain/triplet. | 2026-10-13 | E7 |
 | D-019 | CI vcpkg binary cache: every run restores, only `master` saves (complete or partial); a weekly scheduled master run keeps it from the 7-day eviction. Dependency changes build once on their PR without saving and once on master after merge. | 2026-10-12 | CI cache scope |
 | D-011 | The integration target is **Conquer** (`D:\Source\Conquer`: Doctrine + cgf-engine + EarthView superbuild, already MSVC), not the standalone `D:\Source\cgf-engine`. 3D code lives in an isolated library so osgEarth includes never reach other TUs. | 2026-10-08 | Conquer test |
 
@@ -470,6 +500,7 @@ Cloud agents can only syntax-check osgEarth code (E3 review).
 | I-029 | Place labels: 45 k cities/towns and 83 k villages/hamlets are paged (100 km / 20 km tiles, 400 km / 40 km max range) and decluttered, but label density and paging cost near cities are unmeasured. Tune ranges or filter by rank after a Windows run (E10). | E6 | Open |
 | I-030 | ~~Free-fly looking straight down showed mirrored street names (issue #11).~~ Owner re-check at `7687c33` against `earthview_online.earth`: street names read correctly (*Sir Khwaja Nazimuddin Road*, *7th Avenue Underpass*, *Service Road East*, *Gali 302*), no reflection anywhere, and the heading at the top-down tour step is now `0.0` instead of `127.6`. | E4 | Closed (owner, 2026-10-13) |
 | I-031 | ~~Graticule labels render without the degree sign (`N3345'` instead of `N33°45'`; owner pixel-dumped the glyphs at `7687c33`).~~ Cause: `osgEarth::Registry` loads the default font in its constructor, before `configureRuntime()` registers the OSG plugin folder, so no `.ttf` can be read and osgText falls back to its built-in ASCII-only font. `configureRuntime()` now re-reads it (D-025). `text-encoding: utf8` was a wrong turn and is `ascii` (osgText's default) in both earth files; no font is pinned. Owner re-check 2026-10-13: the glyph segmentation shows 7 glyphs with a raised half-height one between `33` and `45` — `N33°45'`. | E6 | Closed (owner, 2026-10-13) |
+| I-033 | E7 not checked on a clean machine: copy an installed folder (`cmake --install`, demo or consumer) to a Windows machine without vcpkg/Qt on `PATH` and open the 3D view (DLL set complete? Qt plugins? MSVC runtime?). CI runs the installed `consumer_3d` but with Qt on `PATH` and without GL. | E7 | Open |
 | I-032 | Every 3D run emits `invalid enumerant at after RenderBin::draw(..)` 7–100 times, with both `earthview.earth` and `earthview_online.earth`, regardless of imagery band count (owner, `7687c33`). Distinct from the issue #11 "invalid operation" errors and not a regression from this PR, but it was not noted before either, so its baseline is unknown. Nothing renders visibly wrong. Find the offending GL enum (likely an embedded-widget state-leak of the kind the `earthview3d` README rules cover) and either fix or document it. | E6 | Open |
 | I-025 | 3D frame time scales ~linearly with entity count (~0.25–0.35 ms/entity): RTX 3050 Ti, 1400×900, 20 entities 14.6 ms (~68 FPS), 200 entities 64–86 ms (~12–15 FPS), 200 with declutter off 59.1 ms (owner, `579d8eb`). Suspects: per-entity `Terrain::getHeight()` every frame for clamped units, one `osgText::Text` + geode per entity, per-entity `AutoTransform`s (marker + ring). First steps: cache terrain height and refresh only on movement > N m or every few frames, share label/marker state, profile with osgEarth stats. Target 1,000 entities at 60 FPS. | E10 | Open |
 | I-018 | `MapConfig.cacheDir` is applied through `OSGEARTH_CACHE_PATH` before the widget's first `osgEarth::initialize()`; it is ignored if the host initialised osgEarth earlier or set the variable itself. Verify the cache fills on Windows (E6 owns caching). | E6 | Open (demo now defaults to `--cache cache`; verify second offline run, E6) |
