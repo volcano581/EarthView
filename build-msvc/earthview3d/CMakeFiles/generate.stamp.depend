@@ -1,0 +1,76 @@
+# CMake generation dependency list for this directory.
+C:/Program Files/Microsoft Visual Studio/18/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-4.3/Modules/CMakeFindDependencyMacro.cmake
+C:/Program Files/Microsoft Visual Studio/18/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-4.3/Modules/CheckCXXCompilerFlag.cmake
+C:/Program Files/Microsoft Visual Studio/18/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-4.3/Modules/FindOpenGL.cmake
+C:/Program Files/Microsoft Visual Studio/18/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-4.3/Modules/FindOpenSceneGraph.cmake
+C:/Program Files/Microsoft Visual Studio/18/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-4.3/Modules/FindOpenThreads.cmake
+C:/Program Files/Microsoft Visual Studio/18/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-4.3/Modules/FindPackageHandleStandardArgs.cmake
+C:/Program Files/Microsoft Visual Studio/18/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-4.3/Modules/FindPackageMessage.cmake
+C:/Program Files/Microsoft Visual Studio/18/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-4.3/Modules/Findosg.cmake
+C:/Program Files/Microsoft Visual Studio/18/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-4.3/Modules/FindosgDB.cmake
+C:/Program Files/Microsoft Visual Studio/18/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-4.3/Modules/FindosgGA.cmake
+C:/Program Files/Microsoft Visual Studio/18/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-4.3/Modules/FindosgUtil.cmake
+C:/Program Files/Microsoft Visual Studio/18/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-4.3/Modules/FindosgViewer.cmake
+C:/Program Files/Microsoft Visual Studio/18/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-4.3/Modules/Findosg_functions.cmake
+C:/Program Files/Microsoft Visual Studio/18/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-4.3/Modules/SelectLibraryConfigurations.cmake
+C:/Qt/6.11.0/msvc2022_64/lib/cmake/Qt6/Qt6Config.cmake
+C:/Qt/6.11.0/msvc2022_64/lib/cmake/Qt6/Qt6ConfigExtras.cmake
+C:/Qt/6.11.0/msvc2022_64/lib/cmake/Qt6/Qt6ConfigVersion.cmake
+C:/Qt/6.11.0/msvc2022_64/lib/cmake/Qt6/Qt6ConfigVersionImpl.cmake
+C:/Qt/6.11.0/msvc2022_64/lib/cmake/Qt6/Qt6Dependencies.cmake
+C:/Qt/6.11.0/msvc2022_64/lib/cmake/Qt6/Qt6TargetsPrecheck.cmake
+C:/Qt/6.11.0/msvc2022_64/lib/cmake/Qt6/QtFeature.cmake
+C:/Qt/6.11.0/msvc2022_64/lib/cmake/Qt6/QtFeatureCommon.cmake
+C:/Qt/6.11.0/msvc2022_64/lib/cmake/Qt6/QtInstallPaths.cmake
+C:/Qt/6.11.0/msvc2022_64/lib/cmake/Qt6/QtPublicAndroidHelpers.cmake
+C:/Qt/6.11.0/msvc2022_64/lib/cmake/Qt6/QtPublicAppleHelpers.cmake
+C:/Qt/6.11.0/msvc2022_64/lib/cmake/Qt6/QtPublicCMakeEarlyPolicyHelpers.cmake
+C:/Qt/6.11.0/msvc2022_64/lib/cmake/Qt6/QtPublicCMakeHelpers.cmake
+C:/Qt/6.11.0/msvc2022_64/lib/cmake/Qt6/QtPublicCMakeVersionHelpers.cmake
+C:/Qt/6.11.0/msvc2022_64/lib/cmake/Qt6/QtPublicDependencyHelpers.cmake
+C:/Qt/6.11.0/msvc2022_64/lib/cmake/Qt6/QtPublicExternalProjectHelpers.cmake
+C:/Qt/6.11.0/msvc2022_64/lib/cmake/Qt6/QtPublicFinalizerHelpers.cmake
+C:/Qt/6.11.0/msvc2022_64/lib/cmake/Qt6/QtPublicFindPackageHelpers.cmake
+C:/Qt/6.11.0/msvc2022_64/lib/cmake/Qt6/QtPublicGitHelpers.cmake
+C:/Qt/6.11.0/msvc2022_64/lib/cmake/Qt6/QtPublicPluginHelpers.cmake
+C:/Qt/6.11.0/msvc2022_64/lib/cmake/Qt6/QtPublicPluginHelpers_v2.cmake
+C:/Qt/6.11.0/msvc2022_64/lib/cmake/Qt6/QtPublicSbomAttributionHelpers.cmake
+C:/Qt/6.11.0/msvc2022_64/lib/cmake/Qt6/QtPublicSbomCommonGenerationHelpers.cmake
+C:/Qt/6.11.0/msvc2022_64/lib/cmake/Qt6/QtPublicSbomCpeHelpers.cmake
+C:/Qt/6.11.0/msvc2022_64/lib/cmake/Qt6/QtPublicSbomCycloneDXHelpers.cmake
+C:/Qt/6.11.0/msvc2022_64/lib/cmake/Qt6/QtPublicSbomDepHelpers.cmake
+C:/Qt/6.11.0/msvc2022_64/lib/cmake/Qt6/QtPublicSbomDocumentNamespaceHelpers.cmake
+C:/Qt/6.11.0/msvc2022_64/lib/cmake/Qt6/QtPublicSbomFileHelpers.cmake
+C:/Qt/6.11.0/msvc2022_64/lib/cmake/Qt6/QtPublicSbomGenerationCycloneDXHelpers.cmake
+C:/Qt/6.11.0/msvc2022_64/lib/cmake/Qt6/QtPublicSbomGenerationHelpers.cmake
+C:/Qt/6.11.0/msvc2022_64/lib/cmake/Qt6/QtPublicSbomHelpers.cmake
+C:/Qt/6.11.0/msvc2022_64/lib/cmake/Qt6/QtPublicSbomLicenseHelpers.cmake
+C:/Qt/6.11.0/msvc2022_64/lib/cmake/Qt6/QtPublicSbomOpsHelpers.cmake
+C:/Qt/6.11.0/msvc2022_64/lib/cmake/Qt6/QtPublicSbomPurlHelpers.cmake
+C:/Qt/6.11.0/msvc2022_64/lib/cmake/Qt6/QtPublicSbomPythonHelpers.cmake
+C:/Qt/6.11.0/msvc2022_64/lib/cmake/Qt6/QtPublicSbomQtEntityHelpers.cmake
+C:/Qt/6.11.0/msvc2022_64/lib/cmake/Qt6/QtPublicSbomSystemDepHelpers.cmake
+C:/Qt/6.11.0/msvc2022_64/lib/cmake/Qt6/QtPublicTargetHelpers.cmake
+C:/Qt/6.11.0/msvc2022_64/lib/cmake/Qt6/QtPublicTestHelpers.cmake
+C:/Qt/6.11.0/msvc2022_64/lib/cmake/Qt6/QtPublicToolHelpers.cmake
+C:/Qt/6.11.0/msvc2022_64/lib/cmake/Qt6/QtPublicWalkLibsHelpers.cmake
+C:/Qt/6.11.0/msvc2022_64/lib/cmake/Qt6/QtPublicWindowsHelpers.cmake
+D:/Source/EarthView1/EarthView/earthview3d/CMakeLists.txt
+D:/Source/ev-e1/build-msvc/vcpkg_installed/x64-windows/share/gdal/GDAL-targets-debug.cmake
+D:/Source/ev-e1/build-msvc/vcpkg_installed/x64-windows/share/gdal/GDAL-targets-release.cmake
+D:/Source/ev-e1/build-msvc/vcpkg_installed/x64-windows/share/gdal/GDAL-targets.cmake
+D:/Source/ev-e1/build-msvc/vcpkg_installed/x64-windows/share/gdal/GDALConfig.cmake
+D:/Source/ev-e1/build-msvc/vcpkg_installed/x64-windows/share/gdal/GDALConfigVersion.cmake
+D:/Source/ev-e1/build-msvc/vcpkg_installed/x64-windows/share/gdal/vcpkg-cmake-wrapper.cmake
+D:/Source/ev-e1/build-msvc/vcpkg_installed/x64-windows/share/imgui/imgui-config.cmake
+D:/Source/ev-e1/build-msvc/vcpkg_installed/x64-windows/share/imgui/imgui-targets-debug.cmake
+D:/Source/ev-e1/build-msvc/vcpkg_installed/x64-windows/share/imgui/imgui-targets-release.cmake
+D:/Source/ev-e1/build-msvc/vcpkg_installed/x64-windows/share/imgui/imgui-targets.cmake
+D:/Source/ev-e1/build-msvc/vcpkg_installed/x64-windows/share/osgearth/osgEarth-targets-debug.cmake
+D:/Source/ev-e1/build-msvc/vcpkg_installed/x64-windows/share/osgearth/osgEarth-targets-release.cmake
+D:/Source/ev-e1/build-msvc/vcpkg_installed/x64-windows/share/osgearth/osgEarth-targets.cmake
+D:/Source/ev-e1/build-msvc/vcpkg_installed/x64-windows/share/osgearth/osgEarthImGui-targets-debug.cmake
+D:/Source/ev-e1/build-msvc/vcpkg_installed/x64-windows/share/osgearth/osgEarthImGui-targets-release.cmake
+D:/Source/ev-e1/build-msvc/vcpkg_installed/x64-windows/share/osgearth/osgEarthImGui-targets.cmake
+D:/Source/ev-e1/build-msvc/vcpkg_installed/x64-windows/share/osgearth/osgearth-config-version.cmake
+D:/Source/ev-e1/build-msvc/vcpkg_installed/x64-windows/share/osgearth/osgearth-config.cmake

@@ -1,0 +1,10 @@
+{
+	"InstallScripts" : 
+	[
+		"D:/Source/EarthView1/build-msvc/cmake_install.cmake",
+		"D:/Source/EarthView1/build-msvc/earthview3d/cmake_install.cmake",
+		"D:/Source/EarthView1/build-msvc/earthview3d/demo/cmake_install.cmake",
+		"D:/Source/EarthView1/build-msvc/tests/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

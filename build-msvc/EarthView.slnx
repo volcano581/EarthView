@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Solution>
+	<Configurations>
+		<BuildType Name="Debug"/>
+		<BuildType Name="Release"/>
+		<BuildType Name="MinSizeRel"/>
+		<BuildType Name="RelWithDebInfo"/>
+		<Platform Name="x64"/>
+	</Configurations>
+	<Project Path="ALL_BUILD.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="fbe65d4d-b90b-358a-be9f-aad3c4da3145" DefaultStartup="true">
+		<BuildDependency Project="EarthView.vcxproj"/>
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="earthview3d/earthview3d.vcxproj"/>
+		<BuildDependency Project="earthview3d/earthview3d_core.vcxproj"/>
+		<BuildDependency Project="earthview3d/demo/earthview3d_demo.vcxproj"/>
+		<BuildDependency Project="earthview3d/demo/earthview3d_demo_feed.vcxproj"/>
+		<BuildDependency Project="earthview_scene3d.vcxproj"/>
+		<BuildDependency Project="earthview_snapshot.vcxproj"/>
+		<BuildDependency Project="tests/tst_camera3d.vcxproj"/>
+		<BuildDependency Project="tests/tst_cameracontrol.vcxproj"/>
+		<BuildDependency Project="tests/tst_entitydiff.vcxproj"/>
+		<BuildDependency Project="tests/tst_geodesy.vcxproj"/>
+		<BuildDependency Project="tests/tst_mapconfig.vcxproj"/>
+		<BuildDependency Project="tests/tst_mercatorprojection.vcxproj"/>
+		<BuildDependency Project="tests/tst_modeltable.vcxproj"/>
+		<BuildDependency Project="tests/tst_runtimepaths.vcxproj"/>
+		<BuildDependency Project="tests/tst_syntheticfeed.vcxproj"/>
+		<BuildDependency Project="tests/tst_terrainservices.vcxproj"/>
+		<Build Solution="Debug|*" Project="false"/>
+		<Build Solution="Release|*" Project="false"/>
+		<Build Solution="MinSizeRel|*" Project="false"/>
+		<Build Solution="RelWithDebInfo|*" Project="false"/>
+	</Project>
+	<Project Path="EarthView.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="213d504d-1915-3ed2-8897-e982fc1a3464">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="RUN_TESTS.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="d16320a2-2877-3107-9cea-0d774cc8b5fb">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<Build Solution="Debug|*" Project="false"/>
+		<Build Solution="Release|*" Project="false"/>
+		<Build Solution="MinSizeRel|*" Project="false"/>
+		<Build Solution="RelWithDebInfo|*" Project="false"/>
+	</Project>
+	<Project Path="ZERO_CHECK.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="318fda17-dcc2-33b0-8087-c472d62789b0"/>
+	<Project Path="earthview3d/earthview3d.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="0f163608-48f8-3b72-8aed-dc54a04bace7">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="earthview3d/earthview3d_core.vcxproj"/>
+	</Project>
+	<Project Path="earthview3d/earthview3d_core.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="db3f8a29-e854-3411-9d08-728158007b37">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="earthview3d/demo/earthview3d_demo.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="acda90bb-d1e7-39c7-b1d5-c30a4dcad743">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="earthview3d/earthview3d.vcxproj"/>
+		<BuildDependency Project="earthview3d/earthview3d_core.vcxproj"/>
+		<BuildDependency Project="earthview3d/demo/earthview3d_demo_feed.vcxproj"/>
+		<BuildDependency Project="earthview_scene3d.vcxproj"/>
+	</Project>
+	<Project Path="earthview3d/demo/earthview3d_demo_feed.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="e00aa607-a4ef-33c5-9fb9-ae39d431b828">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="earthview3d/earthview3d_core.vcxproj"/>
+		<BuildDependency Project="earthview_scene3d.vcxproj"/>
+	</Project>
+	<Project Path="earthview_scene3d.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="b8c7fec5-65d1-3c46-ad84-0879b68cfb43">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="earthview_snapshot.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="d68ec6aa-c306-3c1a-a78b-590bbff4c310">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="tests/tst_camera3d.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="51389f8f-2ac7-337b-86a1-4e2f4fa3a68c">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="earthview_scene3d.vcxproj"/>
+	</Project>
+	<Project Path="tests/tst_cameracontrol.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="c5dc341a-0467-36cc-8220-8fdf8d564547">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="earthview3d/earthview3d_core.vcxproj"/>
+		<BuildDependency Project="earthview_scene3d.vcxproj"/>
+	</Project>
+	<Project Path="tests/tst_entitydiff.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="9d073c29-d8b9-3bf8-bacb-b5eb83d60a7d">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="earthview3d/earthview3d_core.vcxproj"/>
+	</Project>
+	<Project Path="tests/tst_geodesy.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="dfc886c7-ca93-34c9-9f9b-739e188c934c">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="earthview_scene3d.vcxproj"/>
+	</Project>
+	<Project Path="tests/tst_mapconfig.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="87231490-c0ab-3f64-b708-eb1c0b2ac1da">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="earthview3d/earthview3d_core.vcxproj"/>
+	</Project>
+	<Project Path="tests/tst_mercatorprojection.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="bcd08b93-d381-3163-a092-6ed2f900beff">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="tests/tst_modeltable.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="c6d3fcb8-336d-3fa6-aeae-360dff97ad03">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="earthview3d/earthview3d_core.vcxproj"/>
+	</Project>
+	<Project Path="tests/tst_runtimepaths.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="e80f3cae-d1b0-3a63-9694-d922f5ab6c0f">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="earthview3d/earthview3d_core.vcxproj"/>
+	</Project>
+	<Project Path="tests/tst_syntheticfeed.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="4e49317b-4a5b-3da5-91d0-d95cd063f51e">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="earthview3d/earthview3d_core.vcxproj"/>
+		<BuildDependency Project="earthview3d/demo/earthview3d_demo_feed.vcxproj"/>
+		<BuildDependency Project="earthview_scene3d.vcxproj"/>
+	</Project>
+	<Project Path="tests/tst_terrainservices.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="3740ab54-89fd-3f92-8692-2bc8024207fd">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="earthview3d/earthview3d_core.vcxproj"/>
+	</Project>
+</Solution>

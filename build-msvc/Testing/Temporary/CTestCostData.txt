@@ -1,0 +1,12 @@
+tst_mercatorprojection 1 0.315838
+tst_geodesy 1 0.304794
+tst_camera3d 1 0.292975
+tst_mapconfig 1 0.319068
+tst_entitydiff 1 0.38017
+tst_terrainservices 1 0.312489
+tst_runtimepaths 1 0.292682
+tst_syntheticfeed 1 0.653093
+tst_modeltable 1 0.297662
+tst_cameracontrol 1 0.289488
+test_build_offline_data 1 0.310691
+---

@@ -1,0 +1,429 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="18.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <PreferredToolArchitecture>x64</PreferredToolArchitecture>
+  </PropertyGroup>
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="MinSizeRel|x64">
+      <Configuration>MinSizeRel</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="RelWithDebInfo|x64">
+      <Configuration>RelWithDebInfo</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{0F163608-48F8-3B72-8AED-DC54A04BACE7}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <VcpkgEnabled>false</VcpkgEnabled>
+    <WindowsTargetPlatformVersion>10.0.26100.0</WindowsTargetPlatformVersion>
+    <Platform>x64</Platform>
+    <ProjectName>earthview3d</ProjectName>
+    <VCProjectUpgraderObjectName>NoUpgrade</VCProjectUpgraderObjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v145</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v145</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v145</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v145</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets">
+    <Import Project="do_not_import_user.props" Condition="exists('do_not_import_user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.20506.1</_ProjectFileVersion>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">D:\Source\EarthView1\build-msvc\earthview3d\Debug\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">earthview3d.dir\Debug\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">earthview3d</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">.lib</TargetExt>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">D:\Source\EarthView1\build-msvc\earthview3d\Release\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">earthview3d.dir\Release\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">earthview3d</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='Release|x64'">.lib</TargetExt>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">D:\Source\EarthView1\build-msvc\earthview3d\MinSizeRel\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">earthview3d.dir\MinSizeRel\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">earthview3d</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">.lib</TargetExt>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">D:\Source\EarthView1\build-msvc\earthview3d\RelWithDebInfo\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">earthview3d.dir\RelWithDebInfo\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">earthview3d</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">.lib</TargetExt>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>D:\Source\EarthView1\build-msvc\earthview3d;D:\Source\EarthView1\EarthView\earthview3d;D:\Source\EarthView1\build-msvc\earthview3d\earthview3d_autogen\include_Debug;D:\Source\EarthView1\EarthView\earthview3d\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /external:I "D:/Source/ev-e1/build-msvc/vcpkg_installed/x64-windows/include" /external:I "C:/Qt/6.11.0/msvc2022_64/include/QtCore" /external:I "C:/Qt/6.11.0/msvc2022_64/include" /external:I "C:/Qt/6.11.0/msvc2022_64/mkspecs/win32-msvc" /external:I "C:/Qt/6.11.0/msvc2022_64/include/QtWidgets" /external:I "C:/Qt/6.11.0/msvc2022_64/include/QtGui" /external:I "C:/Qt/6.11.0/msvc2022_64/include/QtOpenGLWidgets" /external:I "C:/Qt/6.11.0/msvc2022_64/include/QtOpenGL" -Zc:__cplusplus -utf-8</AdditionalOptions>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <BufferSecurityCheck></BufferSecurityCheck>
+      <CallingConvention></CallingConvention>
+      <ConformanceMode>true</ConformanceMode>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <ExternalWarningLevel>TurnOffAllWarnings</ExternalWarningLevel>
+      <FloatingPointModel></FloatingPointModel>
+      <ForceConformanceInForLoopScope></ForceConformanceInForLoopScope>
+      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <MinimalRebuild></MinimalRebuild>
+      <Optimization>Disabled</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RemoveUnreferencedCodeData></RemoveUnreferencedCodeData>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <SupportJustMyCode></SupportJustMyCode>
+      <TreatWChar_tAsBuiltInType></TreatWChar_tAsBuiltInType>
+      <UseFullPaths>false</UseFullPaths>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;EARTHVIEW3D_HAVE_GDAL;NOMINMAX;QT_CORE_LIB;_ENABLE_EXTENDED_ALIGNED_STORAGE;WIN64;_WIN64;UNICODE;_UNICODE;QT_WIDGETS_LIB;QT_GUI_LIB;QT_OPENGLWIDGETS_LIB;QT_OPENGL_LIB;GDAL_DEBUG;CMAKE_INTDIR="Debug"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_DEBUG;_WINDOWS;EARTHVIEW3D_HAVE_GDAL;NOMINMAX;QT_CORE_LIB;_ENABLE_EXTENDED_ALIGNED_STORAGE;WIN64;_WIN64;UNICODE;_UNICODE;QT_WIDGETS_LIB;QT_GUI_LIB;QT_OPENGLWIDGETS_LIB;QT_OPENGL_LIB;GDAL_DEBUG;CMAKE_INTDIR=\"Debug\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>D:\Source\EarthView1\build-msvc\earthview3d;D:\Source\EarthView1\EarthView\earthview3d;D:\Source\EarthView1\build-msvc\earthview3d\earthview3d_autogen\include_Debug;D:\Source\EarthView1\EarthView\earthview3d\include;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\include;C:\Qt\6.11.0\msvc2022_64\include\QtCore;C:\Qt\6.11.0\msvc2022_64\include;C:\Qt\6.11.0\msvc2022_64\mkspecs\win32-msvc;C:\Qt\6.11.0\msvc2022_64\include\QtWidgets;C:\Qt\6.11.0\msvc2022_64\include\QtGui;C:\Qt\6.11.0\msvc2022_64\include\QtOpenGLWidgets;C:\Qt\6.11.0\msvc2022_64\include\QtOpenGL;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>D:\Source\EarthView1\build-msvc\earthview3d;D:\Source\EarthView1\EarthView\earthview3d;D:\Source\EarthView1\build-msvc\earthview3d\earthview3d_autogen\include_Debug;D:\Source\EarthView1\EarthView\earthview3d\include;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\include;C:\Qt\6.11.0\msvc2022_64\include\QtCore;C:\Qt\6.11.0\msvc2022_64\include;C:\Qt\6.11.0\msvc2022_64\mkspecs\win32-msvc;C:\Qt\6.11.0\msvc2022_64\include\QtWidgets;C:\Qt\6.11.0\msvc2022_64\include\QtGui;C:\Qt\6.11.0\msvc2022_64\include\QtOpenGLWidgets;C:\Qt\6.11.0\msvc2022_64\include\QtOpenGL;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <PreBuildEvent>
+      <UseUtf8Encoding>Always</UseUtf8Encoding>
+      <Message>Automatic MOC and UIC for target earthview3d</Message>
+      <Command>setlocal
+cd D:\Source\EarthView1\build-msvc\earthview3d
+if %errorlevel% neq 0 goto :cmEnd
+D:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E cmake_autogen D:/Source/EarthView1/build-msvc/earthview3d/CMakeFiles/earthview3d_autogen.dir/AutogenInfo.json Debug
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+    </PreBuildEvent>
+    <Lib>
+      <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>D:\Source\EarthView1\build-msvc\earthview3d;D:\Source\EarthView1\EarthView\earthview3d;D:\Source\EarthView1\build-msvc\earthview3d\earthview3d_autogen\include_Release;D:\Source\EarthView1\EarthView\earthview3d\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /external:I "D:/Source/ev-e1/build-msvc/vcpkg_installed/x64-windows/include" /external:I "C:/Qt/6.11.0/msvc2022_64/include/QtCore" /external:I "C:/Qt/6.11.0/msvc2022_64/include" /external:I "C:/Qt/6.11.0/msvc2022_64/mkspecs/win32-msvc" /external:I "C:/Qt/6.11.0/msvc2022_64/include/QtWidgets" /external:I "C:/Qt/6.11.0/msvc2022_64/include/QtGui" /external:I "C:/Qt/6.11.0/msvc2022_64/include/QtOpenGLWidgets" /external:I "C:/Qt/6.11.0/msvc2022_64/include/QtOpenGL" -Zc:__cplusplus -utf-8</AdditionalOptions>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <BufferSecurityCheck></BufferSecurityCheck>
+      <CallingConvention></CallingConvention>
+      <ConformanceMode>true</ConformanceMode>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <ExternalWarningLevel>TurnOffAllWarnings</ExternalWarningLevel>
+      <FloatingPointModel></FloatingPointModel>
+      <ForceConformanceInForLoopScope></ForceConformanceInForLoopScope>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <MinimalRebuild></MinimalRebuild>
+      <Optimization>MaxSpeed</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RemoveUnreferencedCodeData></RemoveUnreferencedCodeData>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <SupportJustMyCode></SupportJustMyCode>
+      <TreatWChar_tAsBuiltInType></TreatWChar_tAsBuiltInType>
+      <UseFullPaths>false</UseFullPaths>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;EARTHVIEW3D_HAVE_GDAL;NOMINMAX;QT_CORE_LIB;QT_NO_DEBUG;_ENABLE_EXTENDED_ALIGNED_STORAGE;WIN64;_WIN64;UNICODE;_UNICODE;QT_WIDGETS_LIB;QT_GUI_LIB;QT_OPENGLWIDGETS_LIB;QT_OPENGL_LIB;CMAKE_INTDIR="Release"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <DebugInformationFormat>
+      </DebugInformationFormat>
+      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;EARTHVIEW3D_HAVE_GDAL;NOMINMAX;QT_CORE_LIB;QT_NO_DEBUG;_ENABLE_EXTENDED_ALIGNED_STORAGE;WIN64;_WIN64;UNICODE;_UNICODE;QT_WIDGETS_LIB;QT_GUI_LIB;QT_OPENGLWIDGETS_LIB;QT_OPENGL_LIB;CMAKE_INTDIR=\"Release\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>D:\Source\EarthView1\build-msvc\earthview3d;D:\Source\EarthView1\EarthView\earthview3d;D:\Source\EarthView1\build-msvc\earthview3d\earthview3d_autogen\include_Release;D:\Source\EarthView1\EarthView\earthview3d\include;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\include;C:\Qt\6.11.0\msvc2022_64\include\QtCore;C:\Qt\6.11.0\msvc2022_64\include;C:\Qt\6.11.0\msvc2022_64\mkspecs\win32-msvc;C:\Qt\6.11.0\msvc2022_64\include\QtWidgets;C:\Qt\6.11.0\msvc2022_64\include\QtGui;C:\Qt\6.11.0\msvc2022_64\include\QtOpenGLWidgets;C:\Qt\6.11.0\msvc2022_64\include\QtOpenGL;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>D:\Source\EarthView1\build-msvc\earthview3d;D:\Source\EarthView1\EarthView\earthview3d;D:\Source\EarthView1\build-msvc\earthview3d\earthview3d_autogen\include_Release;D:\Source\EarthView1\EarthView\earthview3d\include;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\include;C:\Qt\6.11.0\msvc2022_64\include\QtCore;C:\Qt\6.11.0\msvc2022_64\include;C:\Qt\6.11.0\msvc2022_64\mkspecs\win32-msvc;C:\Qt\6.11.0\msvc2022_64\include\QtWidgets;C:\Qt\6.11.0\msvc2022_64\include\QtGui;C:\Qt\6.11.0\msvc2022_64\include\QtOpenGLWidgets;C:\Qt\6.11.0\msvc2022_64\include\QtOpenGL;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <PreBuildEvent>
+      <UseUtf8Encoding>Always</UseUtf8Encoding>
+      <Message>Automatic MOC and UIC for target earthview3d</Message>
+      <Command>setlocal
+cd D:\Source\EarthView1\build-msvc\earthview3d
+if %errorlevel% neq 0 goto :cmEnd
+D:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E cmake_autogen D:/Source/EarthView1/build-msvc/earthview3d/CMakeFiles/earthview3d_autogen.dir/AutogenInfo.json Release
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+    </PreBuildEvent>
+    <Lib>
+      <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>D:\Source\EarthView1\build-msvc\earthview3d;D:\Source\EarthView1\EarthView\earthview3d;D:\Source\EarthView1\build-msvc\earthview3d\earthview3d_autogen\include_MinSizeRel;D:\Source\EarthView1\EarthView\earthview3d\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /external:I "D:/Source/ev-e1/build-msvc/vcpkg_installed/x64-windows/include" /external:I "C:/Qt/6.11.0/msvc2022_64/include/QtCore" /external:I "C:/Qt/6.11.0/msvc2022_64/include" /external:I "C:/Qt/6.11.0/msvc2022_64/mkspecs/win32-msvc" /external:I "C:/Qt/6.11.0/msvc2022_64/include/QtWidgets" /external:I "C:/Qt/6.11.0/msvc2022_64/include/QtGui" /external:I "C:/Qt/6.11.0/msvc2022_64/include/QtOpenGLWidgets" /external:I "C:/Qt/6.11.0/msvc2022_64/include/QtOpenGL" -Zc:__cplusplus -utf-8</AdditionalOptions>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <BufferSecurityCheck></BufferSecurityCheck>
+      <CallingConvention></CallingConvention>
+      <ConformanceMode>true</ConformanceMode>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <ExternalWarningLevel>TurnOffAllWarnings</ExternalWarningLevel>
+      <FloatingPointModel></FloatingPointModel>
+      <ForceConformanceInForLoopScope></ForceConformanceInForLoopScope>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <MinimalRebuild></MinimalRebuild>
+      <Optimization>MinSpace</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RemoveUnreferencedCodeData></RemoveUnreferencedCodeData>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <SupportJustMyCode></SupportJustMyCode>
+      <TreatWChar_tAsBuiltInType></TreatWChar_tAsBuiltInType>
+      <UseFullPaths>false</UseFullPaths>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;EARTHVIEW3D_HAVE_GDAL;NOMINMAX;QT_CORE_LIB;QT_NO_DEBUG;_ENABLE_EXTENDED_ALIGNED_STORAGE;WIN64;_WIN64;UNICODE;_UNICODE;QT_WIDGETS_LIB;QT_GUI_LIB;QT_OPENGLWIDGETS_LIB;QT_OPENGL_LIB;CMAKE_INTDIR="MinSizeRel"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <DebugInformationFormat>
+      </DebugInformationFormat>
+      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;EARTHVIEW3D_HAVE_GDAL;NOMINMAX;QT_CORE_LIB;QT_NO_DEBUG;_ENABLE_EXTENDED_ALIGNED_STORAGE;WIN64;_WIN64;UNICODE;_UNICODE;QT_WIDGETS_LIB;QT_GUI_LIB;QT_OPENGLWIDGETS_LIB;QT_OPENGL_LIB;CMAKE_INTDIR=\"MinSizeRel\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>D:\Source\EarthView1\build-msvc\earthview3d;D:\Source\EarthView1\EarthView\earthview3d;D:\Source\EarthView1\build-msvc\earthview3d\earthview3d_autogen\include_MinSizeRel;D:\Source\EarthView1\EarthView\earthview3d\include;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\include;C:\Qt\6.11.0\msvc2022_64\include\QtCore;C:\Qt\6.11.0\msvc2022_64\include;C:\Qt\6.11.0\msvc2022_64\mkspecs\win32-msvc;C:\Qt\6.11.0\msvc2022_64\include\QtWidgets;C:\Qt\6.11.0\msvc2022_64\include\QtGui;C:\Qt\6.11.0\msvc2022_64\include\QtOpenGLWidgets;C:\Qt\6.11.0\msvc2022_64\include\QtOpenGL;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>D:\Source\EarthView1\build-msvc\earthview3d;D:\Source\EarthView1\EarthView\earthview3d;D:\Source\EarthView1\build-msvc\earthview3d\earthview3d_autogen\include_MinSizeRel;D:\Source\EarthView1\EarthView\earthview3d\include;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\include;C:\Qt\6.11.0\msvc2022_64\include\QtCore;C:\Qt\6.11.0\msvc2022_64\include;C:\Qt\6.11.0\msvc2022_64\mkspecs\win32-msvc;C:\Qt\6.11.0\msvc2022_64\include\QtWidgets;C:\Qt\6.11.0\msvc2022_64\include\QtGui;C:\Qt\6.11.0\msvc2022_64\include\QtOpenGLWidgets;C:\Qt\6.11.0\msvc2022_64\include\QtOpenGL;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <PreBuildEvent>
+      <UseUtf8Encoding>Always</UseUtf8Encoding>
+      <Message>Automatic MOC and UIC for target earthview3d</Message>
+      <Command>setlocal
+cd D:\Source\EarthView1\build-msvc\earthview3d
+if %errorlevel% neq 0 goto :cmEnd
+D:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E cmake_autogen D:/Source/EarthView1/build-msvc/earthview3d/CMakeFiles/earthview3d_autogen.dir/AutogenInfo.json MinSizeRel
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+    </PreBuildEvent>
+    <Lib>
+      <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>D:\Source\EarthView1\build-msvc\earthview3d;D:\Source\EarthView1\EarthView\earthview3d;D:\Source\EarthView1\build-msvc\earthview3d\earthview3d_autogen\include_RelWithDebInfo;D:\Source\EarthView1\EarthView\earthview3d\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /external:I "D:/Source/ev-e1/build-msvc/vcpkg_installed/x64-windows/include" /external:I "C:/Qt/6.11.0/msvc2022_64/include/QtCore" /external:I "C:/Qt/6.11.0/msvc2022_64/include" /external:I "C:/Qt/6.11.0/msvc2022_64/mkspecs/win32-msvc" /external:I "C:/Qt/6.11.0/msvc2022_64/include/QtWidgets" /external:I "C:/Qt/6.11.0/msvc2022_64/include/QtGui" /external:I "C:/Qt/6.11.0/msvc2022_64/include/QtOpenGLWidgets" /external:I "C:/Qt/6.11.0/msvc2022_64/include/QtOpenGL" -Zc:__cplusplus -utf-8</AdditionalOptions>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <BufferSecurityCheck></BufferSecurityCheck>
+      <CallingConvention></CallingConvention>
+      <ConformanceMode>true</ConformanceMode>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <ExternalWarningLevel>TurnOffAllWarnings</ExternalWarningLevel>
+      <FloatingPointModel></FloatingPointModel>
+      <ForceConformanceInForLoopScope></ForceConformanceInForLoopScope>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <MinimalRebuild></MinimalRebuild>
+      <Optimization>MaxSpeed</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RemoveUnreferencedCodeData></RemoveUnreferencedCodeData>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <SupportJustMyCode></SupportJustMyCode>
+      <TreatWChar_tAsBuiltInType></TreatWChar_tAsBuiltInType>
+      <UseFullPaths>false</UseFullPaths>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;EARTHVIEW3D_HAVE_GDAL;NOMINMAX;QT_CORE_LIB;QT_NO_DEBUG;_ENABLE_EXTENDED_ALIGNED_STORAGE;WIN64;_WIN64;UNICODE;_UNICODE;QT_WIDGETS_LIB;QT_GUI_LIB;QT_OPENGLWIDGETS_LIB;QT_OPENGL_LIB;CMAKE_INTDIR="RelWithDebInfo"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;EARTHVIEW3D_HAVE_GDAL;NOMINMAX;QT_CORE_LIB;QT_NO_DEBUG;_ENABLE_EXTENDED_ALIGNED_STORAGE;WIN64;_WIN64;UNICODE;_UNICODE;QT_WIDGETS_LIB;QT_GUI_LIB;QT_OPENGLWIDGETS_LIB;QT_OPENGL_LIB;CMAKE_INTDIR=\"RelWithDebInfo\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>D:\Source\EarthView1\build-msvc\earthview3d;D:\Source\EarthView1\EarthView\earthview3d;D:\Source\EarthView1\build-msvc\earthview3d\earthview3d_autogen\include_RelWithDebInfo;D:\Source\EarthView1\EarthView\earthview3d\include;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\include;C:\Qt\6.11.0\msvc2022_64\include\QtCore;C:\Qt\6.11.0\msvc2022_64\include;C:\Qt\6.11.0\msvc2022_64\mkspecs\win32-msvc;C:\Qt\6.11.0\msvc2022_64\include\QtWidgets;C:\Qt\6.11.0\msvc2022_64\include\QtGui;C:\Qt\6.11.0\msvc2022_64\include\QtOpenGLWidgets;C:\Qt\6.11.0\msvc2022_64\include\QtOpenGL;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>D:\Source\EarthView1\build-msvc\earthview3d;D:\Source\EarthView1\EarthView\earthview3d;D:\Source\EarthView1\build-msvc\earthview3d\earthview3d_autogen\include_RelWithDebInfo;D:\Source\EarthView1\EarthView\earthview3d\include;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\include;C:\Qt\6.11.0\msvc2022_64\include\QtCore;C:\Qt\6.11.0\msvc2022_64\include;C:\Qt\6.11.0\msvc2022_64\mkspecs\win32-msvc;C:\Qt\6.11.0\msvc2022_64\include\QtWidgets;C:\Qt\6.11.0\msvc2022_64\include\QtGui;C:\Qt\6.11.0\msvc2022_64\include\QtOpenGLWidgets;C:\Qt\6.11.0\msvc2022_64\include\QtOpenGL;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <PreBuildEvent>
+      <UseUtf8Encoding>Always</UseUtf8Encoding>
+      <Message>Automatic MOC and UIC for target earthview3d</Message>
+      <Command>setlocal
+cd D:\Source\EarthView1\build-msvc\earthview3d
+if %errorlevel% neq 0 goto :cmEnd
+D:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E cmake_autogen D:/Source/EarthView1/build-msvc/earthview3d/CMakeFiles/earthview3d_autogen.dir/AutogenInfo.json RelWithDebInfo
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+    </PreBuildEvent>
+    <Lib>
+      <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <CustomBuild Include="D:\Source\EarthView1\EarthView\earthview3d\CMakeLists.txt">
+      <UseUtf8Encoding>Always</UseUtf8Encoding>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Building Custom Rule D:/Source/EarthView1/EarthView/earthview3d/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">setlocal
+"C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -SD:/Source/EarthView1/EarthView -BD:/Source/EarthView1/build-msvc --check-stamp-file D:/Source/EarthView1/build-msvc/earthview3d/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.3\Modules\CMakeFindDependencyMacro.cmake;C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.3\Modules\CheckCXXCompilerFlag.cmake;C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.3\Modules\FindOpenGL.cmake;C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.3\Modules\FindOpenSceneGraph.cmake;C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.3\Modules\FindOpenThreads.cmake;C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.3\Modules\FindPackageHandleStandardArgs.cmake;C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.3\Modules\FindPackageMessage.cmake;C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.3\Modules\Findosg.cmake;C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.3\Modules\FindosgDB.cmake;C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.3\Modules\FindosgGA.cmake;C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.3\Modules\FindosgUtil.cmake;C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.3\Modules\FindosgViewer.cmake;C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.3\Modules\Findosg_functions.cmake;C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.3\Modules\SelectLibraryConfigurations.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\Qt6Config.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\Qt6ConfigExtras.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\Qt6ConfigVersion.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\Qt6ConfigVersionImpl.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\Qt6Dependencies.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\Qt6TargetsPrecheck.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtFeature.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtFeatureCommon.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtInstallPaths.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicAndroidHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicAppleHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicCMakeEarlyPolicyHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicCMakeHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicCMakeVersionHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicDependencyHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicExternalProjectHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicFinalizerHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicFindPackageHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicGitHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicPluginHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicPluginHelpers_v2.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicSbomAttributionHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicSbomCommonGenerationHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicSbomCpeHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicSbomCycloneDXHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicSbomDepHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicSbomDocumentNamespaceHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicSbomFileHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicSbomGenerationCycloneDXHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicSbomGenerationHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicSbomHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicSbomLicenseHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicSbomOpsHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicSbomPurlHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicSbomPythonHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicSbomQtEntityHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicSbomSystemDepHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicTargetHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicTestHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicToolHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicWalkLibsHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicWindowsHelpers.cmake;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\share\gdal\GDAL-targets-debug.cmake;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\share\gdal\GDAL-targets-release.cmake;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\share\gdal\GDAL-targets.cmake;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\share\gdal\GDALConfig.cmake;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\share\gdal\GDALConfigVersion.cmake;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\share\gdal\vcpkg-cmake-wrapper.cmake;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\share\imgui\imgui-config.cmake;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\share\imgui\imgui-targets-debug.cmake;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\share\imgui\imgui-targets-release.cmake;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\share\imgui\imgui-targets.cmake;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\share\osgearth\osgEarth-targets-debug.cmake;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\share\osgearth\osgEarth-targets-release.cmake;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\share\osgearth\osgEarth-targets.cmake;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\share\osgearth\osgEarthImGui-targets-debug.cmake;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\share\osgearth\osgEarthImGui-targets-release.cmake;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\share\osgearth\osgEarthImGui-targets.cmake;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\share\osgearth\osgearth-config-version.cmake;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\share\osgearth\osgearth-config.cmake;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">D:\Source\EarthView1\build-msvc\earthview3d\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Building Custom Rule D:/Source/EarthView1/EarthView/earthview3d/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">setlocal
+"C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -SD:/Source/EarthView1/EarthView -BD:/Source/EarthView1/build-msvc --check-stamp-file D:/Source/EarthView1/build-msvc/earthview3d/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.3\Modules\CMakeFindDependencyMacro.cmake;C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.3\Modules\CheckCXXCompilerFlag.cmake;C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.3\Modules\FindOpenGL.cmake;C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.3\Modules\FindOpenSceneGraph.cmake;C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.3\Modules\FindOpenThreads.cmake;C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.3\Modules\FindPackageHandleStandardArgs.cmake;C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.3\Modules\FindPackageMessage.cmake;C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.3\Modules\Findosg.cmake;C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.3\Modules\FindosgDB.cmake;C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.3\Modules\FindosgGA.cmake;C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.3\Modules\FindosgUtil.cmake;C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.3\Modules\FindosgViewer.cmake;C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.3\Modules\Findosg_functions.cmake;C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.3\Modules\SelectLibraryConfigurations.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\Qt6Config.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\Qt6ConfigExtras.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\Qt6ConfigVersion.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\Qt6ConfigVersionImpl.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\Qt6Dependencies.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\Qt6TargetsPrecheck.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtFeature.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtFeatureCommon.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtInstallPaths.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicAndroidHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicAppleHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicCMakeEarlyPolicyHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicCMakeHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicCMakeVersionHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicDependencyHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicExternalProjectHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicFinalizerHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicFindPackageHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicGitHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicPluginHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicPluginHelpers_v2.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicSbomAttributionHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicSbomCommonGenerationHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicSbomCpeHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicSbomCycloneDXHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicSbomDepHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicSbomDocumentNamespaceHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicSbomFileHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicSbomGenerationCycloneDXHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicSbomGenerationHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicSbomHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicSbomLicenseHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicSbomOpsHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicSbomPurlHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicSbomPythonHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicSbomQtEntityHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicSbomSystemDepHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicTargetHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicTestHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicToolHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicWalkLibsHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicWindowsHelpers.cmake;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\share\gdal\GDAL-targets-debug.cmake;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\share\gdal\GDAL-targets-release.cmake;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\share\gdal\GDAL-targets.cmake;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\share\gdal\GDALConfig.cmake;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\share\gdal\GDALConfigVersion.cmake;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\share\gdal\vcpkg-cmake-wrapper.cmake;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\share\imgui\imgui-config.cmake;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\share\imgui\imgui-targets-debug.cmake;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\share\imgui\imgui-targets-release.cmake;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\share\imgui\imgui-targets.cmake;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\share\osgearth\osgEarth-targets-debug.cmake;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\share\osgearth\osgEarth-targets-release.cmake;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\share\osgearth\osgEarth-targets.cmake;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\share\osgearth\osgEarthImGui-targets-debug.cmake;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\share\osgearth\osgEarthImGui-targets-release.cmake;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\share\osgearth\osgEarthImGui-targets.cmake;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\share\osgearth\osgearth-config-version.cmake;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\share\osgearth\osgearth-config.cmake;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">D:\Source\EarthView1\build-msvc\earthview3d\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">Building Custom Rule D:/Source/EarthView1/EarthView/earthview3d/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">setlocal
+"C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -SD:/Source/EarthView1/EarthView -BD:/Source/EarthView1/build-msvc --check-stamp-file D:/Source/EarthView1/build-msvc/earthview3d/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.3\Modules\CMakeFindDependencyMacro.cmake;C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.3\Modules\CheckCXXCompilerFlag.cmake;C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.3\Modules\FindOpenGL.cmake;C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.3\Modules\FindOpenSceneGraph.cmake;C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.3\Modules\FindOpenThreads.cmake;C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.3\Modules\FindPackageHandleStandardArgs.cmake;C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.3\Modules\FindPackageMessage.cmake;C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.3\Modules\Findosg.cmake;C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.3\Modules\FindosgDB.cmake;C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.3\Modules\FindosgGA.cmake;C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.3\Modules\FindosgUtil.cmake;C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.3\Modules\FindosgViewer.cmake;C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.3\Modules\Findosg_functions.cmake;C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.3\Modules\SelectLibraryConfigurations.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\Qt6Config.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\Qt6ConfigExtras.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\Qt6ConfigVersion.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\Qt6ConfigVersionImpl.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\Qt6Dependencies.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\Qt6TargetsPrecheck.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtFeature.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtFeatureCommon.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtInstallPaths.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicAndroidHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicAppleHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicCMakeEarlyPolicyHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicCMakeHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicCMakeVersionHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicDependencyHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicExternalProjectHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicFinalizerHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicFindPackageHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicGitHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicPluginHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicPluginHelpers_v2.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicSbomAttributionHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicSbomCommonGenerationHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicSbomCpeHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicSbomCycloneDXHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicSbomDepHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicSbomDocumentNamespaceHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicSbomFileHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicSbomGenerationCycloneDXHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicSbomGenerationHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicSbomHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicSbomLicenseHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicSbomOpsHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicSbomPurlHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicSbomPythonHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicSbomQtEntityHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicSbomSystemDepHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicTargetHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicTestHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicToolHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicWalkLibsHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicWindowsHelpers.cmake;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\share\gdal\GDAL-targets-debug.cmake;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\share\gdal\GDAL-targets-release.cmake;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\share\gdal\GDAL-targets.cmake;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\share\gdal\GDALConfig.cmake;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\share\gdal\GDALConfigVersion.cmake;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\share\gdal\vcpkg-cmake-wrapper.cmake;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\share\imgui\imgui-config.cmake;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\share\imgui\imgui-targets-debug.cmake;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\share\imgui\imgui-targets-release.cmake;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\share\imgui\imgui-targets.cmake;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\share\osgearth\osgEarth-targets-debug.cmake;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\share\osgearth\osgEarth-targets-release.cmake;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\share\osgearth\osgEarth-targets.cmake;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\share\osgearth\osgEarthImGui-targets-debug.cmake;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\share\osgearth\osgEarthImGui-targets-release.cmake;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\share\osgearth\osgEarthImGui-targets.cmake;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\share\osgearth\osgearth-config-version.cmake;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\share\osgearth\osgearth-config.cmake;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">D:\Source\EarthView1\build-msvc\earthview3d\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">Building Custom Rule D:/Source/EarthView1/EarthView/earthview3d/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">setlocal
+"C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -SD:/Source/EarthView1/EarthView -BD:/Source/EarthView1/build-msvc --check-stamp-file D:/Source/EarthView1/build-msvc/earthview3d/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.3\Modules\CMakeFindDependencyMacro.cmake;C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.3\Modules\CheckCXXCompilerFlag.cmake;C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.3\Modules\FindOpenGL.cmake;C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.3\Modules\FindOpenSceneGraph.cmake;C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.3\Modules\FindOpenThreads.cmake;C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.3\Modules\FindPackageHandleStandardArgs.cmake;C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.3\Modules\FindPackageMessage.cmake;C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.3\Modules\Findosg.cmake;C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.3\Modules\FindosgDB.cmake;C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.3\Modules\FindosgGA.cmake;C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.3\Modules\FindosgUtil.cmake;C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.3\Modules\FindosgViewer.cmake;C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.3\Modules\Findosg_functions.cmake;C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.3\Modules\SelectLibraryConfigurations.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\Qt6Config.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\Qt6ConfigExtras.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\Qt6ConfigVersion.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\Qt6ConfigVersionImpl.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\Qt6Dependencies.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\Qt6TargetsPrecheck.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtFeature.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtFeatureCommon.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtInstallPaths.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicAndroidHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicAppleHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicCMakeEarlyPolicyHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicCMakeHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicCMakeVersionHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicDependencyHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicExternalProjectHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicFinalizerHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicFindPackageHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicGitHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicPluginHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicPluginHelpers_v2.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicSbomAttributionHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicSbomCommonGenerationHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicSbomCpeHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicSbomCycloneDXHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicSbomDepHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicSbomDocumentNamespaceHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicSbomFileHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicSbomGenerationCycloneDXHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicSbomGenerationHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicSbomHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicSbomLicenseHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicSbomOpsHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicSbomPurlHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicSbomPythonHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicSbomQtEntityHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicSbomSystemDepHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicTargetHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicTestHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicToolHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicWalkLibsHelpers.cmake;C:\Qt\6.11.0\msvc2022_64\lib\cmake\Qt6\QtPublicWindowsHelpers.cmake;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\share\gdal\GDAL-targets-debug.cmake;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\share\gdal\GDAL-targets-release.cmake;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\share\gdal\GDAL-targets.cmake;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\share\gdal\GDALConfig.cmake;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\share\gdal\GDALConfigVersion.cmake;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\share\gdal\vcpkg-cmake-wrapper.cmake;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\share\imgui\imgui-config.cmake;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\share\imgui\imgui-targets-debug.cmake;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\share\imgui\imgui-targets-release.cmake;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\share\imgui\imgui-targets.cmake;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\share\osgearth\osgEarth-targets-debug.cmake;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\share\osgearth\osgEarth-targets-release.cmake;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\share\osgearth\osgEarth-targets.cmake;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\share\osgearth\osgEarthImGui-targets-debug.cmake;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\share\osgearth\osgEarthImGui-targets-release.cmake;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\share\osgearth\osgEarthImGui-targets.cmake;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\share\osgearth\osgearth-config-version.cmake;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\share\osgearth\osgearth-config.cmake;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">D:\Source\EarthView1\build-msvc\earthview3d\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">false</LinkObjects>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="D:\Source\EarthView1\build-msvc\earthview3d\earthview3d_autogen\mocs_compilation_Debug.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClInclude Include="D:\Source\EarthView1\EarthView\earthview3d\include\earthview3d\GlobeView3D.h" />
+    <ClInclude Include="D:\Source\EarthView1\EarthView\earthview3d\include\earthview3d\Runtime.h" />
+    <ClCompile Include="D:\Source\EarthView1\EarthView\earthview3d\src\GlobeView3D.cpp" />
+    <ClCompile Include="D:\Source\EarthView1\EarthView\earthview3d\src\Runtime.cpp" />
+    <ClCompile Include="D:\Source\EarthView1\build-msvc\earthview3d\earthview3d_autogen\mocs_compilation_Release.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="D:\Source\EarthView1\build-msvc\earthview3d\earthview3d_autogen\mocs_compilation_MinSizeRel.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="D:\Source\EarthView1\build-msvc\earthview3d\earthview3d_autogen\mocs_compilation_RelWithDebInfo.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup />
+  <ItemGroup>
+    <ProjectReference Include="D:\Source\EarthView1\build-msvc\ZERO_CHECK.vcxproj">
+      <Project>{318FDA17-DCC2-33B0-8087-C472D62789B0}</Project>
+      <Name>ZERO_CHECK</Name>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </ProjectReference>
+    <ProjectReference Include="D:\Source\EarthView1\build-msvc\earthview3d\earthview3d_core.vcxproj">
+      <Project>{DB3F8A29-E854-3411-9D08-728158007B37}</Project>
+      <Name>earthview3d_core</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

@@ -1,0 +1,630 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="18.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <PreferredToolArchitecture>x64</PreferredToolArchitecture>
+  </PropertyGroup>
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="MinSizeRel|x64">
+      <Configuration>MinSizeRel</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="RelWithDebInfo|x64">
+      <Configuration>RelWithDebInfo</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{ACDA90BB-D1E7-39C7-B1D5-C30A4DCAD743}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <VcpkgEnabled>false</VcpkgEnabled>
+    <WindowsTargetPlatformVersion>10.0.26100.0</WindowsTargetPlatformVersion>
+    <Platform>x64</Platform>
+    <ProjectName>earthview3d_demo</ProjectName>
+    <VCProjectUpgraderObjectName>NoUpgrade</VCProjectUpgraderObjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v145</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v145</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v145</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v145</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets">
+    <Import Project="do_not_import_user.props" Condition="exists('do_not_import_user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.20506.1</_ProjectFileVersion>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">D:\Source\EarthView1\build-msvc\earthview3d\demo\Debug\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">earthview3d_demo.dir\Debug\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">earthview3d_demo</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">.exe</TargetExt>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</LinkIncremental>
+    <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</GenerateManifest>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">D:\Source\EarthView1\build-msvc\earthview3d\demo\Release\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">earthview3d_demo.dir\Release\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">earthview3d_demo</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='Release|x64'">.exe</TargetExt>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkIncremental>
+    <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</GenerateManifest>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">D:\Source\EarthView1\build-msvc\earthview3d\demo\MinSizeRel\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">earthview3d_demo.dir\MinSizeRel\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">earthview3d_demo</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">.exe</TargetExt>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">false</LinkIncremental>
+    <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">true</GenerateManifest>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">D:\Source\EarthView1\build-msvc\earthview3d\demo\RelWithDebInfo\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">earthview3d_demo.dir\RelWithDebInfo\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">earthview3d_demo</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">.exe</TargetExt>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">true</LinkIncremental>
+    <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">true</GenerateManifest>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>D:\Source\EarthView1\build-msvc\earthview3d\demo;D:\Source\EarthView1\EarthView\earthview3d\demo;D:\Source\EarthView1\build-msvc\earthview3d\demo\earthview3d_demo_autogen\include_Debug;D:\Source\EarthView1\EarthView;D:\Source\EarthView1\EarthView\earthview3d\include;D:\Source\EarthView1\EarthView\scene3d;D:\Source\EarthView1\EarthView\third_party\glm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /external:I "C:/Qt/6.11.0/msvc2022_64/include/QtCore" /external:I "C:/Qt/6.11.0/msvc2022_64/include" /external:I "C:/Qt/6.11.0/msvc2022_64/mkspecs/win32-msvc" /external:I "C:/Qt/6.11.0/msvc2022_64/include/QtWidgets" /external:I "C:/Qt/6.11.0/msvc2022_64/include/QtGui" /external:I "C:/Qt/6.11.0/msvc2022_64/include/QtOpenGLWidgets" /external:I "C:/Qt/6.11.0/msvc2022_64/include/QtOpenGL" /external:I "C:/Qt/6.11.0/msvc2022_64/include/QtNetwork" /external:I "C:/Qt/6.11.0/msvc2022_64/include/QtSql" /external:I "C:/Qt/6.11.0/msvc2022_64/include/QtZlib" -Zc:__cplusplus -utf-8</AdditionalOptions>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <BufferSecurityCheck></BufferSecurityCheck>
+      <CallingConvention></CallingConvention>
+      <ConformanceMode>true</ConformanceMode>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <ExternalWarningLevel>TurnOffAllWarnings</ExternalWarningLevel>
+      <FloatingPointModel></FloatingPointModel>
+      <ForceConformanceInForLoopScope></ForceConformanceInForLoopScope>
+      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <MinimalRebuild></MinimalRebuild>
+      <Optimization>Disabled</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RemoveUnreferencedCodeData></RemoveUnreferencedCodeData>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <SupportJustMyCode></SupportJustMyCode>
+      <TreatWChar_tAsBuiltInType></TreatWChar_tAsBuiltInType>
+      <UseFullPaths>false</UseFullPaths>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;EARTHVIEW3D_DEFAULT_DATA_ROOT="D:/Source/EarthView1/EarthView/Data";QT_CORE_LIB;_ENABLE_EXTENDED_ALIGNED_STORAGE;WIN64;_WIN64;UNICODE;_UNICODE;QT_WIDGETS_LIB;QT_GUI_LIB;QT_OPENGLWIDGETS_LIB;QT_OPENGL_LIB;QT_NETWORK_LIB;QT_SQL_LIB;QT_ZLIB_LIB;CMAKE_INTDIR="Debug"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_DEBUG;_WINDOWS;EARTHVIEW3D_DEFAULT_DATA_ROOT=\"D:/Source/EarthView1/EarthView/Data\";QT_CORE_LIB;_ENABLE_EXTENDED_ALIGNED_STORAGE;WIN64;_WIN64;UNICODE;_UNICODE;QT_WIDGETS_LIB;QT_GUI_LIB;QT_OPENGLWIDGETS_LIB;QT_OPENGL_LIB;QT_NETWORK_LIB;QT_SQL_LIB;QT_ZLIB_LIB;CMAKE_INTDIR=\"Debug\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>D:\Source\EarthView1\build-msvc\earthview3d\demo;D:\Source\EarthView1\EarthView\earthview3d\demo;D:\Source\EarthView1\build-msvc\earthview3d\demo\earthview3d_demo_autogen\include_Debug;D:\Source\EarthView1\EarthView;D:\Source\EarthView1\EarthView\earthview3d\include;D:\Source\EarthView1\EarthView\scene3d;D:\Source\EarthView1\EarthView\third_party\glm;C:\Qt\6.11.0\msvc2022_64\include\QtCore;C:\Qt\6.11.0\msvc2022_64\include;C:\Qt\6.11.0\msvc2022_64\mkspecs\win32-msvc;C:\Qt\6.11.0\msvc2022_64\include\QtWidgets;C:\Qt\6.11.0\msvc2022_64\include\QtGui;C:\Qt\6.11.0\msvc2022_64\include\QtOpenGLWidgets;C:\Qt\6.11.0\msvc2022_64\include\QtOpenGL;C:\Qt\6.11.0\msvc2022_64\include\QtNetwork;C:\Qt\6.11.0\msvc2022_64\include\QtSql;C:\Qt\6.11.0\msvc2022_64\include\QtZlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>D:\Source\EarthView1\build-msvc\earthview3d\demo;D:\Source\EarthView1\EarthView\earthview3d\demo;D:\Source\EarthView1\build-msvc\earthview3d\demo\earthview3d_demo_autogen\include_Debug;D:\Source\EarthView1\EarthView;D:\Source\EarthView1\EarthView\earthview3d\include;D:\Source\EarthView1\EarthView\scene3d;D:\Source\EarthView1\EarthView\third_party\glm;C:\Qt\6.11.0\msvc2022_64\include\QtCore;C:\Qt\6.11.0\msvc2022_64\include;C:\Qt\6.11.0\msvc2022_64\mkspecs\win32-msvc;C:\Qt\6.11.0\msvc2022_64\include\QtWidgets;C:\Qt\6.11.0\msvc2022_64\include\QtGui;C:\Qt\6.11.0\msvc2022_64\include\QtOpenGLWidgets;C:\Qt\6.11.0\msvc2022_64\include\QtOpenGL;C:\Qt\6.11.0\msvc2022_64\include\QtNetwork;C:\Qt\6.11.0\msvc2022_64\include\QtSql;C:\Qt\6.11.0\msvc2022_64\include\QtZlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <PreBuildEvent>
+      <UseUtf8Encoding>Always</UseUtf8Encoding>
+      <Message>Automatic MOC and UIC for target earthview3d_demo</Message>
+      <Command>setlocal
+cd D:\Source\EarthView1\build-msvc\earthview3d\demo
+if %errorlevel% neq 0 goto :cmEnd
+D:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E cmake_autogen D:/Source/EarthView1/build-msvc/earthview3d/demo/CMakeFiles/earthview3d_demo_autogen.dir/AutogenInfo.json Debug
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+    </PreBuildEvent>
+    <PostBuildEvent>
+      <Message>	</Message>
+      <Command>setlocal
+C:\vcpkg\vcpkg.exe z-applocal --target-binary=D:/Source/EarthView1/build-msvc/earthview3d/demo/Debug/earthview3d_demo.exe --installed-bin-dir=D:/Source/ev-e1/build-msvc/vcpkg_installed/x64-windows/debug/bin
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E copy_directory D:/Source/EarthView1/EarthView/shaders D:/Source/EarthView1/build-msvc/earthview3d/demo/Debug/shaders
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+    </PostBuildEvent>
+    <Link>
+      <AdditionalDependencies>..\Debug\earthview3d.lib;Debug\earthview3d_demo_feed.lib;C:\Qt\6.11.0\msvc2022_64\lib\Qt6Networkd.lib;C:\Qt\6.11.0\msvc2022_64\lib\Qt6OpenGLWidgetsd.lib;C:\Qt\6.11.0\msvc2022_64\lib\Qt6Sqld.lib;opengl32.lib;C:\Qt\6.11.0\msvc2022_64\lib\Qt6Widgetsd.lib;C:\Qt\6.11.0\msvc2022_64\lib\Qt6OpenGLd.lib;C:\Qt\6.11.0\msvc2022_64\lib\Qt6Guid.lib;d3d11.lib;dxgi.lib;dxguid.lib;d3d12.lib;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\debug\lib\osgEarthd.lib;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\debug\lib\osgManipulatord.lib;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\debug\lib\osgShadowd.lib;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\debug\lib\osgSimd.lib;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\debug\lib\osgViewerd.lib;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\debug\lib\osgGAd.lib;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\debug\lib\osgUtild.lib;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\debug\lib\osgTextd.lib;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\debug\lib\osgDBd.lib;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\debug\lib\osgd.lib;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\debug\lib\OpenThreadsd.lib;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\debug\lib\gdald.lib;..\Debug\earthview3d_core.lib;..\..\Debug\earthview_scene3d.lib;ws2_32.lib;C:\Qt\6.11.0\msvc2022_64\lib\Qt6Cored.lib;mpr.lib;userenv.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
+      <DataExecutionPrevention></DataExecutionPrevention>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
+      <ImageHasSafeExceptionHandlers></ImageHasSafeExceptionHandlers>
+      <ImportLibrary>D:/Source/EarthView1/build-msvc/earthview3d/demo/Debug/earthview3d_demo.lib</ImportLibrary>
+      <LinkErrorReporting></LinkErrorReporting>
+      <ProgramDataBaseFile>D:/Source/EarthView1/build-msvc/earthview3d/demo/Debug/earthview3d_demo.pdb</ProgramDataBaseFile>
+      <RandomizedBaseAddress></RandomizedBaseAddress>
+      <SubSystem>Console</SubSystem>
+    </Link>
+    <ProjectReference>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>D:\Source\EarthView1\build-msvc\earthview3d\demo;D:\Source\EarthView1\EarthView\earthview3d\demo;D:\Source\EarthView1\build-msvc\earthview3d\demo\earthview3d_demo_autogen\include_Release;D:\Source\EarthView1\EarthView;D:\Source\EarthView1\EarthView\earthview3d\include;D:\Source\EarthView1\EarthView\scene3d;D:\Source\EarthView1\EarthView\third_party\glm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /external:I "C:/Qt/6.11.0/msvc2022_64/include/QtCore" /external:I "C:/Qt/6.11.0/msvc2022_64/include" /external:I "C:/Qt/6.11.0/msvc2022_64/mkspecs/win32-msvc" /external:I "C:/Qt/6.11.0/msvc2022_64/include/QtWidgets" /external:I "C:/Qt/6.11.0/msvc2022_64/include/QtGui" /external:I "C:/Qt/6.11.0/msvc2022_64/include/QtOpenGLWidgets" /external:I "C:/Qt/6.11.0/msvc2022_64/include/QtOpenGL" /external:I "C:/Qt/6.11.0/msvc2022_64/include/QtNetwork" /external:I "C:/Qt/6.11.0/msvc2022_64/include/QtSql" /external:I "C:/Qt/6.11.0/msvc2022_64/include/QtZlib" -Zc:__cplusplus -utf-8</AdditionalOptions>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <BufferSecurityCheck></BufferSecurityCheck>
+      <CallingConvention></CallingConvention>
+      <ConformanceMode>true</ConformanceMode>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <ExternalWarningLevel>TurnOffAllWarnings</ExternalWarningLevel>
+      <FloatingPointModel></FloatingPointModel>
+      <ForceConformanceInForLoopScope></ForceConformanceInForLoopScope>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <MinimalRebuild></MinimalRebuild>
+      <Optimization>MaxSpeed</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RemoveUnreferencedCodeData></RemoveUnreferencedCodeData>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <SupportJustMyCode></SupportJustMyCode>
+      <TreatWChar_tAsBuiltInType></TreatWChar_tAsBuiltInType>
+      <UseFullPaths>false</UseFullPaths>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;EARTHVIEW3D_DEFAULT_DATA_ROOT="D:/Source/EarthView1/EarthView/Data";QT_CORE_LIB;QT_NO_DEBUG;_ENABLE_EXTENDED_ALIGNED_STORAGE;WIN64;_WIN64;UNICODE;_UNICODE;QT_WIDGETS_LIB;QT_GUI_LIB;QT_OPENGLWIDGETS_LIB;QT_OPENGL_LIB;QT_NETWORK_LIB;QT_SQL_LIB;QT_ZLIB_LIB;CMAKE_INTDIR="Release"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <DebugInformationFormat>
+      </DebugInformationFormat>
+      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;EARTHVIEW3D_DEFAULT_DATA_ROOT=\"D:/Source/EarthView1/EarthView/Data\";QT_CORE_LIB;QT_NO_DEBUG;_ENABLE_EXTENDED_ALIGNED_STORAGE;WIN64;_WIN64;UNICODE;_UNICODE;QT_WIDGETS_LIB;QT_GUI_LIB;QT_OPENGLWIDGETS_LIB;QT_OPENGL_LIB;QT_NETWORK_LIB;QT_SQL_LIB;QT_ZLIB_LIB;CMAKE_INTDIR=\"Release\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>D:\Source\EarthView1\build-msvc\earthview3d\demo;D:\Source\EarthView1\EarthView\earthview3d\demo;D:\Source\EarthView1\build-msvc\earthview3d\demo\earthview3d_demo_autogen\include_Release;D:\Source\EarthView1\EarthView;D:\Source\EarthView1\EarthView\earthview3d\include;D:\Source\EarthView1\EarthView\scene3d;D:\Source\EarthView1\EarthView\third_party\glm;C:\Qt\6.11.0\msvc2022_64\include\QtCore;C:\Qt\6.11.0\msvc2022_64\include;C:\Qt\6.11.0\msvc2022_64\mkspecs\win32-msvc;C:\Qt\6.11.0\msvc2022_64\include\QtWidgets;C:\Qt\6.11.0\msvc2022_64\include\QtGui;C:\Qt\6.11.0\msvc2022_64\include\QtOpenGLWidgets;C:\Qt\6.11.0\msvc2022_64\include\QtOpenGL;C:\Qt\6.11.0\msvc2022_64\include\QtNetwork;C:\Qt\6.11.0\msvc2022_64\include\QtSql;C:\Qt\6.11.0\msvc2022_64\include\QtZlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>D:\Source\EarthView1\build-msvc\earthview3d\demo;D:\Source\EarthView1\EarthView\earthview3d\demo;D:\Source\EarthView1\build-msvc\earthview3d\demo\earthview3d_demo_autogen\include_Release;D:\Source\EarthView1\EarthView;D:\Source\EarthView1\EarthView\earthview3d\include;D:\Source\EarthView1\EarthView\scene3d;D:\Source\EarthView1\EarthView\third_party\glm;C:\Qt\6.11.0\msvc2022_64\include\QtCore;C:\Qt\6.11.0\msvc2022_64\include;C:\Qt\6.11.0\msvc2022_64\mkspecs\win32-msvc;C:\Qt\6.11.0\msvc2022_64\include\QtWidgets;C:\Qt\6.11.0\msvc2022_64\include\QtGui;C:\Qt\6.11.0\msvc2022_64\include\QtOpenGLWidgets;C:\Qt\6.11.0\msvc2022_64\include\QtOpenGL;C:\Qt\6.11.0\msvc2022_64\include\QtNetwork;C:\Qt\6.11.0\msvc2022_64\include\QtSql;C:\Qt\6.11.0\msvc2022_64\include\QtZlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <PreBuildEvent>
+      <UseUtf8Encoding>Always</UseUtf8Encoding>
+      <Message>Automatic MOC and UIC for target earthview3d_demo</Message>
+      <Command>setlocal
+cd D:\Source\EarthView1\build-msvc\earthview3d\demo
+if %errorlevel% neq 0 goto :cmEnd
+D:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E cmake_autogen D:/Source/EarthView1/build-msvc/earthview3d/demo/CMakeFiles/earthview3d_demo_autogen.dir/AutogenInfo.json Release
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+    </PreBuildEvent>
+    <PostBuildEvent>
+      <Message>	</Message>
+      <Command>setlocal
+C:\vcpkg\vcpkg.exe z-applocal --target-binary=D:/Source/EarthView1/build-msvc/earthview3d/demo/Release/earthview3d_demo.exe --installed-bin-dir=D:/Source/ev-e1/build-msvc/vcpkg_installed/x64-windows/bin
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E copy_directory D:/Source/EarthView1/EarthView/shaders D:/Source/EarthView1/build-msvc/earthview3d/demo/Release/shaders
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+    </PostBuildEvent>
+    <Link>
+      <AdditionalDependencies>..\Release\earthview3d.lib;Release\earthview3d_demo_feed.lib;C:\Qt\6.11.0\msvc2022_64\lib\Qt6Network.lib;C:\Qt\6.11.0\msvc2022_64\lib\Qt6OpenGLWidgets.lib;C:\Qt\6.11.0\msvc2022_64\lib\Qt6Sql.lib;opengl32.lib;C:\Qt\6.11.0\msvc2022_64\lib\Qt6Widgets.lib;C:\Qt\6.11.0\msvc2022_64\lib\Qt6OpenGL.lib;C:\Qt\6.11.0\msvc2022_64\lib\Qt6Gui.lib;d3d11.lib;dxgi.lib;dxguid.lib;d3d12.lib;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\lib\osgEarth.lib;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\lib\osgManipulator.lib;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\lib\osgShadow.lib;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\lib\osgSim.lib;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\lib\osgViewer.lib;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\lib\osgGA.lib;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\lib\osgUtil.lib;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\lib\osgText.lib;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\lib\osgDB.lib;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\lib\osg.lib;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\lib\OpenThreads.lib;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\lib\gdal.lib;..\Release\earthview3d_core.lib;..\..\Release\earthview_scene3d.lib;ws2_32.lib;C:\Qt\6.11.0\msvc2022_64\lib\Qt6Core.lib;mpr.lib;userenv.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
+      <DataExecutionPrevention></DataExecutionPrevention>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
+      <ImageHasSafeExceptionHandlers></ImageHasSafeExceptionHandlers>
+      <ImportLibrary>D:/Source/EarthView1/build-msvc/earthview3d/demo/Release/earthview3d_demo.lib</ImportLibrary>
+      <LinkErrorReporting></LinkErrorReporting>
+      <ProgramDataBaseFile>D:/Source/EarthView1/build-msvc/earthview3d/demo/Release/earthview3d_demo.pdb</ProgramDataBaseFile>
+      <RandomizedBaseAddress></RandomizedBaseAddress>
+      <SubSystem>Console</SubSystem>
+    </Link>
+    <ProjectReference>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>D:\Source\EarthView1\build-msvc\earthview3d\demo;D:\Source\EarthView1\EarthView\earthview3d\demo;D:\Source\EarthView1\build-msvc\earthview3d\demo\earthview3d_demo_autogen\include_MinSizeRel;D:\Source\EarthView1\EarthView;D:\Source\EarthView1\EarthView\earthview3d\include;D:\Source\EarthView1\EarthView\scene3d;D:\Source\EarthView1\EarthView\third_party\glm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /external:I "C:/Qt/6.11.0/msvc2022_64/include/QtCore" /external:I "C:/Qt/6.11.0/msvc2022_64/include" /external:I "C:/Qt/6.11.0/msvc2022_64/mkspecs/win32-msvc" /external:I "C:/Qt/6.11.0/msvc2022_64/include/QtWidgets" /external:I "C:/Qt/6.11.0/msvc2022_64/include/QtGui" /external:I "C:/Qt/6.11.0/msvc2022_64/include/QtOpenGLWidgets" /external:I "C:/Qt/6.11.0/msvc2022_64/include/QtOpenGL" /external:I "C:/Qt/6.11.0/msvc2022_64/include/QtNetwork" /external:I "C:/Qt/6.11.0/msvc2022_64/include/QtSql" /external:I "C:/Qt/6.11.0/msvc2022_64/include/QtZlib" -Zc:__cplusplus -utf-8</AdditionalOptions>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <BufferSecurityCheck></BufferSecurityCheck>
+      <CallingConvention></CallingConvention>
+      <ConformanceMode>true</ConformanceMode>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <ExternalWarningLevel>TurnOffAllWarnings</ExternalWarningLevel>
+      <FloatingPointModel></FloatingPointModel>
+      <ForceConformanceInForLoopScope></ForceConformanceInForLoopScope>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <MinimalRebuild></MinimalRebuild>
+      <Optimization>MinSpace</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RemoveUnreferencedCodeData></RemoveUnreferencedCodeData>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <SupportJustMyCode></SupportJustMyCode>
+      <TreatWChar_tAsBuiltInType></TreatWChar_tAsBuiltInType>
+      <UseFullPaths>false</UseFullPaths>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;EARTHVIEW3D_DEFAULT_DATA_ROOT="D:/Source/EarthView1/EarthView/Data";QT_CORE_LIB;QT_NO_DEBUG;_ENABLE_EXTENDED_ALIGNED_STORAGE;WIN64;_WIN64;UNICODE;_UNICODE;QT_WIDGETS_LIB;QT_GUI_LIB;QT_OPENGLWIDGETS_LIB;QT_OPENGL_LIB;QT_NETWORK_LIB;QT_SQL_LIB;QT_ZLIB_LIB;CMAKE_INTDIR="MinSizeRel"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <DebugInformationFormat>
+      </DebugInformationFormat>
+      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;EARTHVIEW3D_DEFAULT_DATA_ROOT=\"D:/Source/EarthView1/EarthView/Data\";QT_CORE_LIB;QT_NO_DEBUG;_ENABLE_EXTENDED_ALIGNED_STORAGE;WIN64;_WIN64;UNICODE;_UNICODE;QT_WIDGETS_LIB;QT_GUI_LIB;QT_OPENGLWIDGETS_LIB;QT_OPENGL_LIB;QT_NETWORK_LIB;QT_SQL_LIB;QT_ZLIB_LIB;CMAKE_INTDIR=\"MinSizeRel\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>D:\Source\EarthView1\build-msvc\earthview3d\demo;D:\Source\EarthView1\EarthView\earthview3d\demo;D:\Source\EarthView1\build-msvc\earthview3d\demo\earthview3d_demo_autogen\include_MinSizeRel;D:\Source\EarthView1\EarthView;D:\Source\EarthView1\EarthView\earthview3d\include;D:\Source\EarthView1\EarthView\scene3d;D:\Source\EarthView1\EarthView\third_party\glm;C:\Qt\6.11.0\msvc2022_64\include\QtCore;C:\Qt\6.11.0\msvc2022_64\include;C:\Qt\6.11.0\msvc2022_64\mkspecs\win32-msvc;C:\Qt\6.11.0\msvc2022_64\include\QtWidgets;C:\Qt\6.11.0\msvc2022_64\include\QtGui;C:\Qt\6.11.0\msvc2022_64\include\QtOpenGLWidgets;C:\Qt\6.11.0\msvc2022_64\include\QtOpenGL;C:\Qt\6.11.0\msvc2022_64\include\QtNetwork;C:\Qt\6.11.0\msvc2022_64\include\QtSql;C:\Qt\6.11.0\msvc2022_64\include\QtZlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>D:\Source\EarthView1\build-msvc\earthview3d\demo;D:\Source\EarthView1\EarthView\earthview3d\demo;D:\Source\EarthView1\build-msvc\earthview3d\demo\earthview3d_demo_autogen\include_MinSizeRel;D:\Source\EarthView1\EarthView;D:\Source\EarthView1\EarthView\earthview3d\include;D:\Source\EarthView1\EarthView\scene3d;D:\Source\EarthView1\EarthView\third_party\glm;C:\Qt\6.11.0\msvc2022_64\include\QtCore;C:\Qt\6.11.0\msvc2022_64\include;C:\Qt\6.11.0\msvc2022_64\mkspecs\win32-msvc;C:\Qt\6.11.0\msvc2022_64\include\QtWidgets;C:\Qt\6.11.0\msvc2022_64\include\QtGui;C:\Qt\6.11.0\msvc2022_64\include\QtOpenGLWidgets;C:\Qt\6.11.0\msvc2022_64\include\QtOpenGL;C:\Qt\6.11.0\msvc2022_64\include\QtNetwork;C:\Qt\6.11.0\msvc2022_64\include\QtSql;C:\Qt\6.11.0\msvc2022_64\include\QtZlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <PreBuildEvent>
+      <UseUtf8Encoding>Always</UseUtf8Encoding>
+      <Message>Automatic MOC and UIC for target earthview3d_demo</Message>
+      <Command>setlocal
+cd D:\Source\EarthView1\build-msvc\earthview3d\demo
+if %errorlevel% neq 0 goto :cmEnd
+D:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E cmake_autogen D:/Source/EarthView1/build-msvc/earthview3d/demo/CMakeFiles/earthview3d_demo_autogen.dir/AutogenInfo.json MinSizeRel
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+    </PreBuildEvent>
+    <PostBuildEvent>
+      <Message>	</Message>
+      <Command>setlocal
+C:\vcpkg\vcpkg.exe z-applocal --target-binary=D:/Source/EarthView1/build-msvc/earthview3d/demo/MinSizeRel/earthview3d_demo.exe --installed-bin-dir=D:/Source/ev-e1/build-msvc/vcpkg_installed/x64-windows/bin
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E copy_directory D:/Source/EarthView1/EarthView/shaders D:/Source/EarthView1/build-msvc/earthview3d/demo/MinSizeRel/shaders
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+    </PostBuildEvent>
+    <Link>
+      <AdditionalDependencies>..\MinSizeRel\earthview3d.lib;MinSizeRel\earthview3d_demo_feed.lib;C:\Qt\6.11.0\msvc2022_64\lib\Qt6Network.lib;C:\Qt\6.11.0\msvc2022_64\lib\Qt6OpenGLWidgets.lib;C:\Qt\6.11.0\msvc2022_64\lib\Qt6Sql.lib;opengl32.lib;C:\Qt\6.11.0\msvc2022_64\lib\Qt6Widgets.lib;C:\Qt\6.11.0\msvc2022_64\lib\Qt6OpenGL.lib;C:\Qt\6.11.0\msvc2022_64\lib\Qt6Gui.lib;d3d11.lib;dxgi.lib;dxguid.lib;d3d12.lib;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\lib\osgEarth.lib;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\lib\osgManipulator.lib;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\lib\osgShadow.lib;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\lib\osgSim.lib;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\lib\osgViewer.lib;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\lib\osgGA.lib;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\lib\osgUtil.lib;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\lib\osgText.lib;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\lib\osgDB.lib;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\lib\osg.lib;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\lib\OpenThreads.lib;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\lib\gdal.lib;..\MinSizeRel\earthview3d_core.lib;..\..\MinSizeRel\earthview_scene3d.lib;ws2_32.lib;C:\Qt\6.11.0\msvc2022_64\lib\Qt6Core.lib;mpr.lib;userenv.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
+      <DataExecutionPrevention></DataExecutionPrevention>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
+      <ImageHasSafeExceptionHandlers></ImageHasSafeExceptionHandlers>
+      <ImportLibrary>D:/Source/EarthView1/build-msvc/earthview3d/demo/MinSizeRel/earthview3d_demo.lib</ImportLibrary>
+      <LinkErrorReporting></LinkErrorReporting>
+      <ProgramDataBaseFile>D:/Source/EarthView1/build-msvc/earthview3d/demo/MinSizeRel/earthview3d_demo.pdb</ProgramDataBaseFile>
+      <RandomizedBaseAddress></RandomizedBaseAddress>
+      <SubSystem>Console</SubSystem>
+    </Link>
+    <ProjectReference>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>D:\Source\EarthView1\build-msvc\earthview3d\demo;D:\Source\EarthView1\EarthView\earthview3d\demo;D:\Source\EarthView1\build-msvc\earthview3d\demo\earthview3d_demo_autogen\include_RelWithDebInfo;D:\Source\EarthView1\EarthView;D:\Source\EarthView1\EarthView\earthview3d\include;D:\Source\EarthView1\EarthView\scene3d;D:\Source\EarthView1\EarthView\third_party\glm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /external:I "C:/Qt/6.11.0/msvc2022_64/include/QtCore" /external:I "C:/Qt/6.11.0/msvc2022_64/include" /external:I "C:/Qt/6.11.0/msvc2022_64/mkspecs/win32-msvc" /external:I "C:/Qt/6.11.0/msvc2022_64/include/QtWidgets" /external:I "C:/Qt/6.11.0/msvc2022_64/include/QtGui" /external:I "C:/Qt/6.11.0/msvc2022_64/include/QtOpenGLWidgets" /external:I "C:/Qt/6.11.0/msvc2022_64/include/QtOpenGL" /external:I "C:/Qt/6.11.0/msvc2022_64/include/QtNetwork" /external:I "C:/Qt/6.11.0/msvc2022_64/include/QtSql" /external:I "C:/Qt/6.11.0/msvc2022_64/include/QtZlib" -Zc:__cplusplus -utf-8</AdditionalOptions>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <BufferSecurityCheck></BufferSecurityCheck>
+      <CallingConvention></CallingConvention>
+      <ConformanceMode>true</ConformanceMode>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <ExternalWarningLevel>TurnOffAllWarnings</ExternalWarningLevel>
+      <FloatingPointModel></FloatingPointModel>
+      <ForceConformanceInForLoopScope></ForceConformanceInForLoopScope>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <MinimalRebuild></MinimalRebuild>
+      <Optimization>MaxSpeed</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RemoveUnreferencedCodeData></RemoveUnreferencedCodeData>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <SupportJustMyCode></SupportJustMyCode>
+      <TreatWChar_tAsBuiltInType></TreatWChar_tAsBuiltInType>
+      <UseFullPaths>false</UseFullPaths>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;EARTHVIEW3D_DEFAULT_DATA_ROOT="D:/Source/EarthView1/EarthView/Data";QT_CORE_LIB;QT_NO_DEBUG;_ENABLE_EXTENDED_ALIGNED_STORAGE;WIN64;_WIN64;UNICODE;_UNICODE;QT_WIDGETS_LIB;QT_GUI_LIB;QT_OPENGLWIDGETS_LIB;QT_OPENGL_LIB;QT_NETWORK_LIB;QT_SQL_LIB;QT_ZLIB_LIB;CMAKE_INTDIR="RelWithDebInfo"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;EARTHVIEW3D_DEFAULT_DATA_ROOT=\"D:/Source/EarthView1/EarthView/Data\";QT_CORE_LIB;QT_NO_DEBUG;_ENABLE_EXTENDED_ALIGNED_STORAGE;WIN64;_WIN64;UNICODE;_UNICODE;QT_WIDGETS_LIB;QT_GUI_LIB;QT_OPENGLWIDGETS_LIB;QT_OPENGL_LIB;QT_NETWORK_LIB;QT_SQL_LIB;QT_ZLIB_LIB;CMAKE_INTDIR=\"RelWithDebInfo\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>D:\Source\EarthView1\build-msvc\earthview3d\demo;D:\Source\EarthView1\EarthView\earthview3d\demo;D:\Source\EarthView1\build-msvc\earthview3d\demo\earthview3d_demo_autogen\include_RelWithDebInfo;D:\Source\EarthView1\EarthView;D:\Source\EarthView1\EarthView\earthview3d\include;D:\Source\EarthView1\EarthView\scene3d;D:\Source\EarthView1\EarthView\third_party\glm;C:\Qt\6.11.0\msvc2022_64\include\QtCore;C:\Qt\6.11.0\msvc2022_64\include;C:\Qt\6.11.0\msvc2022_64\mkspecs\win32-msvc;C:\Qt\6.11.0\msvc2022_64\include\QtWidgets;C:\Qt\6.11.0\msvc2022_64\include\QtGui;C:\Qt\6.11.0\msvc2022_64\include\QtOpenGLWidgets;C:\Qt\6.11.0\msvc2022_64\include\QtOpenGL;C:\Qt\6.11.0\msvc2022_64\include\QtNetwork;C:\Qt\6.11.0\msvc2022_64\include\QtSql;C:\Qt\6.11.0\msvc2022_64\include\QtZlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>D:\Source\EarthView1\build-msvc\earthview3d\demo;D:\Source\EarthView1\EarthView\earthview3d\demo;D:\Source\EarthView1\build-msvc\earthview3d\demo\earthview3d_demo_autogen\include_RelWithDebInfo;D:\Source\EarthView1\EarthView;D:\Source\EarthView1\EarthView\earthview3d\include;D:\Source\EarthView1\EarthView\scene3d;D:\Source\EarthView1\EarthView\third_party\glm;C:\Qt\6.11.0\msvc2022_64\include\QtCore;C:\Qt\6.11.0\msvc2022_64\include;C:\Qt\6.11.0\msvc2022_64\mkspecs\win32-msvc;C:\Qt\6.11.0\msvc2022_64\include\QtWidgets;C:\Qt\6.11.0\msvc2022_64\include\QtGui;C:\Qt\6.11.0\msvc2022_64\include\QtOpenGLWidgets;C:\Qt\6.11.0\msvc2022_64\include\QtOpenGL;C:\Qt\6.11.0\msvc2022_64\include\QtNetwork;C:\Qt\6.11.0\msvc2022_64\include\QtSql;C:\Qt\6.11.0\msvc2022_64\include\QtZlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <PreBuildEvent>
+      <UseUtf8Encoding>Always</UseUtf8Encoding>
+      <Message>Automatic MOC and UIC for target earthview3d_demo</Message>
+      <Command>setlocal
+cd D:\Source\EarthView1\build-msvc\earthview3d\demo
+if %errorlevel% neq 0 goto :cmEnd
+D:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E cmake_autogen D:/Source/EarthView1/build-msvc/earthview3d/demo/CMakeFiles/earthview3d_demo_autogen.dir/AutogenInfo.json RelWithDebInfo
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+    </PreBuildEvent>
+    <PostBuildEvent>
+      <Message>	</Message>
+      <Command>setlocal
+C:\vcpkg\vcpkg.exe z-applocal --target-binary=D:/Source/EarthView1/build-msvc/earthview3d/demo/RelWithDebInfo/earthview3d_demo.exe --installed-bin-dir=D:/Source/ev-e1/build-msvc/vcpkg_installed/x64-windows/bin
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E copy_directory D:/Source/EarthView1/EarthView/shaders D:/Source/EarthView1/build-msvc/earthview3d/demo/RelWithDebInfo/shaders
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+    </PostBuildEvent>
+    <Link>
+      <AdditionalDependencies>..\RelWithDebInfo\earthview3d.lib;RelWithDebInfo\earthview3d_demo_feed.lib;C:\Qt\6.11.0\msvc2022_64\lib\Qt6Network.lib;C:\Qt\6.11.0\msvc2022_64\lib\Qt6OpenGLWidgets.lib;C:\Qt\6.11.0\msvc2022_64\lib\Qt6Sql.lib;opengl32.lib;C:\Qt\6.11.0\msvc2022_64\lib\Qt6Widgets.lib;C:\Qt\6.11.0\msvc2022_64\lib\Qt6OpenGL.lib;C:\Qt\6.11.0\msvc2022_64\lib\Qt6Gui.lib;d3d11.lib;dxgi.lib;dxguid.lib;d3d12.lib;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\lib\osgEarth.lib;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\lib\osgManipulator.lib;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\lib\osgShadow.lib;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\lib\osgSim.lib;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\lib\osgViewer.lib;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\lib\osgGA.lib;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\lib\osgUtil.lib;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\lib\osgText.lib;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\lib\osgDB.lib;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\lib\osg.lib;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\lib\OpenThreads.lib;D:\Source\ev-e1\build-msvc\vcpkg_installed\x64-windows\lib\gdal.lib;..\RelWithDebInfo\earthview3d_core.lib;..\..\RelWithDebInfo\earthview_scene3d.lib;ws2_32.lib;C:\Qt\6.11.0\msvc2022_64\lib\Qt6Core.lib;mpr.lib;userenv.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
+      <DataExecutionPrevention></DataExecutionPrevention>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
+      <ImageHasSafeExceptionHandlers></ImageHasSafeExceptionHandlers>
+      <ImportLibrary>D:/Source/EarthView1/build-msvc/earthview3d/demo/RelWithDebInfo/earthview3d_demo.lib</ImportLibrary>
+      <LinkErrorReporting></LinkErrorReporting>
+      <ProgramDataBaseFile>D:/Source/EarthView1/build-msvc/earthview3d/demo/RelWithDebInfo/earthview3d_demo.pdb</ProgramDataBaseFile>
+      <RandomizedBaseAddress></RandomizedBaseAddress>
+      <SubSystem>Console</SubSystem>
+    </Link>
+    <ProjectReference>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <CustomBuild Include="D:\Source\EarthView1\EarthView\earthview3d\demo\CMakeLists.txt">
+      <UseUtf8Encoding>Always</UseUtf8Encoding>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Building Custom Rule D:/Source/EarthView1/EarthView/earthview3d/demo/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">setlocal
+"C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -SD:/Source/EarthView1/EarthView -BD:/Source/EarthView1/build-msvc --check-stamp-file D:/Source/EarthView1/build-msvc/earthview3d/demo/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">D:\Source\EarthView1\build-msvc\earthview3d\demo\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Building Custom Rule D:/Source/EarthView1/EarthView/earthview3d/demo/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">setlocal
+"C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -SD:/Source/EarthView1/EarthView -BD:/Source/EarthView1/build-msvc --check-stamp-file D:/Source/EarthView1/build-msvc/earthview3d/demo/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">D:\Source\EarthView1\build-msvc\earthview3d\demo\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">Building Custom Rule D:/Source/EarthView1/EarthView/earthview3d/demo/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">setlocal
+"C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -SD:/Source/EarthView1/EarthView -BD:/Source/EarthView1/build-msvc --check-stamp-file D:/Source/EarthView1/build-msvc/earthview3d/demo/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">D:\Source\EarthView1\build-msvc\earthview3d\demo\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">Building Custom Rule D:/Source/EarthView1/EarthView/earthview3d/demo/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">setlocal
+"C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -SD:/Source/EarthView1/EarthView -BD:/Source/EarthView1/build-msvc --check-stamp-file D:/Source/EarthView1/build-msvc/earthview3d/demo/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">D:\Source\EarthView1\build-msvc\earthview3d\demo\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">false</LinkObjects>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="D:\Source\EarthView1\build-msvc\earthview3d\demo\earthview3d_demo_autogen\mocs_compilation_Debug.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="D:\Source\EarthView1\EarthView\earthview3d\demo\main.cpp" />
+    <ClInclude Include="D:\Source\EarthView1\EarthView\earthview3d\demo\DemoWindow.h" />
+    <ClCompile Include="D:\Source\EarthView1\EarthView\earthview3d\demo\DemoWindow.cpp" />
+    <ClCompile Include="D:\Source\EarthView1\EarthView\BorderRenderer.cpp" />
+    <ClCompile Include="D:\Source\EarthView1\EarthView\Camera.cpp" />
+    <ClCompile Include="D:\Source\EarthView1\EarthView\CityLoader.cpp" />
+    <ClCompile Include="D:\Source\EarthView1\EarthView\CityRenderer.cpp" />
+    <ClCompile Include="D:\Source\EarthView1\EarthView\DemLoader.cpp" />
+    <ClCompile Include="D:\Source\EarthView1\EarthView\FrameProfiler.cpp" />
+    <ClCompile Include="D:\Source\EarthView1\EarthView\GridRenderer.cpp" />
+    <ClCompile Include="D:\Source\EarthView1\EarthView\LineBatchRenderer.cpp" />
+    <ClCompile Include="D:\Source\EarthView1\EarthView\MapWidget.cpp" />
+    <ClCompile Include="D:\Source\EarthView1\EarthView\MbTilesReader.cpp" />
+    <ClCompile Include="D:\Source\EarthView1\EarthView\MercatorProjection.cpp" />
+    <ClCompile Include="D:\Source\EarthView1\EarthView\OpenGLRuntime.cpp" />
+    <ClCompile Include="D:\Source\EarthView1\EarthView\ShaderUtils.cpp" />
+    <ClCompile Include="D:\Source\EarthView1\EarthView\StreamingBuffer.cpp" />
+    <ClCompile Include="D:\Source\EarthView1\EarthView\TerrainRenderer.cpp" />
+    <ClCompile Include="D:\Source\EarthView1\EarthView\TextRenderer.cpp" />
+    <ClCompile Include="D:\Source\EarthView1\EarthView\TextureManager.cpp" />
+    <ClCompile Include="D:\Source\EarthView1\EarthView\TileRenderer.cpp" />
+    <ClCompile Include="D:\Source\EarthView1\EarthView\TMSLoader.cpp" />
+    <ClCompile Include="D:\Source\EarthView1\EarthView\VectorTileRenderer.cpp" />
+    <ClInclude Include="D:\Source\EarthView1\EarthView\BorderRenderer.h" />
+    <ClInclude Include="D:\Source\EarthView1\EarthView\Camera.h" />
+    <ClInclude Include="D:\Source\EarthView1\EarthView\CityLoader.h" />
+    <ClInclude Include="D:\Source\EarthView1\EarthView\CityRenderer.h" />
+    <ClInclude Include="D:\Source\EarthView1\EarthView\DemLoader.h" />
+    <ClInclude Include="D:\Source\EarthView1\EarthView\GridRenderer.h" />
+    <ClInclude Include="D:\Source\EarthView1\EarthView\LineBatchRenderer.h" />
+    <ClInclude Include="D:\Source\EarthView1\EarthView\MapWidget.h" />
+    <ClInclude Include="D:\Source\EarthView1\EarthView\MbTilesReader.h" />
+    <ClInclude Include="D:\Source\EarthView1\EarthView\Constants.h" />
+    <ClInclude Include="D:\Source\EarthView1\EarthView\FrameProfiler.h" />
+    <ClInclude Include="D:\Source\EarthView1\EarthView\MercatorProjection.h" />
+    <ClInclude Include="D:\Source\EarthView1\EarthView\OpenGLRuntime.h" />
+    <ClInclude Include="D:\Source\EarthView1\EarthView\ShaderUtils.h" />
+    <ClInclude Include="D:\Source\EarthView1\EarthView\StreamingBuffer.h" />
+    <ClInclude Include="D:\Source\EarthView1\EarthView\TerrainRenderer.h" />
+    <ClInclude Include="D:\Source\EarthView1\EarthView\TextRenderer.h" />
+    <ClInclude Include="D:\Source\EarthView1\EarthView\TextureManager.h" />
+    <ClInclude Include="D:\Source\EarthView1\EarthView\TileRenderer.h" />
+    <ClInclude Include="D:\Source\EarthView1\EarthView\TMSLoader.h" />
+    <ClInclude Include="D:\Source\EarthView1\EarthView\VectorTileRenderer.h" />
+    <ClInclude Include="D:\Source\EarthView1\EarthView\fpsCounter.h" />
+    <ClCompile Include="D:\Source\EarthView1\build-msvc\earthview3d\demo\earthview3d_demo_autogen\mocs_compilation_Release.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="D:\Source\EarthView1\build-msvc\earthview3d\demo\earthview3d_demo_autogen\mocs_compilation_MinSizeRel.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="D:\Source\EarthView1\build-msvc\earthview3d\demo\earthview3d_demo_autogen\mocs_compilation_RelWithDebInfo.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup />
+  <ItemGroup>
+    <ProjectReference Include="D:\Source\EarthView1\build-msvc\ZERO_CHECK.vcxproj">
+      <Project>{318FDA17-DCC2-33B0-8087-C472D62789B0}</Project>
+      <Name>ZERO_CHECK</Name>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </ProjectReference>
+    <ProjectReference Include="D:\Source\EarthView1\build-msvc\earthview3d\earthview3d.vcxproj">
+      <Project>{0F163608-48F8-3B72-8AED-DC54A04BACE7}</Project>
+      <Name>earthview3d</Name>
+    </ProjectReference>
+    <ProjectReference Include="D:\Source\EarthView1\build-msvc\earthview3d\earthview3d_core.vcxproj">
+      <Project>{DB3F8A29-E854-3411-9D08-728158007B37}</Project>
+      <Name>earthview3d_core</Name>
+    </ProjectReference>
+    <ProjectReference Include="D:\Source\EarthView1\build-msvc\earthview3d\demo\earthview3d_demo_feed.vcxproj">
+      <Project>{E00AA607-A4EF-33C5-9FB9-AE39D431B828}</Project>
+      <Name>earthview3d_demo_feed</Name>
+    </ProjectReference>
+    <ProjectReference Include="D:\Source\EarthView1\build-msvc\earthview_scene3d.vcxproj">
+      <Project>{B8C7FEC5-65D1-3C46-AD84-0879B68CFB43}</Project>
+      <Name>earthview_scene3d</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
