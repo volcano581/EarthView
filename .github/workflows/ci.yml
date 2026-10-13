@@ -325,6 +325,21 @@ jobs:
           default map is land/sea at low resolution. For the full offline map - AOI base map,
           hillshade and place names - run EarthView/tools/offline_data/build_offline_data.py from
           a checkout; it needs the GDAL command-line tools and is not run by CI.
+
+          TMS maps from your own tile server
+          ----------------------------------
+          Data/EarthFiles is deliberately NOT in the repository, so no TMS layer-list file and
+          no tile-server hostname is in this package. Your layer-list earth files stay on your
+          own machine.
+
+          Once a build contains the E11 map catalog, point the demo at that local folder:
+
+            run-earthview3d_demo.cmd --earth-files D:\path\to\your\EarthFiles
+
+          and use --list-maps / --map-name, or the Map dropdown, to pick one. A build without
+          E11 has no such option and ignores the folder. The catalog writes the generated
+          osgEarth earth file next to the template (Data\maps) unless you pass an output
+          directory, so keep this package somewhere writable - not under Program Files.
           '@
           $readme | Set-Content -Path (Join-Path $stage 'README.txt') -Encoding ASCII
 
