@@ -95,6 +95,9 @@ int main(int argc, char** argv)
          QStringLiteral("maps/earthview.earth")},
         {QStringLiteral("data-root"), QStringLiteral("Data root for relative paths."), QStringLiteral("dir"),
          QStringLiteral(EARTHVIEW3D_DEFAULT_DATA_ROOT)},
+        {QStringLiteral("cache"),
+         QStringLiteral("osgEarth tile cache folder (relative to --data-root; empty = no cache). A second run"
+                        " reads tiles from it, also offline."), QStringLiteral("dir"), QStringLiteral("cache")},
         {QStringLiteral("snapshot2d"), QStringLiteral("Save the 2D map (with entities) to this PNG."), QStringLiteral("png")},
         {QStringLiteral("snapshot3d"), QStringLiteral("Save the 3D view to this PNG (opens the 3D view)."), QStringLiteral("png")},
         {QStringLiteral("eye-height"), QStringLiteral("Stealth camera eye height above terrain (m, default 10)."),
@@ -167,6 +170,7 @@ int main(int argc, char** argv)
     earthview3d::MapConfig mapConfig;
     mapConfig.dataRoot = parser.value(QStringLiteral("data-root"));
     mapConfig.earthFile = parser.value(QStringLiteral("map"));
+    mapConfig.cacheDir = parser.value(QStringLiteral("cache"));
     mapConfig.modelTable = parser.value(QStringLiteral("models"));
     mapConfig.skyTime = QDateTime(QDate(2026, 6, 1), QTime(7, 0), QTimeZone::utc());   // daylight over the theatre
     QString error;

@@ -16,7 +16,8 @@ frame and reads signals. Design: `../OSGEARTH_INTEGRATION.md`; host contract:
 | `tools/make_test_armour.cpp` | Generator for the test model (not built) |
 | `src/Runtime.cpp` | `configureRuntime()`: OSG plugin path + GDAL/PROJ data |
 | `demo/` | `earthview3d_demo`: host simulator — 2D map + "Open 3D View", synthetic 100 Hz entity feed (E2) |
-| `../Data/maps/earthview.earth` | Default map; layer paths relative to the earth file |
+| `../Data/maps/earthview.earth` | Default map, offline (E6); layer paths relative to the earth file. `earthview_online.earth` adds OSM |
+| `../tools/offline_data/` | Offline data pipeline (imagery, hillshade, place names, DEM overviews) |
 
 CMake targets: `earthview3d_core` and `earthview3d_demo_feed` (always built), `earthview3d` and
 `earthview3d_demo` (only with `EARTHVIEW_BUILD_3D`, which defaults to ON when osgEarth is found).
@@ -45,7 +46,7 @@ folders of this build tree). Explicit `GDAL_DATA`/`PROJ_DATA` variables still wi
 Mouse: left-click selects an entity (`entityPicked`); left-drag rotates (orbit) or looks around
 (other modes); wheel zooms (orbit) or sets chase range / stealth eye height / free-fly speed.
 Keyboard: O orbit, T chase, F stealth, P first person, G free-fly (W/A/S/D, Q/E down/up,
-Shift ×4), L chase free-look, J HUD, K ground-offset overlay, N next entity, U untether
+Shift ×4), L chase free-look, J HUD, K ground-offset overlay, R graticule, N next entity, U untether
 (= orbit), H home.
 
 Heights are WGS-84 ellipsoid heights (HAE). The DTED layer is declared `vdatum="egm96"`
