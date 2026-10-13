@@ -58,8 +58,12 @@ placed (after terrain clamping) — used by `earthview3d_demo --check-agreement`
 
 ### Expected log lines
 - `Error reading file ...CascadiaCode.ttf: Could not find plugin` at startup: osgEarth's own
-  default font, resolved when its DLL loads (before `configureRuntime()`). Harmless — labels
-  load their font explicitly afterwards (E3).
+  default font, resolved when its DLL loads (before `configureRuntime()`, so `osgdb_freetype`
+  is not reachable yet). Entity labels load their font explicitly afterwards (E3), and
+  `configureRuntime()` re-reads the default font once the plugin folder is registered, so the
+  line is harmless — but only if it appears **once**. Repeated font read errors mean the OSG
+  plugin folder is wrong, and osgText then falls back to a built-in ASCII-only font: layers
+  that osgEarth labels itself lose every non-ASCII glyph (the graticule's degree sign).
 - `earthview3d: tether to entity N (range R m, pitch P)` / `earthview3d: tether ended (...)`:
   camera tether start and end (user input or a new viewpoint). A tether requested before the
   first frame is held until the home viewpoint has been applied (E3 review round 2).
@@ -115,6 +119,8 @@ vcpkg OSG plugins and GDAL/PROJ data of the build tree by itself; Qt DLLs come f
    than as a fix for a known failure. See the D-024 caveat.
 14. osgText labels whose text comes from osgEarth are **`text-encoding: ascii`**, not `utf8`:
    osgEarth writes the degree sign as the single Latin-1 byte `0xB0`, which is not valid UTF-8,
-   and the UTF-8 path folds the next character into it. Pin `text-font` on any layer osgEarth
-   builds itself (e.g. `GeodeticGraticule`): those labels never receive the widget's
-   `loadLabelFont()` font and otherwise fall back to a font with no degree glyph (D-017, I-031).
+   and the UTF-8 path folds the next character into it. ascii is osgText's default, so the real
+   requirement is a font that has the glyph: layers osgEarth builds itself (e.g.
+   `GeodeticGraticule`) never receive the widget's `loadLabelFont()` font, and
+   `configureRuntime()` therefore re-reads osgEarth's default font once the OSG plugin folder is
+   registered (D-025, I-031). No font is pinned in the earth files.

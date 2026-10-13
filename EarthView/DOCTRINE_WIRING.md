@@ -113,7 +113,12 @@ Prerequisites: Conquer's `msvc` preset builds; osgEarth available (vcpkg tree or
    `osgEarth::initialize()` itself. Before creating the first view, call
    `earthview3d::configureRuntime(paths)` (`<earthview3d/Runtime.h>`) with the folders of the
    OSG plugins and GDAL/PROJ data next to `doctrine.exe` (E7 provides them); setting
-   `OSG_LIBRARY_PATH` in `main()` is too late. Keep the mapping table of §2.
+   `OSG_LIBRARY_PATH` in `main()` is too late. The plugin folder must be right even if the
+   map looks fine without it: without `osgdb_freetype` no `.ttf` loads and osgText falls back
+   to a built-in ASCII-only font, so osgEarth's own labels silently lose non-ASCII glyphs.
+   `configureRuntime()` re-reads osgEarth's default font after registering the folder
+   (D-025), which repairs the font osgEarth had already loaded in its Registry constructor.
+   Keep the mapping table of §2.
    Optional (E2): `GlobeView3D::entityPosition(id, &lat, &lon, &alt)` reports where an entity
    was placed after clamping — useful for a 2D/3D agreement check like the demo's
    `--check-agreement`.

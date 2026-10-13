@@ -4,6 +4,9 @@
 #include <QFileInfo>
 
 #include <osgDB/Registry>
+#include <osgText/Font>
+
+#include <osgEarth/Registry>
 
 #ifdef EARTHVIEW3D_HAVE_GDAL
 #include <cpl_conv.h>
@@ -16,6 +19,30 @@ namespace earthview3d {
 
 namespace {
 bool g_runtimeConfigured = false;
+
+/**
+ * @brief Re-read osgEarth's default font once the OSG plugin folder is known (issue #11).
+ *
+ * osgEarth::Registry loads the default font in its constructor, which runs before
+ * configureRuntime() can register the plugin folder below. Without osgdb_freetype no .ttf
+ * can be read, so osgText silently falls back to its built-in font — that font has ASCII
+ * glyphs only, and the degree sign of the graticule labels ("N33°45'") comes out blank.
+ * Reading the font again repairs the already-built Registry; it is a no-op once a real
+ * font is loaded, and leaves the built-in fallback in place if there is still none.
+ */
+void reloadDefaultFont()
+{
+    osgEarth::Registry* registry = osgEarth::Registry::instance();
+    if (!registry)
+        return;
+    const osgText::Font* current = registry->getDefaultFont();
+    if (current && current != osgText::Font::getDefaultFont().get())
+        return;   // a real font file is already loaded
+
+    osg::ref_ptr<osgText::Font> font = osgText::readRefFontFile("arial.ttf");
+    if (font.valid() && font.get() != osgText::Font::getDefaultFont().get())
+        registry->setDefaultFont(font.get());
+}
 }
 
 void configureRuntime(const RuntimePaths& paths)
@@ -27,6 +54,7 @@ void configureRuntime(const RuntimePaths& paths)
         osgDB::FilePathList& libraryPaths = osgDB::Registry::instance()->getLibraryFilePathList();
         if (std::find(libraryPaths.begin(), libraryPaths.end(), dir) == libraryPaths.end())
             libraryPaths.push_back(dir);
+        reloadDefaultFont();
     }
     paths.applyDataEnvironment();
 
