@@ -4,7 +4,7 @@ Single source of truth for **what has actually changed** in EarthView for 3D ren
 The plan lives in [ROADMAP_3D.md](ROADMAP_3D.md); this file records execution: who did
 what, in which PR/commit, how it was verified, and what is still open.
 
-Last updated: 2026-10-08
+Last updated: 2026-10-13
 
 ---
 
@@ -66,6 +66,7 @@ Cloud agents can only syntax-check osgEarth code (E3 review).
 | E8 | Wiring kit / host contract test | Not started | | | | |
 | E9 | Cleanup pseudo-3D | Not started | | | | |
 | E10 | Performance + polish | Not started | | | | |
+| E11 | TMS map catalog (`Data/EarthFiles` → standard earth files) | In review | `claude/tms-earth-files-3d-ytzyzm` | [#15](https://github.com/volcano581/EarthView/pull/15) | — | pending (Windows) |
 | L1 | Local wiring into Doctrine (off GitHub) | Not started | local | — | | |
 | S1 | osgEarth evaluation spike (`spikes/osgearth`) | Done — led to D-007 | master | — | `241c108`…`0b5f729` | partial ✓ (2026-10-08) |
 
@@ -74,6 +75,47 @@ Cloud agents can only syntax-check osgEarth code (E3 review).
 ---
 
 ## Change log (newest first)
+
+### 2026-10-13 — E11: map catalog from EarthView's TMS earth files  (In review)
+- **Branch / PR:** `claude/tms-earth-files-3d-ytzyzm` / PR — merge —
+- **Author:** cloud agent
+- **Why:** the deployment machine serves imagery and other data from a local **TMS** server,
+  described by EarthView's own layer-list earth files (`Data/EarthFiles/*.earth`: TMS
+  `<image>` lines, no `<map>` root, no header). The 2D viewer scans that folder and shows one
+  map source per file; osgEarth cannot read those files at all.
+- **Changes:**
+  - `earthview3d/EarthFileCatalog.{h,cpp}` (in `earthview3d_core`, Qt Core only, no osgEarth):
+    `parse()`/`parseFile()` read a layer-list file (TMS `<image>`, `<elevation>`,
+    `<heightfield>`; foreign drivers skipped as in 2D; levels from attributes or elements;
+    missing names taken from the URL; duplicate names made unique), `discover()` scans the
+    folders (2D labels, sorted, de-duplicated, warnings for skipped files), `generate()` writes
+    the standard earth file and `build()` does both. A file that already has a `<map>` root is
+    offered unchanged.
+  - `Data/maps/earthview.earth` and `earthview_online.earth`: new
+    `<!--@EARTHVIEW3D_TMS_LAYERS@-->` placeholder between the local rasters and the hillshade.
+    Generation = template with the placeholder replaced by `<TMSImage>`/`<TMSElevation>`
+    layers, written next to the template as `tms_<source name>.earth` (git-ignored), so the
+    template's relative paths (DEM, borders, places, graticule) keep resolving (D-026).
+  - `earthview3d_demo`: `--earth-files <dir>` (default `EarthFiles`), `--map-template`,
+    `--list-maps`, `--map-name <label>`, and a **Map** dropdown in the toolbar
+    (`DemoWindow::setMapCatalog()`); switching rebuilds the 3D window with the new `MapConfig`.
+  - `Data/EarthFiles/` with a README and two `*.earth.sample` files (the real ones carry the
+    offline machine's address; `*.earth` there is git-ignored).
+- **Existing files touched:** the two earth files (comment only), `earthview3d/CMakeLists.txt`,
+  `tests/CMakeLists.txt`, `demo/main.cpp`, `demo/DemoWindow.{h,cpp}`, `.gitignore`, docs.
+  **No 2D code changed** — `MainWindow`'s own scan of `Data/EarthFiles` is untouched (rule 1).
+- **Tests:** `tests/tst_earthfilecatalog.cpp` (14 test functions, 19 runs with the data rows: the exact line format of the offline
+  machine's files, levels/elevation/vdatum, foreign drivers, URL-derived and unique names,
+  standard-file detection, malformed XML, 2D labels, XML escaping + well-formedness, discovery
+  sorting/de-duplication/warnings, splicing into a template incl. resulting layer order,
+  missing placeholder/template, `build()` warnings, default folders). Linux `ctest` 12/12.
+- **Verified:** Linux ✓ (build clean, ctest 12/12; generation also run against the real
+  `Data/maps/earthview.earth` with sample TMS files — the result is well-formed with both TMS
+  layers in place and the template's layers kept) · Windows CI ✓ (`0c1fe6f`: MSVC build +
+  ctest) · Visual check pending (Windows, needs the tile server: `--list-maps`, then one
+  `--snapshot3d` per map). Branch merged `master` after E7 (`5f9bc0b`): the decision is
+  **D-027** and the issues **I-034/I-035**, since E7 took D-026 and I-033.
+- **Follow-ups:** I-034, I-035.
 
 ### 2026-10-13 — E7: packaging, install/export, runtime deploy  (In review)
 - **Branch / PR:** `3d/e7-packaging` / [#14](https://github.com/volcano581/EarthView/pull/14) — merge —
@@ -462,6 +504,7 @@ Cloud agents can only syntax-check osgEarth code (E3 review).
 | D-024 | Image layers given to osgEarth are RGBA GeoTIFFs; 3-band RGB renders black with GL errors in the embedded widget (issue #11). The offline pipeline writes RGBA (hillshade: grey → RGB + nodata mask as alpha). **Caveat (owner, 2026-10-13):** the original black-render blocker could not be reproduced on re-check — master's 3-band RGB file rendered identically, with 0 GL "invalid operation" errors, against a fresh cache. A stale 232 MB `Data/cache` was in play during the first observation. So RGBA is not *demonstrably* the cause of the fix; the symptom is absent either way. RGBA is kept as the deliberate convention (osgEarth's own imagery path is RGBA and the alpha channel is needed for hillshade nodata regardless), but the causal claim is withdrawn. See also I-032. | 2026-10-13 | issue #11, owner re-check |
 | D-025 | `configureRuntime()` re-reads osgEarth's default font after it registers the OSG plugin folder. `osgEarth::Registry` loads that font in its constructor, which runs before any host code, so without the repair `osgdb_freetype` is unreachable, no `.ttf` loads and osgText uses its built-in ASCII-only font — non-ASCII glyphs such as the graticule's degree sign come out blank, while entity labels (own font, loaded later) look fine. Do **not** set `text-encoding: utf8` on osgEarth's own labels: it writes the degree sign as the single Latin-1 byte `0xB0`, which UTF-8 decoding discards. | 2026-10-13 | issue #11 |
 | D-026 | Runtime deployment layout: OSG plugins (`osgPlugins-<ver>/`), vcpkg DLLs and `share/gdal`, `share/proj` sit next to the host exe (installed: `bin/` + `../share/`), put there by `earthview3d_deploy_runtime()`. `RuntimePaths::defaults()` looks there first, then at the build-tree vcpkg folders, so hosts need no runtime code or environment. The package is static and records the build machine's vcpkg paths: hosts use the same vcpkg toolchain/triplet. | 2026-10-13 | E7 |
+| D-027 | Maps served by the host's local **TMS** server come from EarthView's own layer-list earth files (`Data/EarthFiles/*.earth`), which 2D keeps reading unchanged. For 3D, `EarthFileCatalog` generates one standard osgEarth earth file per source file by splicing `<TMSImage>`/`<TMSElevation>` layers into a template earth file at `<!--@EARTHVIEW3D_TMS_LAYERS@-->`; the template (default `maps/earthview.earth`) stays the single place where elevation, overlays, graticule and sky are configured. Generated files are written next to their template (osgEarth resolves relative layer paths against the earth file) as `tms_<name>.earth` and are git-ignored. One map per file = one dropdown entry, labelled as in 2D. | 2026-10-13 | E11 |
 | D-019 | CI vcpkg binary cache: every run restores, only `master` saves (complete or partial); a weekly scheduled master run keeps it from the 7-day eviction. Dependency changes build once on their PR without saving and once on master after merge. | 2026-10-12 | CI cache scope |
 | D-011 | The integration target is **Conquer** (`D:\Source\Conquer`: Doctrine + cgf-engine + EarthView superbuild, already MSVC), not the standalone `D:\Source\cgf-engine`. 3D code lives in an isolated library so osgEarth includes never reach other TUs. | 2026-10-08 | Conquer test |
 
@@ -502,6 +545,8 @@ Cloud agents can only syntax-check osgEarth code (E3 review).
 | I-031 | ~~Graticule labels render without the degree sign (`N3345'` instead of `N33°45'`; owner pixel-dumped the glyphs at `7687c33`).~~ Cause: `osgEarth::Registry` loads the default font in its constructor, before `configureRuntime()` registers the OSG plugin folder, so no `.ttf` can be read and osgText falls back to its built-in ASCII-only font. `configureRuntime()` now re-reads it (D-025). `text-encoding: utf8` was a wrong turn and is `ascii` (osgText's default) in both earth files; no font is pinned. Owner re-check 2026-10-13: the glyph segmentation shows 7 glyphs with a raised half-height one between `33` and `45` — `N33°45'`. | E6 | Closed (owner, 2026-10-13) |
 | I-033 | E7 not checked on a clean machine: copy an installed folder (`cmake --install`, demo or consumer) to a Windows machine without vcpkg/Qt on `PATH` and open the 3D view (DLL set complete? Qt plugins? MSVC runtime?). CI runs the installed `consumer_3d` but with Qt on `PATH` and without GL. | E7 | Open |
 | I-032 | Every 3D run emits `invalid enumerant at after RenderBin::draw(..)` 7–100 times, with both `earthview.earth` and `earthview_online.earth`, regardless of imagery band count (owner, `7687c33`). Distinct from the issue #11 "invalid operation" errors and not a regression from this PR, but it was not noted before either, so its baseline is unknown. Nothing renders visibly wrong. Find the offending GL enum (likely an embedded-widget state-leak of the kind the `earthview3d` README rules cover) and either fix or document it. | E6 | Open |
+| I-034 | `EarthFileCatalog` is unverified against a real TMS server: cloud agents have none, so only the generated XML is checked. On Windows, confirm each generated map renders (`--list-maps`, then `--snapshot3d` per entry), that osgEarth's TMS driver accepts the `tilemapresource.xml` URLs as they are written in the files, and whether `<profile>` has to be declared for a server whose resource XML omits the SRS. | E11 | Open (Windows check) |
+| I-035 | Switching map in the demo's **Map** dropdown closes and rebuilds the 3D window (osgEarth reads the map when the view is built), so the camera and selection reset. A host that needs a live swap would have to add/remove layers on the running map instead — decide in E9/L1 whether the host menu needs that. | E11 | Open |
 | I-025 | 3D frame time scales ~linearly with entity count (~0.25–0.35 ms/entity): RTX 3050 Ti, 1400×900, 20 entities 14.6 ms (~68 FPS), 200 entities 64–86 ms (~12–15 FPS), 200 with declutter off 59.1 ms (owner, `579d8eb`). Suspects: per-entity `Terrain::getHeight()` every frame for clamped units, one `osgText::Text` + geode per entity, per-entity `AutoTransform`s (marker + ring). First steps: cache terrain height and refresh only on movement > N m or every few frames, share label/marker state, profile with osgEarth stats. Target 1,000 entities at 60 FPS. | E10 | Open |
 | I-018 | `MapConfig.cacheDir` is applied through `OSGEARTH_CACHE_PATH` before the widget's first `osgEarth::initialize()`; it is ignored if the host initialised osgEarth earlier or set the variable itself. Verify the cache fills on Windows (E6 owns caching). | E6 | Open (demo now defaults to `--cache cache`; verify second offline run, E6) |
 

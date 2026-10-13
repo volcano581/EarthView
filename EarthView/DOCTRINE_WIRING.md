@@ -72,6 +72,16 @@ local layers once with `tools/offline_data/build_offline_data.py` (see its READM
 `setLayerVisible(name, bool)`, `layerVisible()`, `layerNames()` toggle earth-file layers
 (e.g. a host menu for "Graticule", "Hillshade", "Places (cities, towns)").
 
+Map sources from EarthView's earth files (`EarthFileCatalog.h`): Doctrine's data tree already
+carries the 2D viewer's layer-list earth files (`Data/EarthFiles/*.earth`, one TMS layer per
+line, no `<map>` root). `EarthFileCatalog::build(directories, templatePath, outputDir,
+&warnings)` returns one `MapCatalogEntry` per file — `label` for a host dropdown (same labels
+as 2D), `earthFile` for `MapConfig::earthFile` — writing a standard earth file per source by
+splicing the TMS layers into the template's `<!--@EARTHVIEW3D_TMS_LAYERS@-->` placeholder.
+`defaultSearchDirectories(dataRoot)` gives the folders to scan. The host switches map by
+rebuilding the view with the new `MapConfig` (osgEarth loads the map when the view is built).
+2D code is untouched: it still reads the original files.
+
 Cameras (E4, `CameraControl.h`): `setCameraMode(CameraMode)` with `Orbit`, `Chase`,
 `Stealth`, `FirstPerson`, `FreeFly` (smooth 1 s transition; chase/stealth/first person follow
 the selected entity), `cameraMode()`, signal `cameraModeChanged(CameraMode)`.

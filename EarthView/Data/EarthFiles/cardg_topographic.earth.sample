@@ -1,0 +1,2 @@
+<image name="CardG_50k" driver="tms"> <url> http://placeholder-ip:port/path/to/topo/50k/tilemapresource.xml</url></image>
+<image name="CardG_250k" driver="tms" min_level="0" max_level="12"> <url> http://placeholder-ip:port/path/to/topo/250k/tilemapresource.xml</url></image>

@@ -31,6 +31,12 @@
         <attribution>&#169;OpenStreetMap contributors</attribution>
     </XYZImage>
 
+    <!-- TMS layers from the local tile server. earthview3d's EarthFileCatalog replaces this
+         marker with one <TMSImage>/<TMSElevation> per entry of an EarthView Data/EarthFiles
+         layer-list file and writes the result as maps/tms_<name>.earth (D-027). osgEarth
+         ignores the marker, so this file stays loadable as it is. -->
+    <!--@EARTHVIEW3D_TMS_LAYERS@-->
+
     <!-- Shaded relief multiplies (modulates) the layers below it. -->
     <GDALImage name="Hillshade" blend="modulate" opacity="0.85">
         <url>../imagery/hillshade.tif</url>
