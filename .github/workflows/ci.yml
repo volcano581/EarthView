@@ -169,12 +169,19 @@ jobs:
           $stage = Join-Path $env:GITHUB_WORKSPACE 'dist\earthview-win64'
           New-Item -ItemType Directory -Force -Path $stage | Out-Null
 
-          # 1. Executables, minus the unit-test binaries.
-          $exes = Get-ChildItem build-msvc -Recurse -Filter *.exe |
-                  Where-Object { $_.Name -notmatch '^(tst_|test_)' }
-          if (-not $exes) { throw 'no executables found under build-msvc' }
-          $exes | ForEach-Object { Copy-Item $_.FullName $stage -Force }
-          Write-Host "Executables: $(($exes | ForEach-Object Name) -join ', ')"
+          # 1. The three product executables, by name. Do not glob for *.exe: vcpkg installs
+          #    into build-msvc\vcpkg_installed, so a recursive glob also picks up vcpkg's own
+          #    tools (sqlite3, protoc, bomtool, brotli, ...) and CMake's compiler-probe binary,
+          #    and windeployqt then fails on the first one that is not a Qt application.
+          $wanted = 'EarthView.exe', 'earthview_snapshot.exe', 'earthview3d_demo.exe'
+          foreach ($name in $wanted) {
+            $hit = Get-ChildItem build-msvc -Recurse -File -Filter $name |
+                   Where-Object { $_.FullName -notmatch '\\vcpkg_installed\\' } |
+                   Select-Object -First 1
+            if (-not $hit) { throw "built executable $name not found under build-msvc" }
+            Copy-Item $hit.FullName $stage -Force
+            Write-Host "Executable: $($hit.FullName)"
+          }
 
           # 2. Qt runtime: this job configures with EARTHVIEW_DEPLOY_QT=OFF, so the
           #    post-build windeployqt never ran. --compiler-runtime adds the MSVC
