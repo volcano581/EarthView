@@ -62,7 +62,7 @@ Cloud agents can only syntax-check osgEarth code (E3 review).
 | E4 | Camera controllers + HUD | Merged | `3d/e4-cameras` | [#8](https://github.com/volcano581/EarthView/pull/8) | `840eaec` | pending (Windows) |
 | E5 | Terrain services | Merged | `3d/e5-terrain` | [#9](https://github.com/volcano581/EarthView/pull/9) | `3d6bae2` | pending (Windows) |
 | E6 | Offline data pipeline | Merged | `3d/e6-offline-data` | [#10](https://github.com/volcano581/EarthView/pull/10) | `27583f5` | ✓ after issue #11 fixes ([#12](https://github.com/volcano581/EarthView/pull/12), owner, 2026-10-13) |
-| E7 | Packaging + runtime deploy | In review | `3d/e7-packaging` | — | — | pending (Windows) |
+| E7 | Packaging + runtime deploy | In review | `3d/e7-packaging` | [#14](https://github.com/volcano581/EarthView/pull/14) | — | pending (Windows) |
 | E8 | Wiring kit / host contract test | Not started | | | | |
 | E9 | Cleanup pseudo-3D | Not started | | | | |
 | E10 | Performance + polish | Not started | | | | |
@@ -76,7 +76,7 @@ Cloud agents can only syntax-check osgEarth code (E3 review).
 ## Change log (newest first)
 
 ### 2026-10-13 — E7: packaging, install/export, runtime deploy  (In review)
-- **Branch / PR:** `3d/e7-packaging` / PR — merge —
+- **Branch / PR:** `3d/e7-packaging` / [#14](https://github.com/volcano581/EarthView/pull/14) — merge —
 - **Author:** cloud agent
 - **Changes:**
   - `earthview3d` installs and exports a CMake package: `find_package(earthview3d 0.7 CONFIG)`
@@ -100,7 +100,7 @@ Cloud agents can only syntax-check osgEarth code (E3 review).
 - **Tests:** `tst_runtimepaths` +4 (build-tree and installed layouts, empty dir, `fillFrom`).
   Linux ctest 11/11; Linux install + consumer ✓; deploy function dry-run against a fake vcpkg
   tree (build + install copy the right files, vcpkg cmake wrappers excluded).
-- **Verified:** Linux ✓ · Windows CI pending · Visual check pending (Windows): deployed demo
+- **Verified:** Linux ✓ · Windows CI ✓ (`988b78e`: package install, consumer build, `consumer_3d` from build and install folders) · Visual check pending (Windows): deployed demo
   and an installed folder on a machine without vcpkg.
 - **Follow-ups:** I-033.
 
