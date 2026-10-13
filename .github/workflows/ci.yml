@@ -164,7 +164,7 @@ jobs:
         env:
           VCPKG_ROOT: C:\ev-vcpkg
         run: |
-          cmake --install build-msvc --prefix stage
+          cmake --install build-msvc --prefix "${{ github.workspace }}\stage"
           cmake -S EarthView/tests/consumer -B consumer -G Ninja `
             -DCMAKE_BUILD_TYPE=Release `
             "-DCMAKE_PREFIX_PATH=${{ github.workspace }}\stage;$env:QT_ROOT_DIR" `
@@ -175,7 +175,7 @@ jobs:
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           cmake --build consumer
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
-          cmake --install consumer --prefix consumer-deploy
+          cmake --install consumer --prefix "${{ github.workspace }}\consumer-deploy"   # Qt deploy needs an absolute prefix
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           consumer\consumer_core.exe
           if ($LASTEXITCODE) { exit $LASTEXITCODE }

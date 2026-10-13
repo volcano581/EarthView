@@ -59,7 +59,8 @@ D:\deploy\myhost\
   share\gdal\                                    (GDAL_DATA)
   share\proj\proj.db                             (PROJ_DATA)
 ```
-Copy the folder to the offline machine and run `bin\myhost.exe`. Release only: vcpkg's
+Use an absolute `--prefix` (Qt's deploy script rejects relative ones). Copy the folder to the
+offline machine and run `bin\myhost.exe`. Release only: vcpkg's
 debug DLLs are not deployed.
 
 ### Data (not part of the install)
