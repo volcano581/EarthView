@@ -69,6 +69,7 @@ Cloud agents can only syntax-check osgEarth code (E3 review).
 | E11 | TMS map catalog (`Data/EarthFiles` → standard earth files) | In review | `claude/tms-earth-files-3d-ytzyzm` | [#15](https://github.com/volcano581/EarthView/pull/15) | — | pending (Windows) |
 | L1 | Local wiring into Doctrine (off GitHub) | Not started | local | — | | |
 | F1 | Marker scale fix (I-037), DTED folder path (2D + 3D), TMS map by default (I-038) | In review | `claude/entity-rendering-dted-6tsdtt` | — | — | pending (Windows) |
+| F2 | Demo's 2D pane gets the real map sources (I-041) | In review | `claude/demo-2d-map-source` | — | — | pending (Windows) |
 | S1 | osgEarth evaluation spike (`spikes/osgearth`) | Done — led to D-007 | master | — | `241c108`…`0b5f729` | partial ✓ (2026-10-08) |
 
 **Direction:** host-independent `earthview3d` (osgEarth, MSVC) finished on GitHub by agents; Doctrine wired locally (D-007, D-008, D-012). Design: [OSGEARTH_INTEGRATION.md](OSGEARTH_INTEGRATION.md) · Local wiring: [DOCTRINE_WIRING.md](DOCTRINE_WIRING.md).
@@ -76,6 +77,41 @@ Cloud agents can only syntax-check osgEarth code (E3 review).
 ---
 
 ## Change log (newest first)
+
+### 2026-10-14 — F2: the demo's 2D pane reads the same map sources as the 2D viewer  (In review)
+- **Branch / PR:** `claude/demo-2d-map-source` / PR — merge —
+- **Author:** cloud agent
+- **Why:** on the owner's offline machine `EarthView.exe` showed the tile server's imagery and
+  CardG maps from `Data/EarthFiles`, and the generated `tms_*.earth` files were correct, but
+  the demo showed no imagery in **either** of its windows. The 2D half is a plain bug: the
+  demo builds without `MainWindow.cpp` (`demo/CMakeLists.txt` removes it), and that is the
+  only place the 2D viewer discovers its map sources. `DemoWindow` creates a bare `MapWidget`,
+  so the map kept `TMSLoader`'s built-in default — `https://tile.openstreetmap.org/...` —
+  which renders nothing without internet (I-041). The 3D half is a separate question still
+  open with the owner (needs the osgEarth log; I-034 is the first suspect).
+- **Changes:**
+  - New `MapSourceCatalog` (`EarthView/MapSourceCatalog.{h,cpp}`): the 2D viewer's own map
+    source discovery — `readEarthLayers()` (layer-list `.earth` files, including the
+    `<elevation driver="dted">` folder), `labelForFile()`, the MBTiles and earth-file
+    discovery and the search folders — moved verbatim out of `MainWindow.cpp`'s anonymous
+    namespace, with `EarthSource` renamed `MapSourceCatalog::Source`. No logic changed, and
+    `MainWindow` now calls it, so the 2D application behaves exactly as before.
+  - `DemoWindow` discovers sources the same way and gives its `MapWidget` the first one
+    (layers + DTED folder), then follows the **Map** dropdown: picking an entry built from a
+    layer-list file applies that file's layers to the 2D pane as well as rebuilding the 3D
+    view. An entry with no 2D layers (a standard osgEarth map, e.g. the template) leaves the
+    pane as it is rather than blanking it.
+- **Existing files touched:** `MainWindow.cpp` (helpers moved out, call sites renamed),
+  `CMakeLists.txt`, `earthview3d/demo/DemoWindow.{h,cpp}`, `tests/CMakeLists.txt`, this
+  tracker. 2D application behaviour is unchanged: same reader, same call order.
+- **Tests:** new `tst_mapsourcecatalog` (13 cases) — the first tests this reader has ever had:
+  TMS lines and the `{z}/{x}/{y}` template, zoom levels as attributes and as elements, foreign
+  drivers and URL-less entries skipped, the DTED folder read (including an elevation entry
+  between two image entries, which must not leak into either), a missing file, and the
+  dropdown labels. `ctest` 14/14 on Linux.
+- **Verified:** Linux CI ✓ · Windows build pending · Visual check pending (Windows): the demo's
+  2D pane must now show the same imagery as `EarthView.exe` on the offline machine.
+- **Follow-ups:** I-041 (the 3D half of the same report is still open), I-034.
 
 ### 2026-10-14 — F1: marker scale from this view's camera, DTED folder path, TMS map by default  (In review)
 - **Branch / PR:** `claude/entity-rendering-dted-6tsdtt` / PR — merge —
@@ -624,6 +660,7 @@ Cloud agents can only syntax-check osgEarth code (E3 review).
 | I-038 | The 3D view opened on the template map (pale offline base imagery) while the 2D map beside it showed the tile server's maps. The demo now defaults to the first map built from `Data/EarthFiles` instead. That only helps a machine whose imagery really is TMS; if the 2D map's imagery is an `Data/OSM/*.mbtiles` file, uncomment the `<MBTilesImage>` block in the earth file (osgEarth reads MBTiles directly) or decide whether `EarthFileCatalog` should list MBTiles files as map sources too, the way 2D does. | F1 | Open (decide with E9/L1) |
 | I-039 | 2D terrain still comes from the GeoTIFF DEM mirror (`DEM90TIF`): the DTED folder path is read, validated and logged, but no `.dt1`/`.dt2` is parsed. A 2D DTED reader (header + grid, elevation texture like the GeoTIFF path) is deferred by owner's decision, to keep this change out of the 2D render path. | F1 | Open (deferred by owner) |
 | I-040 | The DTED mosaic is built by `gdalbuildvrt`, so the offline machine needs the GDAL command-line tools once, after copying the tiles. A uniform grid is assumed: DTED above 50° latitude has wider longitude spacing, and mixing bands in one folder would produce a mosaic that resamples. For the Pakistan theatre (30–35° N) every tile is 1", so this does not bite yet. | F1 | Open |
+| I-041 | The demo's 3D window shows no imagery from a generated `tms_*.earth` on the owner's offline machine, although `EarthView.exe` renders the same TMS layers and the generated file has the right URLs. The 2D half of the same report was a missing map source in `DemoWindow` and is fixed (F2); the 3D half is unexplained and needs the osgEarth console output from that machine (which layer fails to open and why). First suspect is I-034: osgEarth's TMS driver rejecting a `tilemapresource.xml` whose SRS it cannot resolve, where a `<profile>` has to be declared. | F2 | Open (needs the owner's log) |
 
 ---
 
