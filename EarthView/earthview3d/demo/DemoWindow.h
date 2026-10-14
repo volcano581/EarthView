@@ -4,6 +4,8 @@
 
 #include "SyntheticFeed.h"
 
+#include "MapSourceCatalog.h"
+
 #include <earthview3d/EarthFileCatalog.h>
 #include <earthview3d/MapConfig.h>
 
@@ -77,6 +79,11 @@ public:
 
 private:
     void selectMap(int index);
+    /// Give the 2D pane one discovered map source (imagery layers + DTED folder). A source
+    /// with no layers is ignored, so the pane keeps what it has.
+    void applySource2D(const MapSourceCatalog::Source& source);
+    /// The 2D source built from the same file as @p entry, or an empty one.
+    MapSourceCatalog::Source source2DFor(const MapCatalogEntry& entry) const;
 
     MapConfig m_mapConfig;
     SyntheticFeed::Settings m_feedSettings;
@@ -86,6 +93,7 @@ private:
     EntityOverlay2D* m_overlay = nullptr;
     QComboBox* m_mapCombo = nullptr;
     QList<MapCatalogEntry> m_catalog;
+    QList<MapSourceCatalog::Source> m_sources2D;   // 2D pane sources, as the 2D viewer finds them
     int m_mapIndex = 0;
     QPointer<QMainWindow> m_window3D;
     QPointer<GlobeView3D> m_view3D;

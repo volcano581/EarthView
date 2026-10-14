@@ -1,5 +1,17 @@
 # Unit tests (Qt Test). Each test links only the sources it exercises.
 
+# The 2D map-source reader: Qt Network (tilemapresource.xml over HTTP) and MbTilesReader for
+# the .mbtiles sources. TMSLoader is header-only here (TileSourceLayer is a plain struct).
+add_executable(tst_mapsourcecatalog
+    tst_mapsourcecatalog.cpp
+    ../MapSourceCatalog.cpp
+    ../MbTilesReader.cpp
+)
+target_include_directories(tst_mapsourcecatalog PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/..")
+get_target_property(_earthview_2d_libs EarthView LINK_LIBRARIES)
+target_link_libraries(tst_mapsourcecatalog PRIVATE ${_earthview_2d_libs} Qt6::Test)
+add_test(NAME tst_mapsourcecatalog COMMAND tst_mapsourcecatalog)
+
 add_executable(tst_mercatorprojection
     tst_mercatorprojection.cpp
     ../MercatorProjection.cpp

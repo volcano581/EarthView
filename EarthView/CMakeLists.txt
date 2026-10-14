@@ -49,6 +49,7 @@ set(SOURCES
     GridRenderer.cpp
     LineBatchRenderer.cpp
     MainWindow.cpp
+    MapSourceCatalog.cpp
     MapViewWindow.cpp
     MapWidget.cpp
     MbTilesReader.cpp
@@ -73,6 +74,7 @@ set(HEADERS
     GridRenderer.h
     LineBatchRenderer.h
     MainWindow.h
+    MapSourceCatalog.h
     MapViewWindow.h
     MapWidget.h
     MbTilesReader.h

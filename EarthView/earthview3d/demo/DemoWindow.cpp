@@ -1,6 +1,7 @@
 #include "DemoWindow.h"
 
 #include "Camera.h"
+#include "MapSourceCatalog.h"
 #include "MapWidget.h"
 #include "MercatorProjection.h"
 
@@ -96,6 +97,13 @@ DemoWindow::DemoWindow(const MapConfig& mapConfig, const SyntheticFeed::Settings
     layout->addWidget(m_overlay, 0, 0);
     setCentralWidget(m_mapContainer);
     m_map->loadWorldBorders();
+    // The 2D pane needs a map source of its own: it is EarthView's MapWidget, but the demo is
+    // built without MainWindow, which is where the 2D viewer discovers its sources. Without
+    // this it keeps TMSLoader's built-in default, online OpenStreetMap, and stays blank on an
+    // offline machine (I-041). Same reader as the 2D application, so the same files work.
+    m_sources2D = MapSourceCatalog::discoverMapSources();
+    if (!m_sources2D.isEmpty())
+        applySource2D(m_sources2D.first());
 
     auto* open3D = new QAction(QStringLiteral("Open 3D View"), this);
     open3D->setShortcut(QKeySequence(QStringLiteral("Ctrl+3")));
@@ -136,8 +144,30 @@ void DemoWindow::setMapCatalog(const QList<MapCatalogEntry>& entries, int curren
         m_mapCombo->addItem(entry.label, entry.earthFile);
     m_mapCombo->setCurrentIndex(m_mapIndex);
     m_mapCombo->setEnabled(entries.size() > 1);
-    if (!entries.isEmpty())
+    if (!entries.isEmpty()) {
         m_mapConfig.earthFile = entries.at(m_mapIndex).earthFile;
+        applySource2D(source2DFor(entries.at(m_mapIndex)));   // 2D pane follows the dropdown
+    }
+}
+
+void DemoWindow::applySource2D(const MapSourceCatalog::Source& source)
+{
+    if (source.layers.isEmpty())
+        return;   // nothing 2D can read (a standard osgEarth map): leave the pane as it is
+    m_map->setTileSourceLayers(source.layers);
+    m_map->setDtedDirectory(source.dtedDirectory);
+}
+
+MapSourceCatalog::Source DemoWindow::source2DFor(const MapCatalogEntry& entry) const
+{
+    // The 3D catalog and the 2D sources are discovered separately but come from the same
+    // files, so match on the file the entry was built from.
+    const QString wanted = QFileInfo(entry.sourcePath).absoluteFilePath();
+    for (const MapSourceCatalog::Source& source : m_sources2D) {
+        if (QFileInfo(source.filePath).absoluteFilePath() == wanted)
+            return source;
+    }
+    return {};
 }
 
 void DemoWindow::selectMap(int index)
@@ -147,6 +177,7 @@ void DemoWindow::selectMap(int index)
     m_mapIndex = index;
     const MapCatalogEntry& entry = m_catalog.at(index);
     m_mapConfig.earthFile = entry.earthFile;
+    applySource2D(source2DFor(entry));
     statusBar()->showMessage(QStringLiteral("Map: %1 (%2)").arg(entry.label, QFileInfo(entry.earthFile).fileName()));
     if (!m_window3D)
         return;
