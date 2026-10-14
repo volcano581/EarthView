@@ -27,12 +27,22 @@ API, update that adapter, not a new one.
 
 ## 2. Host contract (what the adapter must provide)
 
-The adapter runs on the GUI thread inside the widget's pre-frame callback. API as of E1:
+> **This contract is tested.** `EarthView/tests/tst_hostcontract.cpp` (E8) carries a struct
+> shaped like Doctrine's `RenderEntity`, converts it exactly as the table below says, and pins
+> every signature named in this section with `static_assert`. Change the API and that test
+> stops compiling — which is the point: CI says so here, not the next time someone opens the
+> Conquer tree. Update the test and this section together.
+
+The adapter runs on the GUI thread inside the widget's pre-frame callback:
 `#include <earthview3d/GlobeView3D.h>`, class `earthview3d::GlobeView3D(MapConfig, homeLat,
-homeLon)`, records `earthview3d::EntityState3D`, `setPreFrameCallback()`, `setEntities()`.
-E3 adds attitude, `kindKey`, `force`, the model table (`MapConfig::modelTable`), picking and
-selection (see below).
+homeLon, parent)`, records `earthview3d::EntityState3D`,
+`setPreFrameCallback(std::function<void()>)`, `setEntities(const std::vector<EntityState3D>&)`.
+Attitude, `kindKey`, `force`, the model table (`MapConfig::modelTable`), picking and selection
+came with E3; cameras and the HUD with E4; terrain services with E5.
+
 Entries with `id == 0` are ignored; a repeated id in one snapshot keeps the first entry.
+`entityCount()` reports how many the view holds, and `entityColor(state)`
+(`EntityState3D.h`) gives the colour the view will use, for a host legend.
 
 | `EntityState3D` field | Meaning | Doctrine source (Conquer, as of 2026-10-08) |
 | --------------------- | ------- | ------------------------------------------- |
@@ -57,14 +67,20 @@ drawn as placeholder markers. A broken table is reported via `loadFailed` and ig
 
 Selection and picking (E3): left-click on an entity selects it and emits
 `entityPicked(quint64 id)`; `setSelected(id)` selects from the host (0 clears) and emits
-`selectionChanged(label)`. `setLabelsVisible(bool)` toggles the decluttered labels.
+`selectionChanged(QString label)`. `selectedId()` and `selectedLabel()` read it back,
+`selectNextEntity()` steps through them (key N) and `setLabelsVisible(bool)` toggles the
+decluttered labels. `loadFailed(QString reason)` carries every non-fatal load problem (a
+missing model file, a broken model table, no EGM96 plugin): connect it to the host's log
+rather than letting it pass silently.
 
 Terrain services (E5, `TerrainServices.h`): `heightAt(lat, lon, &hae)` returns the drawn
 terrain height (cached; callable from the sim thread — a miss returns false and is resolved
 on the next frame, ask again). `sourceHeightAt()` samples the elevation source at full
 resolution (slow; tools/spot checks). `geoidHeight(lat, lon)` gives EGM96 N (MSL = HAE − N).
 `setGroundOffsetOverlay(true)` / key K shows terrain − host altitude for clamped entities on
-the HUD and `groundOffsetStats()` returns it — use it in L1 to measure I-015.
+the HUD and `groundOffsetStats()` returns it (`GroundOffsetStats`: count, min, max, mean) —
+use it in L1 to measure I-015. `haveGeoid()` says whether the EGM96 plugin was found at all;
+when it is false `geoidHeight()` returns 0 and the MSL readouts are really HAE.
 
 Map data (E6): the default earth file `maps/earthview.earth` is fully offline; build its
 local layers once with `tools/offline_data/build_offline_data.py` (see its README) and set
@@ -105,11 +121,18 @@ API for the folder itself — it is map configuration, not host state.
 Cameras (E4, `CameraControl.h`): `setCameraMode(CameraMode)` with `Orbit`, `Chase`,
 `Stealth`, `FirstPerson`, `FreeFly` (smooth 1 s transition; chase/stealth/first person follow
 the selected entity), `cameraMode()`, signal `cameraModeChanged(CameraMode)`.
-`chaseSelected()`, `stealthSelected()`, `firstPersonSelected()`, `freeFly()` and `untether()`
-(= orbit) are shortcuts. `setStealthEyeHeight(m)` (default 10 m), `setChaseFreeLook(bool)`,
+`chaseSelected()`, `stealthSelected()`, `firstPersonSelected()`, `freeFly()`, `untether()`
+(= orbit) and `goHome()` are shortcuts. `cameraModeName(mode)` and
+`parseCameraMode(name, &mode)` (`CameraControl.h`) turn a mode into text and back, for a host
+menu or a stored setting — `CameraMode`'s order is part of this contract, so a stored value
+keeps its meaning. `setStealthEyeHeight(m)` (default 10 m), `setChaseFreeLook(bool)`,
 `setHudVisible(bool)` (HUD: mode, heading, pitch, altitude, AGL, speed, target). Every mode
 but orbit keeps the eye at least 2 m above terrain. The widget handles its own keys (O, T, F,
 P, G, L, J, N, H; WASD/Q/E/Shift in free-fly); a host menu can call the same methods.
+
+Diagnostics: `viewpointDescription()` is a one-line eye/mode/frame-time summary for a status
+bar or a log, and `saveSnapshot(pngPath)` writes the current frame; both are what the demo's
+`--snapshot3d` and its agreement check use.
 
 Rules for the adapter:
 - Read the snapshot the same way the 2D map does (copy on new tick only:
@@ -137,7 +160,9 @@ Prerequisites: Conquer's `msvc` preset builds; osgEarth available (vcpkg tree or
    `earthview-3d-test`; replace its `GlobeView3D` usage with the `earthview3d` public API.
    Changes since the test (E1): include `<earthview3d/GlobeView3D.h>`; namespace
    `earthview3d`; `GlobeView3D::EntityState3D` is now `earthview3d::EntityState3D`; the
-   constructor takes an `earthview3d::MapConfig` (earth file, data root, cache dir, sky)
+   constructor takes an `earthview3d::MapConfig` (earth file, data root, cache dir, model
+   table, sky and sky time; `validate()` reports a bad one and `MapConfig::fromJsonFile()`
+   reads it from a host settings file)
    instead of an earth-file path; diagnostics `DOCTRINE_3D_LOGDEPTH`/`DOCTRINE_3D_NO_SKY`
    are now `EARTHVIEW3D_LOGDEPTH`/`EARTHVIEW3D_NO_SKY`. The widget calls
    `osgEarth::initialize()` itself. Runtime files (E7): with step 3's
@@ -179,4 +204,9 @@ Prerequisites: Conquer's `msvc` preset builds; osgEarth available (vcpkg tree or
 - [ ] Selecting in 2D selects in 3D and vice versa.
 - [ ] Offline: network unplugged, map and entities still render.
 - [ ] Closing and reopening the 3D window works; app exit is clean.
+- [ ] DTED from the elevation server loads: the folder is named in the map source and the
+      terrain follows the cells (`--spot` against a known elevation).
 - [ ] Record the result in `3D_PROGRESS.md` (Verification log) — that file is on GitHub.
+
+If the adapter needed a change this document does not describe, the contract moved: update §2,
+`tests/tst_hostcontract.cpp` and the adapter together, so the next person inherits one story.
