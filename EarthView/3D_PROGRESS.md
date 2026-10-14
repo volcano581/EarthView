@@ -62,15 +62,15 @@ Cloud agents can only syntax-check osgEarth code (E3 review).
 | E4 | Camera controllers + HUD | Merged | `3d/e4-cameras` | [#8](https://github.com/volcano581/EarthView/pull/8) | `840eaec` | pending (Windows) |
 | E5 | Terrain services | Merged | `3d/e5-terrain` | [#9](https://github.com/volcano581/EarthView/pull/9) | `3d6bae2` | pending (Windows) |
 | E6 | Offline data pipeline | Merged | `3d/e6-offline-data` | [#10](https://github.com/volcano581/EarthView/pull/10) | `27583f5` | ✓ after issue #11 fixes ([#12](https://github.com/volcano581/EarthView/pull/12), owner, 2026-10-13) |
-| E7 | Packaging + runtime deploy | In review | `3d/e7-packaging` | [#14](https://github.com/volcano581/EarthView/pull/14) | — | pending (Windows) |
+| E7 | Packaging + runtime deploy | Merged | `3d/e7-packaging` | [#14](https://github.com/volcano581/EarthView/pull/14) | `5f9bc0b` | pending (Windows) |
 | E8 | Wiring kit / host contract test | Not started | | | | |
 | E9 | Cleanup pseudo-3D | Not started | | | | |
 | E10 | Performance + polish | Not started | | | | |
-| E11 | TMS map catalog (`Data/EarthFiles` → standard earth files) | In review | `claude/tms-earth-files-3d-ytzyzm` | [#15](https://github.com/volcano581/EarthView/pull/15) | — | pending (Windows) |
+| E11 | TMS map catalog (`Data/EarthFiles` → standard earth files) | Merged | `claude/tms-earth-files-3d-ytzyzm` | [#15](https://github.com/volcano581/EarthView/pull/15) | `a5d594f` | partial ✓ (owner: files generated with correct paths, 2026-10-14; imagery not yet drawn, I-041) |
 | L1 | Local wiring into Doctrine (off GitHub) | Not started | local | — | | |
-| F1 | Marker scale fix (I-037), DTED folder path (2D + 3D), TMS map by default (I-038) | In review | `claude/entity-rendering-dted-6tsdtt` | — | — | pending (Windows) |
+| F1 | Marker scale fix (I-037), DTED folder path (2D + 3D), TMS map by default (I-038) | Merged | `claude/entity-rendering-dted-6tsdtt` | [#17](https://github.com/volcano581/EarthView/pull/17) | `2ceb9ce` | pending (Windows) |
 | F2 | Demo's 2D pane gets the real map sources (I-041) | Merged | `claude/demo-2d-map-source` | [#18](https://github.com/volcano581/EarthView/pull/18) | `39edabe` | pending (Windows) |
-| F3 | DTED folder indexed in the app (I-042) | In review | `claude/dted-folder-scan` | — | — | pending (Windows) |
+| F3 | DTED folder indexed in the app (I-042) | In review | `claude/dted-folder-scan` | [#19](https://github.com/volcano581/EarthView/pull/19) | — | pending (Windows) |
 | S1 | osgEarth evaluation spike (`spikes/osgearth`) | Done — led to D-007 | master | — | `241c108`…`0b5f729` | partial ✓ (2026-10-08) |
 
 **Direction:** host-independent `earthview3d` (osgEarth, MSVC) finished on GitHub by agents; Doctrine wired locally (D-007, D-008, D-012). Design: [OSGEARTH_INTEGRATION.md](OSGEARTH_INTEGRATION.md) · Local wiring: [DOCTRINE_WIRING.md](DOCTRINE_WIRING.md).
@@ -80,7 +80,7 @@ Cloud agents can only syntax-check osgEarth code (E3 review).
 ## Change log (newest first)
 
 ### 2026-10-14 — F3: a DTED folder is indexed by the app, not by hand  (In review)
-- **Branch / PR:** `claude/dted-folder-scan` / PR — merge —
+- **Branch / PR:** `claude/dted-folder-scan` / [#19](https://github.com/volcano581/EarthView/pull/19) — merge —
 - **Author:** cloud agent
 - **Why:** the offline machine holds DTED as the elevation server serves it — a `DTED1` and a
   `DTED2` root, each with longitude folders (`e066/n32.dt2`, `e067/…`). The owner asked to
@@ -125,8 +125,8 @@ Cloud agents can only syntax-check osgEarth code (E3 review).
   GDAL's DTED driver, not by being read back.
 - **Follow-ups:** I-042, I-043; I-039 (the 2D DTED reader can reuse the header parser).
 
-### 2026-10-14 — F2: the demo's 2D pane reads the same map sources as the 2D viewer  (In review)
-- **Branch / PR:** `claude/demo-2d-map-source` / PR — merge —
+### 2026-10-14 — F2: the demo's 2D pane reads the same map sources as the 2D viewer  (Merged `39edabe`, 2026-10-14)
+- **Branch / PR:** `claude/demo-2d-map-source` / [#18](https://github.com/volcano581/EarthView/pull/18) — merge `39edabe`
 - **Author:** cloud agent
 - **Why:** on the owner's offline machine `EarthView.exe` showed the tile server's imagery and
   CardG maps from `Data/EarthFiles`, and the generated `tms_*.earth` files were correct, but
@@ -160,8 +160,8 @@ Cloud agents can only syntax-check osgEarth code (E3 review).
   2D pane must now show the same imagery as `EarthView.exe` on the offline machine.
 - **Follow-ups:** I-041 (the 3D half of the same report is still open), I-034.
 
-### 2026-10-14 — F1: marker scale from this view's camera, DTED folder path, TMS map by default  (In review)
-- **Branch / PR:** `claude/entity-rendering-dted-6tsdtt` / PR — merge —
+### 2026-10-14 — F1: marker scale from this view's camera, DTED folder path, TMS map by default  (Merged `2ceb9ce`, 2026-10-14)
+- **Branch / PR:** `claude/entity-rendering-dted-6tsdtt` / [#17](https://github.com/volcano581/EarthView/pull/17) — merge `2ceb9ce`
 - **Author:** cloud agent
 - **Why:** three findings from the owner's Windows run. (1) From orbit the 200 demo entities,
   all within 10 km of Islamabad, were drawn as dotted trails running a quarter of the way

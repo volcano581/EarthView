@@ -62,20 +62,20 @@
 | S1 | osgEarth spike | — | M | yes | **Done** |
 | T1 | Local Doctrine integration test (Conquer) | S1 | M | yes | **Done** (local, `1fd3d89`) |
 | E1 | `earthview3d` library from the reference widget + vcpkg manifest + Windows CI | — | M | yes | **Done** ([#4](https://github.com/volcano581/EarthView/pull/4), `351de51`) |
-| E2 | `earthview3d_demo` app with synthetic host feed (replaces the spike app) | E1 | M | yes | In review (`3d/e2-demo`, [#5](https://github.com/volcano581/EarthView/pull/5)) |
+| E2 | `earthview3d_demo` app with synthetic host feed (replaces the spike app) | E1 | M | yes | Done ([#5](https://github.com/volcano581/EarthView/pull/5), `2242208`) |
 | E3 | Entity layer: API, model table, labels, LOD, attitude, picking + selection | E1 | L | yes | Done |
 | E4 | Camera controllers (orbit, chase, stealth, first-person, free-fly) + HUD | E1 | M | yes | Done |
 | E5 | Terrain services: height query API, clamping, vertical datum check | E1 | S | yes | Done |
 | E6 | Offline data pipeline (imagery, DEM overviews, overlays, earth template, cache) | E1 | M | yes | Done |
-| E7 | Packaging: CMake package/`add_subdirectory`, `earthview3d_deploy_runtime()`, install, offline build doc | E1 | M | no | In review (`3d/e7-packaging`, [#14](https://github.com/volcano581/EarthView/pull/14)) |
+| E7 | Packaging: CMake package/`add_subdirectory`, `earthview3d_deploy_runtime()`, install, offline build doc | E1 | M | no | Done ([#14](https://github.com/volcano581/EarthView/pull/14), `5f9bc0b`) |
 | E8 | Wiring kit: keep `DOCTRINE_WIRING.md` + host contract test in sync; integration checklist | E3, E4, E7 | S | no | |
 | E9 | Cleanup: remove EarthView pseudo-3D; 2D MapViewWindow "Open 3D" hook | E2 | M | yes | |
 | E10 | Performance + polish (1k entities, multiple windows, smooth motion) | E3, E4 | M | yes | |
 | E11 | TMS map catalog: EarthView's `Data/EarthFiles` layer-list files → standard earth files, one map per file | E6 | S | yes | Done |
 | L1 | **Local:** wire `earthview3d` into Doctrine (Conquer) per `DOCTRINE_WIRING.md` | E7, E8 | M | yes | local only |
-| F1 | Fixes from the owner's Windows run: per-frame marker scale (I-037), DTED folder path in the 2D layer lists and the earth files, TMS map by default (I-038) | E11 | S | yes | In review (`claude/entity-rendering-dted-6tsdtt`) |
+| F1 | Fixes from the owner's Windows run: per-frame marker scale (I-037), DTED folder path in the 2D layer lists and the earth files, TMS map by default (I-038) | E11 | S | yes | Done ([#17](https://github.com/volcano581/EarthView/pull/17), `2ceb9ce`) |
 | F2 | Demo's 2D pane reads the 2D viewer's own map sources (I-041) | E11 | S | yes | Done ([#18](https://github.com/volcano581/EarthView/pull/18)) |
-| F3 | DTED folder indexed in the app: cell headers to a GDAL mosaic, no GDAL tools needed (I-042) | F1 | S | yes | In review (`claude/dted-folder-scan`) |
+| F3 | DTED folder indexed in the app: cell headers to a GDAL mosaic, no GDAL tools needed (I-042) | F1 | S | yes | In review ([#19](https://github.com/volcano581/EarthView/pull/19)) |
 
 Parallel after E1: E3, E4, E5, E6, E7. E2 should land early (it is how every later task is
 demonstrated).
