@@ -4,7 +4,7 @@ Single source of truth for **what has actually changed** in EarthView for 3D ren
 The plan lives in [ROADMAP_3D.md](ROADMAP_3D.md); this file records execution: who did
 what, in which PR/commit, how it was verified, and what is still open.
 
-Last updated: 2026-10-13
+Last updated: 2026-10-14
 
 ---
 
@@ -68,6 +68,7 @@ Cloud agents can only syntax-check osgEarth code (E3 review).
 | E10 | Performance + polish | Not started | | | | |
 | E11 | TMS map catalog (`Data/EarthFiles` → standard earth files) | In review | `claude/tms-earth-files-3d-ytzyzm` | [#15](https://github.com/volcano581/EarthView/pull/15) | — | pending (Windows) |
 | L1 | Local wiring into Doctrine (off GitHub) | Not started | local | — | | |
+| F1 | Marker scale fix (I-037), DTED folder path (2D + 3D), TMS map by default (I-038) | In review | `claude/entity-rendering-dted-6tsdtt` | — | — | pending (Windows) |
 | S1 | osgEarth evaluation spike (`spikes/osgearth`) | Done — led to D-007 | master | — | `241c108`…`0b5f729` | partial ✓ (2026-10-08) |
 
 **Direction:** host-independent `earthview3d` (osgEarth, MSVC) finished on GitHub by agents; Doctrine wired locally (D-007, D-008, D-012). Design: [OSGEARTH_INTEGRATION.md](OSGEARTH_INTEGRATION.md) · Local wiring: [DOCTRINE_WIRING.md](DOCTRINE_WIRING.md).
@@ -75,6 +76,63 @@ Cloud agents can only syntax-check osgEarth code (E3 review).
 ---
 
 ## Change log (newest first)
+
+### 2026-10-14 — F1: marker scale from this view's camera, DTED folder path, TMS map by default  (In review)
+- **Branch / PR:** `claude/entity-rendering-dted-6tsdtt` / PR — merge —
+- **Author:** cloud agent
+- **Why:** three findings from the owner's Windows run. (1) From orbit the 200 demo entities,
+  all within 10 km of Islamabad, were drawn as dotted trails running a quarter of the way
+  round the globe; they disappeared again on zooming in. (2) The DTED tiles the offline
+  server holds as `.dt1`/`.dt2` have no configurable path: the earth file pointed only at the
+  repository's own `Data/DEM` mosaic. (3) The 3D view opened on the pale offline base imagery
+  while the 2D map beside it showed the tile server's maps.
+- **Changes:**
+  - `screenscale::` (new `include/earthview3d/ScreenScale.h`, `src/ScreenScale.cpp`): metres
+    per pixel, marker scale and pixel size, GL-free. `GlobeView3D` now sets each marker's
+    scale itself once per frame (`updateMarkerScales()`), from its own camera's field of
+    view, viewport height and the eye-to-entity distance, and caps a marker at 50 km however
+    odd the camera gets. `osg::AutoTransform`'s screen auto-scaling is gone from the marker
+    (a plain `osg::MatrixTransform` now) and switched off on the selection ring, which keeps
+    `AutoTransform` only for its rotation to screen: that class caches the scale of the last
+    cull traversal, whichever camera ran it, so one traversal with the marker on or behind the
+    near plane (first person, stealth) left a scale behind that later frames kept drawing with
+    — a shape kilometres long, lying in the local tangent plane, grazing the terrain for
+    hundreds of kilometres (I-037). The `osg::LOD` that chose model-or-icon by
+    `PIXEL_SIZE_ON_SCREEN` has the same per-traversal weakness and is now the same per-frame
+    decision (`modelTable.iconBelowPixels()` unchanged as the threshold).
+  - DTED folder path, one line per machine: `<elevation name="DTED" driver="dted"><url>…</url>`
+    in the 2D layer-list files (both `*.earth.sample` carry a placeholder) and a
+    `<GDALElevation name="DTED (offline server)">` block in `maps/earthview.earth` and
+    `maps/earthview_online.earth`. 2D (`MainWindow` → `MapWidget::setDtedDirectory` →
+    `DemLoader::setDtedDirectory`) reads the path, logs it and counts the tiles; its terrain
+    is unchanged (I-039). `EarthFileCatalog` turns the same entry into a `<GDALElevation>`
+    layer in the generated `tms_<name>.earth`, appending `dted_mosaic.vrt` to a folder path
+    (`dtedMosaicUrl()`) and defaulting `vdatum` to `egm96` (D-021). New step
+    `build_offline_data.py dted-vrt <folder>` writes that mosaic with `gdalbuildvrt`
+    (recursive, relative paths, nothing written into the data tree).
+  - The demo opens on the first map built from `Data/EarthFiles` when the machine has one,
+    instead of always on the template map (I-038); `--map-name` and the Map dropdown still
+    reach the template. Both earth files also carry a commented-out `<MBTilesImage>` block for
+    the `Data/OSM` file the 2D viewer uses, for machines whose imagery is MBTiles, not TMS.
+- **Existing files touched:** `earthview3d/src/GlobeView3D.cpp` (marker/ring/content scaling
+  only — positions, attitude, picking, labels and camera code unchanged),
+  `earthview3d/src/EarthFileCatalog.cpp` + its header, `earthview3d/demo/main.cpp`,
+  `earthview3d/CMakeLists.txt`, `MainWindow.cpp`, `MapWidget.h/.cpp`, `DemLoader.h/.cpp`,
+  `Data/maps/earthview*.earth`, `Data/EarthFiles/*.earth.sample` + README,
+  `tools/offline_data/build_offline_data.py` + its test, `tests/CMakeLists.txt`,
+  `DOCTRINE_WIRING.md`, this tracker. 2D rendering behaviour is unchanged: the DTED path is
+  read, logged and stored, and nothing in the DEM/terrain path reads it yet.
+- **Tests:** new `tst_screenscale` (7 cases: metres per pixel, the real-size floor, the pixel
+  minimum, the 50 km cap against an absurd metres-per-pixel, degenerate input, model-or-icon);
+  `tst_earthfilecatalog` gains the DTED entry and 7 `dtedMosaicUrl()` rows; the offline-data
+  test gains two `dted_vrt` cases. `ctest` 13/13 on Linux (Qt 6.4.2, no GPU).
+- **Verified:** Linux CI ✓ (2D + core libraries + 13 tests) · Windows build pending ·
+  Visual check pending (Windows). The marker fix is arithmetic plus a scene-graph change that
+  no cloud agent can run: `GlobeView3D.cpp` is not compiled here (no osgEarth), so it is
+  reviewed by eye only.
+- **Follow-ups:** I-037 (confirm on Windows), I-038, I-039, I-040; I-025 (the per-entity
+  `AutoTransform`s it lists as a cost suspect: the marker's is gone, the ring keeps only its
+  rotation).
 
 ### 2026-10-13 — CI: upload a runnable Windows build as an artifact  (In review)
 - **Branch / PR:** `3d/e6-local-check-fixes-q96fr6` / PR — merge —
@@ -515,6 +573,8 @@ Cloud agents can only syntax-check osgEarth code (E3 review).
 | D-026 | Runtime deployment layout: OSG plugins (`osgPlugins-<ver>/`), vcpkg DLLs and `share/gdal`, `share/proj` sit next to the host exe (installed: `bin/` + `../share/`), put there by `earthview3d_deploy_runtime()`. `RuntimePaths::defaults()` looks there first, then at the build-tree vcpkg folders, so hosts need no runtime code or environment. The package is static and records the build machine's vcpkg paths: hosts use the same vcpkg toolchain/triplet. | 2026-10-13 | E7 |
 | D-027 | Maps served by the host's local **TMS** server come from EarthView's own layer-list earth files (`Data/EarthFiles/*.earth`), which 2D keeps reading unchanged. For 3D, `EarthFileCatalog` generates one standard osgEarth earth file per source file by splicing `<TMSImage>`/`<TMSElevation>` layers into a template earth file at `<!--@EARTHVIEW3D_TMS_LAYERS@-->`; the template (default `maps/earthview.earth`) stays the single place where elevation, overlays, graticule and sky are configured. Generated files are written next to their template (osgEarth resolves relative layer paths against the earth file) as `tms_<name>.earth` and are git-ignored. One map per file = one dropdown entry, labelled as in 2D. | 2026-10-13 | E11 |
 | D-028 | The Windows CI job uploads a runnable folder (`earthview-win64`) rather than only building and testing. It copies the demo's build output directory, which `earthview3d_deploy_runtime()` (D-026) has already filled with the vcpkg DLLs, `osgPlugins-<ver>/` and `share/gdal` + `share/proj`, and into which `demo/CMakeLists.txt` copies `shaders/`; that directory is the deployed layout, so the step no longer rediscovers the vcpkg tree. It then adds the two 2D executables, the Qt runtime (`windeployqt --compiler-runtime` — the build-tree form of the deploy function omits Qt) and `Data/`. Every expected input is fatal if missing, because each one fails silently at runtime rather than loudly. The single remaining launcher argument is the demo's `--data-root`, which still defaults to `EARTHVIEW3D_DEFAULT_DATA_ROOT` — an absolute path into the source tree of the machine that built it, which D-026 does not cover. `Data/EarthFiles` is deliberately absent from the repository, so no TMS layer-list file and no tile-server address is packaged. | 2026-10-14 | E7, E11 |
+| D-029 | Entity marker and selection-ring size is computed by `GlobeView3D` once per frame (`screenscale::`, `updateMarkerScales()`) from this view's camera — vertical field of view, viewport height, eye-to-entity distance — and capped at 50 km; `osg::AutoTransform`'s screen auto-scaling and `osg::LOD`'s `PIXEL_SIZE_ON_SCREEN` are not used for entities. Both derive their value during a cull traversal and keep it on the node, so any other camera's traversal, or one with the marker on the near plane, decides what the next frame draws (I-037). The arithmetic is GL-free and unit tested. | 2026-10-14 | F1 |
+| D-030 | The offline server's DTED folder is named once per machine, in the map source: `<elevation name="DTED" driver="dted"><url>…</url></elevation>` in a 2D layer-list file, or the `GDALElevation` block in `maps/earthview*.earth`. osgEarth opens a GDAL dataset, not a folder, so a folder path means `<folder>/dted_mosaic.vrt`, built once by `build_offline_data.py dted-vrt <folder>`; DTED is orthometric, so `vdatum` defaults to `egm96` (D-021). 2D reads and reports the path; its terrain still comes from the GeoTIFF DEM mirror (I-039). | 2026-10-14 | F1 |
 | D-019 | CI vcpkg binary cache: every run restores, only `master` saves (complete or partial); a weekly scheduled master run keeps it from the 7-day eviction. Dependency changes build once on their PR without saving and once on master after merge. | 2026-10-12 | CI cache scope |
 | D-011 | The integration target is **Conquer** (`D:\Source\Conquer`: Doctrine + cgf-engine + EarthView superbuild, already MSVC), not the standalone `D:\Source\cgf-engine`. 3D code lives in an isolated library so osgEarth includes never reach other TUs. | 2026-10-08 | Conquer test |
 
@@ -560,6 +620,10 @@ Cloud agents can only syntax-check osgEarth code (E3 review).
 | I-036 | Windows packaging step (D-028). The owner ran the pre-E7 package on Windows: the 2D app is clean and the 3D demo opens, with the 3D view reachable via Ctrl+3. Four faults were found only by running it — a recursive `*.exe` glob collected vcpkg's own tools so `windeployqt` died on `bomtool.exe`; `osgPlugins-*` was looked for under `bin\` instead of `plugins\`; the demo exited 2 before any window because of the compiled-in `--data-root`; and `shaders/` was dropped, so the 2D app logged "Could not find shader files ..." for every program. After E7 the step was rebuilt on top of `earthview3d_deploy_runtime()`, which removes most of that discovery. Still open: the demo's `--data-root` default is build-tree absolute and belongs with E7 rather than a launcher; the rebuilt step has not run yet; and the package has never been tried on a machine without Qt or osgEarth. | E6 | Open |
 | I-025 | 3D frame time scales ~linearly with entity count (~0.25–0.35 ms/entity): RTX 3050 Ti, 1400×900, 20 entities 14.6 ms (~68 FPS), 200 entities 64–86 ms (~12–15 FPS), 200 with declutter off 59.1 ms (owner, `579d8eb`). Suspects: per-entity `Terrain::getHeight()` every frame for clamped units, one `osgText::Text` + geode per entity, per-entity `AutoTransform`s (marker + ring). First steps: cache terrain height and refresh only on movement > N m or every few frames, share label/marker state, profile with osgEarth stats. Target 1,000 entities at 60 FPS. | E10 | Open |
 | I-018 | `MapConfig.cacheDir` is applied through `OSGEARTH_CACHE_PATH` before the widget's first `osgEarth::initialize()`; it is ignored if the host initialised osgEarth earlier or set the variable itself. Verify the cache fills on Windows (E6 owns caching). | E6 | Open (demo now defaults to `--cache cache`; verify second offline run, E6) |
+| I-037 | Entity markers drawn from orbit as dotted trails running a quarter of the way round the globe, each in its kind's colour, gone again when zoomed in (owner, Windows, 200 demo entities inside 10 km of Islamabad). Diagnosed as `osg::AutoTransform`'s cached screen auto-scale: the value survives the traversal that produced it, so a scale computed with the marker on or behind the near plane (first person, stealth) or by another camera is what the next frames draw, and an elongated shape scaled that far lies in the tangent plane grazing the terrain. Fixed by computing the scale per frame from this view's camera (D-029). **Not reproducible or verifiable by a cloud agent** (no GPU, `GlobeView3D.cpp` is not even compiled): confirm on Windows that markers hold ~14 px from orbit down to ground level, in every camera mode, and that the trails are gone. | F1 | Open (Windows check) |
+| I-038 | The 3D view opened on the template map (pale offline base imagery) while the 2D map beside it showed the tile server's maps. The demo now defaults to the first map built from `Data/EarthFiles` instead. That only helps a machine whose imagery really is TMS; if the 2D map's imagery is an `Data/OSM/*.mbtiles` file, uncomment the `<MBTilesImage>` block in the earth file (osgEarth reads MBTiles directly) or decide whether `EarthFileCatalog` should list MBTiles files as map sources too, the way 2D does. | F1 | Open (decide with E9/L1) |
+| I-039 | 2D terrain still comes from the GeoTIFF DEM mirror (`DEM90TIF`): the DTED folder path is read, validated and logged, but no `.dt1`/`.dt2` is parsed. A 2D DTED reader (header + grid, elevation texture like the GeoTIFF path) is deferred by owner's decision, to keep this change out of the 2D render path. | F1 | Open (deferred by owner) |
+| I-040 | The DTED mosaic is built by `gdalbuildvrt`, so the offline machine needs the GDAL command-line tools once, after copying the tiles. A uniform grid is assumed: DTED above 50° latitude has wider longitude spacing, and mixing bands in one folder would produce a mosaic that resamples. For the Pakistan theatre (30–35° N) every tile is 1", so this does not bite yet. | F1 | Open |
 
 ---
 

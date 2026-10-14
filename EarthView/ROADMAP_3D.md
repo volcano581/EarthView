@@ -73,6 +73,7 @@
 | E10 | Performance + polish (1k entities, multiple windows, smooth motion) | E3, E4 | M | yes | |
 | E11 | TMS map catalog: EarthView's `Data/EarthFiles` layer-list files → standard earth files, one map per file | E6 | S | yes | Done |
 | L1 | **Local:** wire `earthview3d` into Doctrine (Conquer) per `DOCTRINE_WIRING.md` | E7, E8 | M | yes | local only |
+| F1 | Fixes from the owner's Windows run: per-frame marker scale (I-037), DTED folder path in the 2D layer lists and the earth files, TMS map by default (I-038) | E11 | S | yes | In review (`claude/entity-rendering-dted-6tsdtt`) |
 
 Parallel after E1: E3, E4, E5, E6, E7. E2 should land early (it is how every later task is
 demonstrated).

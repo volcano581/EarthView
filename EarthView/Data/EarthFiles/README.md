@@ -27,3 +27,30 @@ earthview3d_demo --earth-files EarthFiles --map-name "Satellite Imagery"
 
 A file in this folder that already has a `<map>` root is passed to osgEarth unchanged.
 2D behaviour is unchanged: it still reads these files itself.
+
+## DTED from the offline server
+
+A layer list may also name the folder of DTED tiles (`.dt1`/`.dt2`) that the offline machine
+holds, so the elevation path is configured in the same one file as the imagery:
+
+```
+<elevation name="DTED" driver="dted"> <url> D:/EarthViewData/DTED </url></elevation>
+```
+
+Edit that path on each machine (the `*.earth.sample` files carry a placeholder).
+
+* **2D** reads the path and reports it at start-up; its terrain still comes from the GeoTIFF
+  DEM mirror until the DTED reader lands (I-039 in `3D_PROGRESS.md`).
+* **3D** turns the entry into an osgEarth `<GDALElevation>` layer in the generated
+  `tms_<name>.earth`. osgEarth opens a GDAL dataset, not a folder, so the generated `<url>`
+  is `<folder>/dted_mosaic.vrt`. Build that mosaic once per machine, after copying the
+  tiles — it indexes sub-folders too and uses relative paths, so the folder stays movable:
+
+  ```
+  python EarthView/tools/offline_data/build_offline_data.py dted-vrt D:/EarthViewData/DTED
+  ```
+
+  A `<url>` that already names a file (`.vrt`, a single `.dt2`) is used as it is.
+
+Hosts that load `maps/earthview.earth` directly instead of a layer list have the same path
+spelled out in that file, next to the SRTM mosaic.

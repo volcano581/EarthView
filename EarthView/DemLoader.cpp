@@ -731,6 +731,28 @@ void DemLoader::setLocalMirrorPath(const QString& demRootPath)
     }
 }
 
+void DemLoader::setDtedDirectory(const QString& path)
+{
+    const QString cleaned = path.trimmed();
+    if (m_dtedDirectory == cleaned)
+        return;
+    m_dtedDirectory = cleaned;
+    if (cleaned.isEmpty())
+        return;
+
+    // Plumbing only (I-039): the path configured for this machine is reported so a wrong
+    // one is obvious in the log, but the 2D terrain still comes from the GeoTIFF DEM mirror.
+    // earthview3d feeds the same path to osgEarth as a GDALElevation layer.
+    const int tiles = QDir(cleaned).entryList({ QStringLiteral("*.dt0"), QStringLiteral("*.dt1"),
+                                                QStringLiteral("*.dt2") },
+                                              QDir::Files | QDir::Readable).size();
+    if (!QDir(cleaned).exists())
+        qWarning() << "DTED folder does not exist:" << cleaned;
+    else
+        qInfo() << "DTED folder" << cleaned << "holds" << tiles
+                << "tiles directly (2D still renders the GeoTIFF DEM mirror)";
+}
+
 void DemLoader::setEnabled(bool enabled)
 {
     if (m_enabled == enabled)

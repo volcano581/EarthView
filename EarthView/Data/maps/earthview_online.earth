@@ -9,6 +9,7 @@
     ../imagery/hillshade.tif    shaded relief from DTED        } tools/offline_data/
     ../Cities/places_*.gpkg     place-name points              } build_offline_data.py
     ../DEM/dted_1arc.vrt        SRTM 1" DTED2 mosaic (git-ignored; copy the .dt2 tiles locally)
+    <DTED folder>/dted_mosaic.vrt  the offline server's DTED tiles; edit that path below
     ../Borders/...              country borders shapefile (in git)
   Missing local files only drop that layer; osgEarth logs a warning.
 -->
@@ -37,6 +38,15 @@
          ignores the marker, so this file stays loadable as it is. -->
     <!--@EARTHVIEW3D_TMS_LAYERS@-->
 
+    <!-- Local OSM imagery, the same .mbtiles the 2D viewer lists under Data/OSM. osgEarth
+         reads MBTiles directly, so uncomment this and put your file's name in to get the
+         2D map's look in 3D without a tile server (paths resolve against this file). -->
+    <!--
+    <MBTilesImage name="OSM (offline)">
+        <url>../OSM/your_region.mbtiles</url>
+    </MBTilesImage>
+    -->
+
     <!-- Shaded relief multiplies (modulates) the layers below it. -->
     <GDALImage name="Hillshade" blend="modulate" opacity="0.85">
         <url>../imagery/hillshade.tif</url>
@@ -50,6 +60,27 @@
          the 3D view (D-021). Near Islamabad the geoid is ~47 m below the ellipsoid. -->
     <GDALElevation name="SRTM 1arc DTED2">
         <url>../DEM/dted_1arc.vrt</url>
+        <vdatum>egm96</vdatum>
+    </GDALElevation>
+
+    <!-- DTED straight from the offline elevation server (.dt1/.dt2), on top of the mosaic
+         above: where it covers the area it wins, elsewhere the layer above shows through.
+
+         EDIT THE PATH BELOW on this machine - it is the only line to change. osgEarth reads a
+         GDAL dataset, not a folder, so point it at the .vrt that indexes the DTED folder:
+
+             python EarthView/tools/offline_data/build_offline_data.py dted-vrt D:/EarthViewData/DTED
+
+         writes dted_mosaic.vrt into that folder (relative tile paths, so the folder stays
+         movable). An absolute path is fine here; a relative one resolves against THIS file.
+         The 2D viewer is given the same folder by its own layer list
+         (Data/EarthFiles/*.earth: <elevation name="DTED" driver="dted">), and a generated
+         tms_*.earth carries that entry over as a layer exactly like this one.
+
+         DTED heights are orthometric (EGM96), so vdatum="egm96" stays (D-021). While the path
+         does not exist osgEarth logs a warning and drops the layer; nothing else changes. -->
+    <GDALElevation name="DTED (offline server)">
+        <url>D:/EarthViewData/DTED/dted_mosaic.vrt</url>
         <vdatum>egm96</vdatum>
     </GDALElevation>
 

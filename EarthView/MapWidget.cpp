@@ -302,6 +302,12 @@ void MapWidget::setTileServerUrl(const QString& url)
     setTileSourceLayers({ layer });
 }
 
+void MapWidget::setDtedDirectory(const QString& path)
+{
+    m_dtedDirectory = path;
+    m_demLoader->setDtedDirectory(path);
+}
+
 void MapWidget::setTileSourceLayers(const QList<TmsLoader::TileSourceLayer>& layers)
 {
     m_tileSourceLayers = layers;

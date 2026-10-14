@@ -34,6 +34,10 @@ struct EarthSource {
     QString label;
     QString filePath;
     QList<TmsLoader::TileSourceLayer> layers;
+    /// Folder of DTED tiles (.dt1/.dt2) served by the offline machine, from an
+    /// `<elevation driver="dted">` entry in the .earth layer list. Empty when the file has
+    /// none. Handed to MapWidget; the 2D DEM pipeline still reads its GeoTIFF mirror (I-039).
+    QString dtedDirectory;
 };
 
 struct TileMapResourceMetadata {
@@ -307,7 +311,18 @@ void applyTileMapResourceMetadata(
     layer.tmsYOrigin = metadata.tmsYOrigin;
 }
 
-QList<TmsLoader::TileSourceLayer> readEarthLayers(const QString& filePath)
+/**
+ * @brief Read the layer list of a 2D .earth file.
+ *
+ * @p dtedDirectory, when given, receives the folder of an `<elevation driver="dted">` entry:
+ * the offline machine's DTED tiles (.dt1/.dt2), e.g.
+ * @code
+ * <elevation name="DTED" driver="dted"> <url> D:/EarthViewData/DTED </url></elevation>
+ * @endcode
+ * Only the path is read here (one place to edit per machine); the 2D DEM pipeline still uses
+ * its GeoTIFF mirror. earthview3d turns the same entry into an osgEarth GDALElevation layer.
+ */
+QList<TmsLoader::TileSourceLayer> readEarthLayers(const QString& filePath, QString* dtedDirectory = nullptr)
 {
     QFile file(filePath);
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
@@ -320,12 +335,22 @@ QList<TmsLoader::TileSourceLayer> readEarthLayers(const QString& filePath)
     TmsLoader::TileSourceLayer currentLayer;
     bool insideImage = false;
     bool skipCurrentImage = false;
+    bool insideDted = false;
 
     while (!xml.atEnd()) {
         xml.readNext();
         if (xml.isStartElement()) {
             const QString elementName = xml.name().toString();
-            if (elementName == "image") {
+            if (elementName == "elevation" || elementName == "heightfield") {
+                insideDted = xml.attributes().value("driver").toString()
+                                 .compare("dted", Qt::CaseInsensitive) == 0;
+            }
+            else if (insideDted && elementName == "url") {
+                const QString path = xml.readElementText(QXmlStreamReader::SkipChildElements).trimmed();
+                if (dtedDirectory && !path.isEmpty())
+                    *dtedDirectory = path;
+            }
+            else if (elementName == "image") {
                 const QXmlStreamAttributes attributes = xml.attributes();
                 const QString driver = attributes.value("driver").toString();
                 insideImage = true;
@@ -353,6 +378,10 @@ QList<TmsLoader::TileSourceLayer> readEarthLayers(const QString& filePath)
                 if (ok)
                     currentLayer.maxZoom = zoom;
             }
+        }
+        else if (xml.isEndElement()
+                 && (xml.name() == QLatin1String("elevation") || xml.name() == QLatin1String("heightfield"))) {
+            insideDted = false;
         }
         else if (xml.isEndElement() && xml.name() == QLatin1String("image")) {
             if (insideImage && !skipCurrentImage && !currentLayer.urlTemplate.isEmpty()) {
@@ -414,7 +443,7 @@ QList<EarthSource> discoverEarthSources()
             EarthSource source;
             source.label = sourceLabelForFile(earthFile);
             source.filePath = absolutePath;
-            source.layers = readEarthLayers(absolutePath);
+            source.layers = readEarthLayers(absolutePath, &source.dtedDirectory);
             if (!source.layers.isEmpty()) {
                 sources.append(source);
             }
@@ -527,6 +556,8 @@ void MainWindow::setupUI()
     if (!mapSources.isEmpty()) {
         m_mapWidget->setTileSourceLayers(mapSources.first().layers);
         m_secondaryWindow->mapWidget()->setTileSourceLayers(mapSources.first().layers);
+        m_mapWidget->setDtedDirectory(mapSources.first().dtedDirectory);
+        m_secondaryWindow->mapWidget()->setDtedDirectory(mapSources.first().dtedDirectory);
     }
     else {
         m_mapWidget->setTileServerUrl("https://tile.openstreetmap.org/{z}/{x}/{y}.png");
@@ -563,6 +594,8 @@ void MainWindow::setupUI()
             const EarthSource& source = mapSources.at(sourceIndex);
             m_mapWidget->setTileSourceLayers(source.layers);
             m_secondaryWindow->mapWidget()->setTileSourceLayers(source.layers);
+            m_mapWidget->setDtedDirectory(source.dtedDirectory);
+            m_secondaryWindow->mapWidget()->setDtedDirectory(source.dtedDirectory);
             statusBar()->showMessage(
                 QString("Map source set to %1 from %2")
                     .arg(source.label, QFileInfo(source.filePath).fileName()),

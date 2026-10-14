@@ -45,6 +45,11 @@ public:
     void setBaseUrl(const QString& baseUrl);
     void setIndexBaseUrl(const QString& indexBaseUrl);
     void setLocalMirrorPath(const QString& demRootPath);
+    /// Folder of DTED tiles (.dt1/.dt2) on the offline machine, from the map source's
+    /// `<elevation driver="dted">` entry. Stored and validated only (I-039): the tiles
+    /// are not read yet, so 2D terrain is unchanged.
+    void setDtedDirectory(const QString& path);
+    QString dtedDirectory() const { return m_dtedDirectory; }
     void setEnabled(bool enabled);
     bool isEnabled() const { return m_enabled; }
 
@@ -84,6 +89,7 @@ private:
     QUrl m_indexBaseUrl;
     QUrl m_localTileBaseUrl;
     QUrl m_localIndexBaseUrl;
+    QString m_dtedDirectory;
     QMap<QString, DemTile> m_tiles;
     QSet<QString> m_pendingMetadata;
     QSet<QString> m_pendingImages;
