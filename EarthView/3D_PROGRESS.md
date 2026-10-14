@@ -63,14 +63,14 @@ Cloud agents can only syntax-check osgEarth code (E3 review).
 | E5 | Terrain services | Merged | `3d/e5-terrain` | [#9](https://github.com/volcano581/EarthView/pull/9) | `3d6bae2` | pending (Windows) |
 | E6 | Offline data pipeline | Merged | `3d/e6-offline-data` | [#10](https://github.com/volcano581/EarthView/pull/10) | `27583f5` | ✓ after issue #11 fixes ([#12](https://github.com/volcano581/EarthView/pull/12), owner, 2026-10-13) |
 | E7 | Packaging + runtime deploy | Merged | `3d/e7-packaging` | [#14](https://github.com/volcano581/EarthView/pull/14) | `5f9bc0b` | pending (Windows) |
-| E8 | Wiring kit / host contract test | Not started | | | | |
+| E8 | Wiring kit / host contract test | In review | `claude/e8-wiring-kit` | — | — | n.a. |
 | E9 | Cleanup pseudo-3D | Not started | | | | |
 | E10 | Performance + polish | Not started | | | | |
 | E11 | TMS map catalog (`Data/EarthFiles` → standard earth files) | Merged | `claude/tms-earth-files-3d-ytzyzm` | [#15](https://github.com/volcano581/EarthView/pull/15) | `a5d594f` | partial ✓ (owner: files generated with correct paths, 2026-10-14; imagery not yet drawn, I-041) |
 | L1 | Local wiring into Doctrine (off GitHub) | Not started | local | — | | |
 | F1 | Marker scale fix (I-037), DTED folder path (2D + 3D), TMS map by default (I-038) | Merged | `claude/entity-rendering-dted-6tsdtt` | [#17](https://github.com/volcano581/EarthView/pull/17) | `2ceb9ce` | pending (Windows) |
 | F2 | Demo's 2D pane gets the real map sources (I-041) | Merged | `claude/demo-2d-map-source` | [#18](https://github.com/volcano581/EarthView/pull/18) | `39edabe` | pending (Windows) |
-| F3 | DTED folder indexed in the app (I-042) | In review | `claude/dted-folder-scan` | [#19](https://github.com/volcano581/EarthView/pull/19) | — | pending (Windows) |
+| F3 | DTED folder indexed in the app (I-042) | Merged | `claude/dted-folder-scan` | [#19](https://github.com/volcano581/EarthView/pull/19) | `99719b8` | pending (Windows) |
 | S1 | osgEarth evaluation spike (`spikes/osgearth`) | Done — led to D-007 | master | — | `241c108`…`0b5f729` | partial ✓ (2026-10-08) |
 
 **Direction:** host-independent `earthview3d` (osgEarth, MSVC) finished on GitHub by agents; Doctrine wired locally (D-007, D-008, D-012). Design: [OSGEARTH_INTEGRATION.md](OSGEARTH_INTEGRATION.md) · Local wiring: [DOCTRINE_WIRING.md](DOCTRINE_WIRING.md).
@@ -78,6 +78,40 @@ Cloud agents can only syntax-check osgEarth code (E3 review).
 ---
 
 ## Change log (newest first)
+
+### 2026-10-14 — E8: host contract pinned by a test, wiring document brought up to date  (In review)
+- **Branch / PR:** `claude/e8-wiring-kit` / PR — merge —
+- **Author:** cloud agent
+- **Why:** `DOCTRINE_WIRING.md` §2 is a contract with an adapter that lives off GitHub, so
+  nothing in CI ever compiled against it. A renamed field, a changed unit or an extra argument
+  would have been found only when someone next opened the Conquer tree — and §2 had already
+  drifted (it still described the API "as of E1").
+- **Changes:**
+  - New `tests/tst_hostcontract.cpp`: a `DoctrineRenderEntity` shaped like Conquer's snapshot
+    record (radians, MSL, `char[8]` label, side) and the adapter of §2 in full, converting it
+    to `EntityState3D`. Then `static_assert` over the contract: every `EntityState3D` field
+    and its type, `Force`'s underlying type, and the signature of every `GlobeView3D` method
+    §2 names, plus `MapConfig`, `EarthFileCatalog`, `DtedMosaic` and `CameraMode`. Behaviour
+    the document promises is tested for real: `id == 0` ignored, a duplicate id keeping the
+    first entry, removals reported once, `entityColor()` falling back to `rgba`, and the
+    MSL → HAE crossing (D-021), which is a 47 m error near Islamabad if the adapter forgets it.
+  - It includes `GlobeView3D.h` but **does not link** `earthview3d`: the public headers are
+    osgEarth-free (D-011) and `decltype` never odr-uses anything, so the whole API check runs
+    on the Linux job too, where the osgEarth widget is not built. Verified by breaking a
+    signature on purpose — the build fails with the static assertion — and restoring it.
+  - `DOCTRINE_WIRING.md` §2/§3 caught up with the API: the test is called out at the top of
+    §2; `entityCount()`, `entityColor()`, `selectedId()`/`selectedLabel()`,
+    `selectNextEntity()`, `loadFailed()`, `goHome()`, `cameraModeName()`/`parseCameraMode()`
+    (and that `CameraMode`'s order is part of the contract), `haveGeoid()`,
+    `GroundOffsetStats`' fields, `viewpointDescription()`, `saveSnapshot()`,
+    `MapConfig::validate()`/`fromJsonFile()` and the full `MapConfig` field list are all
+    described now. §4 gains a DTED acceptance line and a closing rule: if the adapter needed a
+    change this document does not describe, update §2, the test and the adapter together.
+- **Existing files touched:** `DOCTRINE_WIRING.md`, `tests/CMakeLists.txt`, this tracker. No
+  library, 2D or rendering code: the API is unchanged, which is the point.
+- **Tests:** `tst_hostcontract` (6 cases plus ~50 static assertions); `ctest` 16/16 on Linux.
+- **Verified:** Linux CI ✓ · Windows build pending · Visual check n.a. (nothing renders).
+- **Follow-ups:** none. E9 and E10 are the remaining agent tasks; L1 is local.
 
 ### 2026-10-14 — F3: a DTED folder is indexed by the app, not by hand  (In review)
 - **Branch / PR:** `claude/dted-folder-scan` / [#19](https://github.com/volcano581/EarthView/pull/19) — merge —
