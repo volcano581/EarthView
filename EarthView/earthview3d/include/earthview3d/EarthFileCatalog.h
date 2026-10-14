@@ -113,8 +113,13 @@ public:
     /// Write the standard earth file for @p entry: @p templatePath with its placeholder
     /// replaced by the entry's layers. @p outputDir empty = the template's folder. Sets
     /// `entry->earthFile` on success; a standard earth file is left untouched (no write).
+    ///
+    /// A `driver="dted"` entry's folder is indexed here (DtedMosaic): the generated map names
+    /// the mosaic, not the folder, because GDAL opens a dataset and not a directory. Anything
+    /// that stops the mosaic being built is reported in @p warnings and leaves the entry's own
+    /// path in the generated file.
     static bool generate(MapCatalogEntry* entry, const QString& templatePath, const QString& outputDir,
-                         QString* error = nullptr);
+                         QString* error = nullptr, QStringList* warnings = nullptr);
 
     /// File name of the generated earth file for @p entry: `tms_<source base name>.earth`.
     static QString generatedFileName(const MapCatalogEntry& entry);

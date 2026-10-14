@@ -69,7 +69,8 @@ Cloud agents can only syntax-check osgEarth code (E3 review).
 | E11 | TMS map catalog (`Data/EarthFiles` → standard earth files) | In review | `claude/tms-earth-files-3d-ytzyzm` | [#15](https://github.com/volcano581/EarthView/pull/15) | — | pending (Windows) |
 | L1 | Local wiring into Doctrine (off GitHub) | Not started | local | — | | |
 | F1 | Marker scale fix (I-037), DTED folder path (2D + 3D), TMS map by default (I-038) | In review | `claude/entity-rendering-dted-6tsdtt` | — | — | pending (Windows) |
-| F2 | Demo's 2D pane gets the real map sources (I-041) | In review | `claude/demo-2d-map-source` | — | — | pending (Windows) |
+| F2 | Demo's 2D pane gets the real map sources (I-041) | Merged | `claude/demo-2d-map-source` | [#18](https://github.com/volcano581/EarthView/pull/18) | `39edabe` | pending (Windows) |
+| F3 | DTED folder indexed in the app (I-042) | In review | `claude/dted-folder-scan` | — | — | pending (Windows) |
 | S1 | osgEarth evaluation spike (`spikes/osgearth`) | Done — led to D-007 | master | — | `241c108`…`0b5f729` | partial ✓ (2026-10-08) |
 
 **Direction:** host-independent `earthview3d` (osgEarth, MSVC) finished on GitHub by agents; Doctrine wired locally (D-007, D-008, D-012). Design: [OSGEARTH_INTEGRATION.md](OSGEARTH_INTEGRATION.md) · Local wiring: [DOCTRINE_WIRING.md](DOCTRINE_WIRING.md).
@@ -77,6 +78,52 @@ Cloud agents can only syntax-check osgEarth code (E3 review).
 ---
 
 ## Change log (newest first)
+
+### 2026-10-14 — F3: a DTED folder is indexed by the app, not by hand  (In review)
+- **Branch / PR:** `claude/dted-folder-scan` / PR — merge —
+- **Author:** cloud agent
+- **Why:** the offline machine holds DTED as the elevation server serves it — a `DTED1` and a
+  `DTED2` root, each with longitude folders (`e066/n32.dt2`, `e067/…`). The owner asked to
+  name that root and have the data loaded from it. Until now the map had to name a `.vrt`
+  built by `build_offline_data.py dted-vrt`, which also means the GDAL command-line tools on
+  a machine that may not have them (I-042).
+- **Changes:**
+  - New `DtedMosaic` (`include/earthview3d/DtedMosaic.h`, `src/DtedMosaic.cpp`,
+    `earthview3d_core`): reads a cell's 80-byte DTED user header label (origin, posting
+    interval in tenths of an arc-second, grid size), walks a folder recursively for
+    `.dt0/.dt1/.dt2`, and writes the GDAL `.vrt` that indexes them. Qt Core only — no GDAL
+    and no osgEarth, so the offline machine needs nothing installed and the arithmetic is
+    unit tested. The grid follows GDAL's own DTED driver: posts sit on the cell boundary
+    (pixel-is-point) while GDAL describes a raster by its outer corner, so each cell starts
+    half a post further out, and neighbouring cells share one row of posts (two 1° cells at
+    1″ are 7201 pixels wide, not 7202). Mixed posting mosaics onto the finest grid present.
+  - `EarthFileCatalog::generate()` resolves a `driver="dted"` entry through
+    `DtedMosaic::ensureMosaic()`: a folder is indexed as `<folder>/dted_mosaic.vrt` and the
+    generated `tms_<name>.earth` names that file, so the layer list can name the root folder
+    and nothing has to be run by hand. The mosaic is rebuilt only when a cell is newer than
+    it; a read-only DTED share puts it next to the generated map instead, with absolute cell
+    paths. If it cannot be built at all, the folder path stays (and `dtedMosaicUrl()` appends
+    the default name, as before) and the reason goes into the caller's warnings.
+    `generate()` gained an optional trailing `QStringList* warnings`.
+  - The earth files and `Data/EarthFiles/README.md` say which route needs what: a layer list
+    takes the folder, a map loaded directly by osgEarth still names the mosaic.
+- **Existing files touched:** `EarthFileCatalog.{h,cpp}`, `earthview3d/CMakeLists.txt`,
+  `Data/maps/earthview*.earth` (comments), `Data/EarthFiles/README.md`,
+  `tests/{CMakeLists.txt,tst_earthfilecatalog.cpp}`, this tracker. No 2D code; no rendering
+  code.
+- **Tests:** new `tst_dtedmosaic` (11 cases): header parsing including southern/western
+  hemispheres, a non-DTED file rejected, the recursive walk with upper-case names, the GDAL
+  grid convention, shared posts between neighbours, mixed posting, relative versus absolute
+  cell paths, a file left alone, a folder indexed once and reused, and the empty-folder
+  errors. `tst_earthfilecatalog` gains the end-to-end case: a layer list naming a folder with
+  one cell produces a `<GDALElevation>` layer pointing at the mosaic that was written.
+  `ctest` 15/15 on Linux.
+- **Verified:** Linux CI ✓ · Windows build pending · Visual check pending (Windows): point a
+  layer list at the DTED root and confirm the terrain follows the cells (`--spot` against a
+  known elevation). **The mosaic has not been opened by GDAL anywhere in this session** — no
+  GDAL is installed here — so the VRT is correct by construction and by comparison with
+  GDAL's DTED driver, not by being read back.
+- **Follow-ups:** I-042, I-043; I-039 (the 2D DTED reader can reuse the header parser).
 
 ### 2026-10-14 — F2: the demo's 2D pane reads the same map sources as the 2D viewer  (In review)
 - **Branch / PR:** `claude/demo-2d-map-source` / PR — merge —
@@ -661,6 +708,8 @@ Cloud agents can only syntax-check osgEarth code (E3 review).
 | I-039 | 2D terrain still comes from the GeoTIFF DEM mirror (`DEM90TIF`): the DTED folder path is read, validated and logged, but no `.dt1`/`.dt2` is parsed. A 2D DTED reader (header + grid, elevation texture like the GeoTIFF path) is deferred by owner's decision, to keep this change out of the 2D render path. | F1 | Open (deferred by owner) |
 | I-040 | The DTED mosaic is built by `gdalbuildvrt`, so the offline machine needs the GDAL command-line tools once, after copying the tiles. A uniform grid is assumed: DTED above 50° latitude has wider longitude spacing, and mixing bands in one folder would produce a mosaic that resamples. For the Pakistan theatre (30–35° N) every tile is 1", so this does not bite yet. | F1 | Open |
 | I-041 | The demo's 3D window shows no imagery from a generated `tms_*.earth` on the owner's offline machine, although `EarthView.exe` renders the same TMS layers and the generated file has the right URLs. The 2D half of the same report was a missing map source in `DemoWindow` and is fixed (F2); the 3D half is unexplained and needs the osgEarth console output from that machine (which layer fails to open and why). First suspect is I-034: osgEarth's TMS driver rejecting a `tilemapresource.xml` whose SRS it cannot resolve, where a `<profile>` has to be declared. | F2 | Open (needs the owner's log) |
+| I-042 | DTED folders are indexed by `DtedMosaic` from the cells' own headers, not by `gdalbuildvrt`, so the written `.vrt` has never been opened by GDAL in CI (no GDAL on the cloud runners, and the Windows job has no DTED data). The grid matches what GDAL's DTED driver reports, cell for cell, but confirm on Windows that osgEarth loads a generated mosaic and that terrain heights match the per-cell values (`earthview3d_demo --spot 33.5497,72.8253,537`). | F3 | Open (Windows check) |
+| I-043 | A map loaded directly by osgEarth (`maps/earthview.earth`, the Doctrine/L1 route) still has to name the `.vrt`: only `EarthFileCatalog` passes through code that could index a folder. Either give `MapConfig` a DTED folder and add the elevation layer at runtime, or resolve the earth file's own `<url>` before handing it to osgEarth. Decide with L1. | F3 | Open |
 
 ---
 

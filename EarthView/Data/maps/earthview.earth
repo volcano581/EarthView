@@ -60,12 +60,19 @@
          above: where it covers the area it wins, elsewhere the layer above shows through.
 
          EDIT THE PATH BELOW on this machine - it is the only line to change. osgEarth reads a
-         GDAL dataset, not a folder, so point it at the .vrt that indexes the DTED folder:
+         GDAL dataset, not a folder, so this file has to name the mosaic that indexes the DTED
+         folder. Build it once, after copying the cells:
 
              python EarthView/tools/offline_data/build_offline_data.py dted-vrt D:/EarthViewData/DTED
 
-         writes dted_mosaic.vrt into that folder (relative tile paths, so the folder stays
-         movable). An absolute path is fine here; a relative one resolves against THIS file.
+         writes dted_mosaic.vrt into that folder (relative cell paths, so the folder stays
+         movable), walking sub-folders such as e066/n32.dt2. An absolute path is fine here; a
+         relative one resolves against THIS file.
+
+         A 2D layer list needs none of that: give it the FOLDER
+         (<elevation name="DTED" driver="dted"><url>D:/EarthViewData/DTED</url></elevation>)
+         and earthview3d indexes it itself when it generates maps/tms_<name>.earth, with no
+         GDAL tools on the machine.
          The 2D viewer is given the same folder by its own layer list
          (Data/EarthFiles/*.earth: <elevation name="DTED" driver="dted">), and a generated
          tms_*.earth carries that entry over as a layer exactly like this one.
