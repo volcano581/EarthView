@@ -91,11 +91,16 @@ reads it:
 
 `EarthFileCatalog` turns that entry into an osgEarth `<GDALElevation>` layer
 (`TmsLayerSpec::Kind::DtedElevation`, `vdatum` defaulting to `egm96` because DTED is
-orthometric, D-021). osgEarth opens a GDAL dataset rather than a folder, so a `<url>` that
-names a folder gets `dtedMosaicFileName()` appended — `EarthFileCatalog::dtedMosaicUrl()` is
-that rule, and `build_offline_data.py dted-vrt <folder>` writes the mosaic. The same path is
-spelled out, once per machine, in `maps/earthview*.earth` for hosts that use the template map
-directly. There is no 3D API for it: it is map configuration, not host state.
+orthometric, D-021). osgEarth opens a GDAL dataset rather than a folder, so `generate()`
+indexes the folder itself through `DtedMosaic` (`DtedMosaic.h`): it walks the sub-folders,
+reads each cell's DTED header and writes `<folder>/dted_mosaic.vrt`, which the generated map
+names. No GDAL tools are needed on the machine, and the mosaic is rebuilt only when a cell is
+newer than it. `DtedMosaic::ensureMosaic()` is that whole rule and is callable on its own, for
+a host that configures DTED outside a layer list.
+
+A host that loads `maps/earthview*.earth` directly, without the catalog, still names the
+mosaic in the earth file (I-043): nothing in that path can resolve a folder. There is no 3D
+API for the folder itself — it is map configuration, not host state.
 
 Cameras (E4, `CameraControl.h`): `setCameraMode(CameraMode)` with `Orbit`, `Chase`,
 `Stealth`, `FirstPerson`, `FreeFly` (smooth 1 s transition; chase/stealth/first person follow

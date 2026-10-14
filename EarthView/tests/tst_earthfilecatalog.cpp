@@ -34,6 +34,7 @@ private slots:
     void layersXmlIsWellFormedAndEscaped();
     void discoverSortsAndDeduplicates();
     void generateSplicesIntoTemplate();
+    void generateIndexesADtedFolder();
     void generateLeavesStandardFilesAlone();
     void generateFailsWithoutPlaceholder();
     void buildReportsSkippedFiles();
@@ -306,6 +307,46 @@ void TestEarthFileCatalog::generateSplicesIntoTemplate()
     QVERIFY2(!reader.hasError(), qPrintable(reader.errorString()));
     QCOMPARE(layerNames, QStringList({ QStringLiteral("EarthView"), QStringLiteral("World base"),
                                        QStringLiteral("L1"), QStringLiteral("L2"), QStringLiteral("DTED") }));
+}
+
+void TestEarthFileCatalog::generateIndexesADtedFolder()
+{
+    // A layer list naming the elevation server's DTED folder, with one cell in it. osgEarth
+    // opens datasets, not folders, so generate() has to leave a mosaic path behind (I-042).
+    const QString dtedDir = m_dir().filePath(QStringLiteral("DTED2/e066"));
+    QVERIFY(QDir().mkpath(dtedDir));
+    QString uhl = QStringLiteral("UHL1") + QStringLiteral("066000 0E").remove(QLatin1Char(' '))
+        + QStringLiteral("0320000N") + QStringLiteral("0010") + QStringLiteral("0010")
+        + QStringLiteral("0010") + QStringLiteral("   ") + QStringLiteral("            ")
+        + QStringLiteral("3601") + QStringLiteral("3601") + QStringLiteral("0") + QString(24, QLatin1Char(' '));
+    QCOMPARE(uhl.size(), 80);
+    QFile cell(dtedDir + QStringLiteral("/n32.dt2"));
+    QVERIFY(cell.open(QIODevice::WriteOnly));
+    cell.write(uhl.toLatin1());
+    cell.close();
+
+    const QString source = write(QStringLiteral("imagery.earth"),
+        QStringLiteral("<image name=\"img\" driver=\"tms\"><url>http://h/i/tilemapresource.xml</url></image>\n"
+                       "<elevation name=\"DTED\" driver=\"dted\"><url>%1</url></elevation>\n")
+            .arg(m_dir().filePath(QStringLiteral("DTED2"))));
+    const QString templatePath = writeTemplate();
+
+    MapCatalogEntry entry;
+    QVERIFY(EarthFileCatalog::parseFile(source, &entry, nullptr));
+    QStringList warnings;
+    QString error;
+    QVERIFY2(EarthFileCatalog::generate(&entry, templatePath, QString(), &error, &warnings), qPrintable(error));
+    QVERIFY2(warnings.isEmpty(), qPrintable(warnings.join(QStringLiteral("; "))));
+
+    // The mosaic was written into the DTED folder and the generated map names it.
+    const QString mosaic = m_dir().filePath(QStringLiteral("DTED2/dted_mosaic.vrt"));
+    QVERIFY(QFile::exists(mosaic));
+    QFile generated(entry.earthFile);
+    QVERIFY(generated.open(QIODevice::ReadOnly | QIODevice::Text));
+    const QString content = QString::fromUtf8(generated.readAll());
+    QVERIFY(content.contains(QStringLiteral("<GDALElevation name=\"DTED\">")));
+    QVERIFY(content.contains(QStringLiteral("dted_mosaic.vrt")));
+    QVERIFY(content.contains(QStringLiteral("<vdatum>egm96</vdatum>")));
 }
 
 void TestEarthFileCatalog::generateLeavesStandardFilesAlone()

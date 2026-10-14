@@ -25,6 +25,7 @@ find_package(Qt6 REQUIRED COMPONENTS Core Widgets OpenGLWidgets)
 
 add_library(earthview3d_core STATIC
     include/earthview3d/CameraControl.h
+    include/earthview3d/DtedMosaic.h
     include/earthview3d/EarthFileCatalog.h
     include/earthview3d/EntityState3D.h
     include/earthview3d/EntityDiff.h
@@ -35,6 +36,7 @@ add_library(earthview3d_core STATIC
     include/earthview3d/ScreenScale.h
     include/earthview3d/TerrainServices.h
     src/CameraControl.cpp
+    src/DtedMosaic.cpp
     src/EarthFileCatalog.cpp
     src/EntityDiff.cpp
     src/MapConfig.cpp
