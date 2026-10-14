@@ -72,6 +72,36 @@ local layers once with `tools/offline_data/build_offline_data.py` (see its READM
 `setLayerVisible(name, bool)`, `layerVisible()`, `layerNames()` toggle earth-file layers
 (e.g. a host menu for "Graticule", "Hillshade", "Places (cities, towns)").
 
+Map sources from EarthView's earth files (`EarthFileCatalog.h`): Doctrine's data tree already
+carries the 2D viewer's layer-list earth files (`Data/EarthFiles/*.earth`, one TMS layer per
+line, no `<map>` root). `EarthFileCatalog::build(directories, templatePath, outputDir,
+&warnings)` returns one `MapCatalogEntry` per file — `label` for a host dropdown (same labels
+as 2D), `earthFile` for `MapConfig::earthFile` — writing a standard earth file per source by
+splicing the TMS layers into the template's `<!--@EARTHVIEW3D_TMS_LAYERS@-->` placeholder.
+`defaultSearchDirectories(dataRoot)` gives the folders to scan. The host switches map by
+rebuilding the view with the new `MapConfig` (osgEarth loads the map when the view is built).
+2D code is untouched: it still reads the original files.
+
+Those layer-list files may also carry the offline machine's DTED folder, as the 2D viewer
+reads it:
+
+```
+<elevation name="DTED" driver="dted"> <url> D:/EarthViewData/DTED </url></elevation>
+```
+
+`EarthFileCatalog` turns that entry into an osgEarth `<GDALElevation>` layer
+(`TmsLayerSpec::Kind::DtedElevation`, `vdatum` defaulting to `egm96` because DTED is
+orthometric, D-021). osgEarth opens a GDAL dataset rather than a folder, so `generate()`
+indexes the folder itself through `DtedMosaic` (`DtedMosaic.h`): it walks the sub-folders,
+reads each cell's DTED header and writes `<folder>/dted_mosaic.vrt`, which the generated map
+names. No GDAL tools are needed on the machine, and the mosaic is rebuilt only when a cell is
+newer than it. `DtedMosaic::ensureMosaic()` is that whole rule and is callable on its own, for
+a host that configures DTED outside a layer list.
+
+A host that loads `maps/earthview*.earth` directly, without the catalog, still names the
+mosaic in the earth file (I-043): nothing in that path can resolve a folder. There is no 3D
+API for the folder itself — it is map configuration, not host state.
+
 Cameras (E4, `CameraControl.h`): `setCameraMode(CameraMode)` with `Orbit`, `Chase`,
 `Stealth`, `FirstPerson`, `FreeFly` (smooth 1 s transition; chase/stealth/first person follow
 the selected entity), `cameraMode()`, signal `cameraModeChanged(CameraMode)`.
@@ -100,7 +130,7 @@ Prerequisites: Conquer's `msvc` preset builds; osgEarth available (vcpkg tree or
    ```cmake
    option(CONQUER_ENABLE_3D "Build the osgEarth 3D view" OFF)
    if(CONQUER_ENABLE_3D)
-       add_subdirectory(${EARTHVIEW_REPO}/EarthView/earthview3d earthview3d)   # or find_package(earthview3d) after E7
+       add_subdirectory(${EARTHVIEW_REPO}/EarthView/earthview3d earthview3d)   # or find_package(earthview3d 0.7 CONFIG REQUIRED)
    endif()
    ```
 2. **Adapter.** Copy `doctrine/src/view3d/Doctrine3DWindow.*` from branch
@@ -110,10 +140,12 @@ Prerequisites: Conquer's `msvc` preset builds; osgEarth available (vcpkg tree or
    constructor takes an `earthview3d::MapConfig` (earth file, data root, cache dir, sky)
    instead of an earth-file path; diagnostics `DOCTRINE_3D_LOGDEPTH`/`DOCTRINE_3D_NO_SKY`
    are now `EARTHVIEW3D_LOGDEPTH`/`EARTHVIEW3D_NO_SKY`. The widget calls
-   `osgEarth::initialize()` itself. Before creating the first view, call
-   `earthview3d::configureRuntime(paths)` (`<earthview3d/Runtime.h>`) with the folders of the
-   OSG plugins and GDAL/PROJ data next to `doctrine.exe` (E7 provides them); setting
-   `OSG_LIBRARY_PATH` in `main()` is too late. The plugin folder must be right even if the
+   `osgEarth::initialize()` itself. Runtime files (E7): with step 3's
+   `earthview3d_deploy_runtime(doctrine)` the OSG plugins and GDAL/PROJ data sit next to
+   `doctrine.exe` and the first view finds them itself (`RuntimePaths::defaults()`); no
+   host code. Only if Doctrine keeps them elsewhere, call
+   `earthview3d::configureRuntime(paths)` (`<earthview3d/Runtime.h>`) before the first view;
+   setting `OSG_LIBRARY_PATH` in `main()` is too late. The plugin folder must be right even if the
    map looks fine without it: without `osgdb_freetype` no `.ttf` loads and osgText falls back
    to a built-in ASCII-only font, so osgEarth's own labels silently lose non-ASCII glyphs.
    `configureRuntime()` re-reads osgEarth's default font after registering the folder
@@ -124,8 +156,11 @@ Prerequisites: Conquer's `msvc` preset builds; osgEarth available (vcpkg tree or
    `--check-agreement`.
 3. **Link + define.** In `doctrine/CMakeLists.txt`:
    `target_link_libraries(doctrine PRIVATE earthview3d::earthview3d)` and
-   `DOCTRINE_HAVE_OSGEARTH=1`; call `earthview3d_deploy_runtime(doctrine)` (E7) instead of
-   the test's hand-written copy commands.
+   `DOCTRINE_HAVE_OSGEARTH=1`; call `earthview3d_deploy_runtime(doctrine INSTALL)` (E7) instead
+   of the test's hand-written copy commands. It copies the vcpkg DLLs, `osgPlugins-*` and
+   `share/gdal|proj` next to `doctrine.exe` after each build, and with `INSTALL` adds them
+   plus the Qt and MSVC runtime to `cmake --install` (see `EarthView/OFFLINE_BUILD.md`).
+   With `find_package`, Conquer must use the same vcpkg toolchain/triplet (static library).
 4. **UI.** Keep the "3D View" toolbar action and View-menu entry from the test branch
    (`DoctrineMainWindow::open3DView`). Connect `entityPicked(id)` to Doctrine's selection
    (E3) and Doctrine's selection to `setSelected(id)`.

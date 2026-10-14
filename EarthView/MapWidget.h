@@ -48,6 +48,11 @@ public:
     // Configuration
     void setTileServerUrl(const QString& url);
     void setTileSourceLayers(const QList<TmsLoader::TileSourceLayer>& layers);
+    /// Folder of DTED tiles (.dt1/.dt2) on the offline machine, from the map source's
+    /// `<elevation driver="dted">` entry. Stored and handed to DemLoader; the 2D terrain
+    /// still comes from the GeoTIFF DEM mirror until the DTED reader lands (I-039).
+    void setDtedDirectory(const QString& path);
+    QString dtedDirectory() const { return m_dtedDirectory; }
     bool loadWorldBorders();
     bool loadBorderShapefile(const QString& filePath, QString* errorMessage = nullptr);
     bool loadCities(const QString& directoryPath = QString(), QString* errorMessage = nullptr);
@@ -108,6 +113,7 @@ private:
     QVector<LineBatchRenderer::LineVertex> m_cachedLineVertices;
     QVector<TextRenderer::Label> m_cachedMapLabels;
     LineBatchRenderer::CoordinateMode m_lineBatchMode;
+    QString m_dtedDirectory;
 
     QPoint m_lastMousePos;
     bool m_isPanning;

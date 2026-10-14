@@ -14,8 +14,12 @@ namespace earthview3d {
  * that variable from the application is too late. earthview3d::configureRuntime()
  * (Runtime.h) therefore adds osgPluginDir to osgDB's library path list directly and sets
  * GDAL_DATA / PROJ_DATA before GDAL/PROJ are first used. GlobeView3D calls it with
- * buildTreeDefaults() if the host has not called it before creating the first view.
- * Deployed hosts pass their install folders (roadmap E7).
+ * defaults() if the host has not called it before creating the first view.
+ *
+ * Deployed layout (roadmap E7, earthview3d_deploy_runtime()): next to the executable
+ *   osgPlugins-<version>/        OSG + osgEarth plugins (osgPluginDir = the exe folder)
+ *   share/gdal, share/proj       GDAL_DATA, PROJ_DATA (build tree)
+ *   ../share/gdal, ../share/proj (installed tree: exe in bin/)
  */
 struct RuntimePaths
 {
@@ -25,6 +29,20 @@ struct RuntimePaths
 
     /// vcpkg folders of this build tree (from CMake); empty outside a vcpkg build.
     static RuntimePaths buildTreeDefaults();
+
+    /// Deployed folders found next to an executable in @p appDir (layout above); a field
+    /// stays empty when its folder is missing.
+    static RuntimePaths fromAppDir(const QString& appDir);
+
+    /// fromAppDir(application folder), each missing field filled from buildTreeDefaults().
+    /// A deployed app therefore needs no host code; a build-tree run still finds vcpkg.
+    static RuntimePaths defaults();
+
+    /// True when the plugin folder and both data folders are set.
+    bool isComplete() const;
+
+    /// Fill each empty field from @p other.
+    RuntimePaths& fillFrom(const RuntimePaths& other);
 
     /// Set GDAL_DATA, PROJ_DATA and PROJ_LIB to the existing folders above, unless the
     /// variable is already set (an explicit environment always wins). Returns the names set.

@@ -3,6 +3,7 @@
 #include "earthview3d/ModelTable.h"
 #include "earthview3d/Picking.h"
 #include "earthview3d/Runtime.h"
+#include "earthview3d/ScreenScale.h"
 
 #include <QDebug>
 #include <QDir>
@@ -18,7 +19,6 @@
 #include <osg/AutoTransform>
 #include <osg/Depth>
 #include <osg/Geometry>
-#include <osg/LOD>
 #include <osg/LineWidth>
 #include <osg/MatrixTransform>
 #include <osg/ShapeDrawable>
@@ -63,9 +63,15 @@ constexpr double kPi = 3.14159265358979323846;
 constexpr double kDegToRad = kPi / 180.0;
 
 // Entity markers are modelled in metres at roughly real size and never drawn
-// smaller than this many pixels, so they stay visible from orbit.
-constexpr float kMinMarkerPixels = 14.0f;
-constexpr float kSelectionRingPixels = 18.0f;   // radius of the selection highlight
+// smaller than this many pixels, so they stay visible from orbit. The scale that achieves
+// that is computed per frame from this view's own camera (screenscale::, I-037), never by
+// osg::AutoTransform, whose cached per-traversal scale smeared markers across the globe.
+constexpr double kMinMarkerPixels = 14.0;
+// A marker is never scaled past this, whatever the camera says: at the altitude where
+// kMinMarkerPixels would need more (above roughly 6000 km) the markers simply start to
+// shrink on screen, which is better than a shape long enough to graze the terrain.
+constexpr double kMaxMarkerSizeM = 50000.0;
+constexpr double kSelectionRingPixels = 18.0;   // radius of the selection highlight
 constexpr double kPickRadiusPixels = 12.0;
 constexpr double kNearFarRatio = 2.0e-5;          // D-010 (no logarithmic depth buffer)
 constexpr double kLowEyeNearFarRatio = 2.0e-6;    // first person / stealth (issue #11)
@@ -147,6 +153,14 @@ public:
         osg::ref_ptr<osg::Geode> labelGeode;
         osg::ref_ptr<osgText::Text> labelText;
         ResolvedStyle style;
+        // Content: the marker icon (scaled per frame to a fixed pixel size) and, when the kind
+        // has one, the model at real size. updateMarkerScales() shows exactly one of them.
+        osg::ref_ptr<osg::MatrixTransform> markerScale;
+        osg::ref_ptr<osg::Node> modelNode;      // null when the kind has no model
+        double markerSizeM = 1.0;               // marker extent at real size
+        double modelSizeM = 0.0;                // model extent, style scale applied
+        double markerCentreZ = 0.0;             // marker centre above the anchor, real size
+        double modelCentreZ = 0.0;              // model centre above the anchor
         bool haveContent = false;
         bool visible = true;
         double groundAltM = 0.0;    // last terrain height found (tiles may still be loading)
@@ -162,11 +176,12 @@ public:
         : q(view), config(config), homeLat(homeLat), homeLon(homeLon) {}
 
     void buildScene();
-    osg::Node* createShape(int shape, std::uint32_t rgba) const;
-    osg::Node* createContent(const ResolvedStyle& style);
+    osg::MatrixTransform* createShape(int shape, std::uint32_t rgba, double* sizeM, double* centreZ) const;
+    osg::Node* createContent(const ResolvedStyle& style, EntityVisual* visual);
     osg::Node* loadModel(const QString& file);
     osg::AutoTransform* createSelectionRing() const;
-    double contentCentreZ(const ResolvedStyle& style) const;
+    double modelCentreZ(const ResolvedStyle& style) const;
+    void updateMarkerScales();
     osgText::Font* loadLabelFont() const;
     void applySelectionLook(EntityVisual& visual, bool selected) const;
     std::uint64_t pickAt(double x, double y) const;
@@ -272,7 +287,7 @@ GlobeView3D::GlobeView3D(const MapConfig& config, double homeLatDeg, double home
     , d(std::make_unique<Private>(this, config, homeLatDeg, homeLonDeg))
 {
     if (!isRuntimeConfigured())
-        configureRuntime(RuntimePaths::buildTreeDefaults());
+        configureRuntime(RuntimePaths::defaults());
     initializeOsgEarthOnce(config);
     if (!config.dataRoot.isEmpty()) {
         const std::string dataRoot = config.dataRoot.toStdString();
@@ -431,7 +446,8 @@ void GlobeView3D::Private::buildScene()
     viewer->setSceneData(root.get());
 }
 
-osg::Node* GlobeView3D::Private::createShape(int shape, std::uint32_t rgba) const
+osg::MatrixTransform* GlobeView3D::Private::createShape(int shape, std::uint32_t rgba, double* sizeM,
+                                                        double* centreZ) const
 {
     // Shapes face local +Y (north at heading 0); sizes in metres.
     osg::Shape* geometry = nullptr;
@@ -459,19 +475,21 @@ osg::Node* GlobeView3D::Private::createShape(int shape, std::uint32_t rgba) cons
     auto* aligned = new osg::MatrixTransform(align);
     aligned->addChild(drawable);
 
-    // Real size up close, at least kMinMarkerPixels when far away. With screen
-    // auto-scaling OSG sets scale = metres-per-pixel (clamped to the minimum), so
-    // pre-scaling by k and clamping at 1/k gives max(mpp * k, 1) overall.
-    const double modelSize = std::max(1.0f, drawable->getBound().radius() * 2.0f);
-    const double k = kMinMarkerPixels / modelSize;
-    auto* preScale = new osg::MatrixTransform(osg::Matrix::scale(k, k, k));
-    preScale->addChild(aligned);
+    // Real size up close, at least kMinMarkerPixels when far away. The scale lives in this
+    // transform and is set by updateMarkerScales() once per frame (I-037).
+    if (sizeM)
+        *sizeM = std::max(1.0, double(drawable->getBound().radius()) * 2.0);
+    if (centreZ) {
+        switch (shape) {     // centres of the shapes above, at real size
+        case 0: *centreZ = 2.0; break;   // sphere
+        case 2: *centreZ = 1.5; break;   // box
+        default: *centreZ = 0.0; break;  // cone and cylinder are centred on the origin after alignment
+        }
+    }
 
-    auto* autoScale = new osg::AutoTransform();
-    autoScale->setAutoScaleToScreen(true);
-    autoScale->setMinimumScale(1.0 / k);
-    autoScale->addChild(preScale);
-    return autoScale;
+    auto* markerScale = new osg::MatrixTransform();
+    markerScale->addChild(aligned);
+    return markerScale;
 }
 
 osg::Node* GlobeView3D::Private::loadModel(const QString& file)
@@ -486,35 +504,94 @@ osg::Node* GlobeView3D::Private::loadModel(const QString& file)
     return model.get();
 }
 
-osg::Node* GlobeView3D::Private::createContent(const ResolvedStyle& style)
+osg::Node* GlobeView3D::Private::createContent(const ResolvedStyle& style, EntityVisual* visual)
 {
-    osg::Node* marker = createShape(style.shape, style.rgba);
+    double markerSizeM = 1.0;
+    double markerCentreZ = 0.0;
+    osg::MatrixTransform* marker = createShape(style.shape, style.rgba, &markerSizeM, &markerCentreZ);
+    visual->markerScale = marker;
+    visual->markerSizeM = markerSizeM;
+    visual->markerCentreZ = markerCentreZ;
+    visual->modelNode = nullptr;
+    visual->modelSizeM = 0.0;
+    visual->modelCentreZ = 0.0;
+
     osg::Node* model = style.modelFile.isEmpty() ? nullptr : loadModel(style.modelFile);
     if (!model)
         return marker;
 
-    // Model when it covers enough pixels, the always-visible marker (icon) below that.
+    // Model when it covers enough pixels, the marker (icon) below that. Which one is drawn is
+    // decided per frame by updateMarkerScales() rather than by osg::LOD's PIXEL_SIZE_ON_SCREEN
+    // mode, whose pixel size comes out of whichever traversal culled the node last (I-037).
     auto* scaled = new osg::MatrixTransform(osg::Matrix::scale(style.scale, style.scale, style.scale));
     scaled->addChild(model);   // shared between entities of the same kind
-    const float iconBelow = float(haveModelTable ? modelTable.iconBelowPixels() : 12.0);
-    auto* lod = new osg::LOD();
-    lod->setRangeMode(osg::LOD::PIXEL_SIZE_ON_SCREEN);
-    lod->addChild(scaled, iconBelow, FLT_MAX);
-    lod->addChild(marker, 0.0f, iconBelow);
-    return lod;
+    visual->modelNode = scaled;
+    visual->modelSizeM = std::max(1.0, double(model->getBound().radius()) * 2.0 * style.scale);
+    visual->modelCentreZ = modelCentreZ(style);
+
+    auto* group = new osg::Group();
+    group->addChild(scaled);
+    group->addChild(marker);
+    return group;
 }
 
-double GlobeView3D::Private::contentCentreZ(const ResolvedStyle& style) const
+double GlobeView3D::Private::modelCentreZ(const ResolvedStyle& style) const
 {
-    if (!style.modelFile.isEmpty()) {
-        auto it = modelCache.find(style.modelFile);
-        if (it != modelCache.end() && it->second.valid())
-            return it->second->getBound().center().z() * style.scale;
-    }
-    switch (style.shape) {   // centres used by createShape(), at real size
-    case 0: return 2.0;      // sphere
-    case 2: return 1.5;      // box
-    default: return 0.0;     // cone and cylinder are centred on the origin after alignment
+    if (style.modelFile.isEmpty())
+        return 0.0;
+    auto it = modelCache.find(style.modelFile);
+    if (it != modelCache.end() && it->second.valid())
+        return it->second->getBound().center().z() * style.scale;
+    return 0.0;
+}
+
+void GlobeView3D::Private::updateMarkerScales()
+{
+    if (entities.empty())
+        return;
+    const osg::Camera* camera = viewer->getCamera();
+    const osg::Viewport* viewport = camera->getViewport();
+    if (!viewport || viewport->height() <= 0)
+        return;
+    double fovy = 0.0;
+    double aspect = 0.0;
+    double zNear = 0.0;
+    double zFar = 0.0;
+    if (!camera->getProjectionMatrixAsPerspective(fovy, aspect, zNear, zFar))
+        return;
+
+    osg::Vec3d eye;
+    osg::Vec3d centre;
+    osg::Vec3d up;
+    camera->getViewMatrixAsLookAt(eye, centre, up);
+    const int heightPx = int(viewport->height());
+    const double iconBelowPixels = haveModelTable ? modelTable.iconBelowPixels() : 12.0;
+
+    for (auto& entry : entities) {
+        EntityVisual& visual = entry.second;
+        if (!visual.markerScale.valid() || !visual.geo.valid())
+            continue;
+        osg::Vec3d world;
+        if (!visual.geo->getPosition().toWorld(world))
+            continue;
+        const double mpp = screenscale::metresPerPixel((world - eye).length(), fovy, heightPx);
+        const double scale = screenscale::markerScale(visual.markerSizeM, mpp, kMinMarkerPixels, kMaxMarkerSizeM);
+
+        // Model once it is big enough to read, the marker icon below that.
+        const bool showModel = visual.modelNode.valid()
+            && screenscale::pixelSize(visual.modelSizeM, mpp) >= iconBelowPixels;
+        visual.markerScale->setMatrix(osg::Matrix::scale(scale, scale, scale));
+        visual.markerScale->setNodeMask(showModel ? 0u : ~0u);
+        if (visual.modelNode.valid())
+            visual.modelNode->setNodeMask(showModel ? ~0u : 0u);
+
+        // Ring around what is actually drawn: the model sits at real size, the marker at scale.
+        if (visual.highlight.valid()) {
+            visual.highlight->setPosition(
+                osg::Vec3d(0.0, 0.0, showModel ? visual.modelCentreZ : visual.markerCentreZ * scale));
+            if (mpp > 0.0)
+                visual.highlight->setScale(mpp);
+        }
     }
 }
 
@@ -557,9 +634,12 @@ osg::AutoTransform* GlobeView3D::Private::createSelectionRing() const
 
     auto* preScale = new osg::MatrixTransform(osg::Matrix::scale(kSelectionRingPixels, kSelectionRingPixels, 1.0));
     preScale->addChild(ring);
+    // Rotation to screen stays with osg::AutoTransform; the scale (metres per pixel, so the
+    // ring is kSelectionRingPixels across) is set per frame by updateMarkerScales() — OSG's own
+    // screen auto-scaling caches the value of the last cull traversal, whatever camera ran it.
     auto* screen = new osg::AutoTransform();
     screen->setAutoRotateMode(osg::AutoTransform::ROTATE_TO_SCREEN);
-    screen->setAutoScaleToScreen(true);
+    screen->setAutoScaleToScreen(false);
     screen->addChild(preScale);
     return screen;
 }
@@ -609,10 +689,8 @@ void GlobeView3D::Private::updateEntity(EntityVisual& visual, const EntityState3
     if (!visual.haveContent || style.modelFile != visual.style.modelFile || style.shape != visual.style.shape
         || style.rgba != visual.style.rgba || style.scale != visual.style.scale) {
         visual.attitude->removeChildren(0, visual.attitude->getNumChildren());
-        visual.attitude->addChild(createContent(style));
+        visual.attitude->addChild(createContent(style, &visual));
         visual.haveContent = true;
-        // Centre the selection ring on the marker/model rather than its ground point.
-        visual.highlight->setPosition(osg::Vec3d(0.0, 0.0, contentCentreZ(style)));
     }
     if (style.label != visual.style.label || visual.labelText->getText().empty())
         visual.labelText->setText(style.label.toStdString(), osgText::String::ENCODING_UTF8);
@@ -1340,6 +1418,9 @@ void GlobeView3D::paintGL()
         d->installTileCallback();
         d->resolveHeightRequests();
         d->updateCamera(dt);
+        // Marker sizes follow the camera of the frame just drawn (the manipulator updates the
+        // view matrix inside frame()); one frame of lag is invisible at 14 px.
+        d->updateMarkerScales();
     }
     d->viewer->frame();
 

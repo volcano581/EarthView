@@ -12,6 +12,7 @@
 #include "OpenGLRuntime.h"
 
 #include <earthview3d/CameraControl.h>
+#include <earthview3d/EarthFileCatalog.h>
 #include <earthview3d/GlobeView3D.h>
 #include <earthview3d/MapConfig.h>
 #include <earthview3d/Runtime.h>
@@ -19,6 +20,8 @@
 #include <QApplication>
 #include <QCommandLineParser>
 #include <QDateTime>
+#include <QDir>
+#include <QFileInfo>
 #include <QSurfaceFormat>
 #include <QTimeZone>
 #include <QTimer>
@@ -95,6 +98,16 @@ int main(int argc, char** argv)
          QStringLiteral("maps/earthview.earth")},
         {QStringLiteral("data-root"), QStringLiteral("Data root for relative paths."), QStringLiteral("dir"),
          QStringLiteral(EARTHVIEW3D_DEFAULT_DATA_ROOT)},
+        {QStringLiteral("earth-files"),
+         QStringLiteral("Folder of EarthView layer-list earth files (relative to --data-root); one Map"
+                        " dropdown entry per file, converted to a standard osgEarth earth file."),
+         QStringLiteral("dir"), QStringLiteral("EarthFiles")},
+        {QStringLiteral("map-template"),
+         QStringLiteral("Earth file whose <!--@EARTHVIEW3D_TMS_LAYERS@--> placeholder the TMS layers are"
+                        " spliced into (default: --map)."), QStringLiteral("earth")},
+        {QStringLiteral("map-name"), QStringLiteral("Start with this map from the dropdown (see --list-maps)."),
+         QStringLiteral("label")},
+        {QStringLiteral("list-maps"), QStringLiteral("List the maps found (label, source, earth file) and exit.")},
         {QStringLiteral("cache"),
          QStringLiteral("osgEarth tile cache folder (relative to --data-root; empty = no cache). A second run"
                         " reads tiles from it, also offline."), QStringLiteral("dir"), QStringLiteral("cache")},
@@ -179,8 +192,62 @@ int main(int argc, char** argv)
         return 2;
     }
 
+    // Map catalog: EarthView's own layer-list earth files (Data/EarthFiles, as scanned by the
+    // 2D viewer) turned into standard osgEarth earth files, one entry per file (D-027). The
+    // --map earth file is always the first entry.
+    QList<earthview3d::MapCatalogEntry> catalog;
+    {
+        earthview3d::MapCatalogEntry base;
+        base.sourcePath = mapConfig.resolvedEarthFile();
+        base.earthFile = base.sourcePath;
+        base.standardEarthFile = true;
+        base.label = QStringLiteral("%1 (default)").arg(QFileInfo(base.sourcePath).completeBaseName());
+        catalog.append(base);
+
+        const QString templatePath = parser.isSet(QStringLiteral("map-template"))
+            ? QDir(mapConfig.dataRoot).absoluteFilePath(parser.value(QStringLiteral("map-template")))
+            : mapConfig.resolvedEarthFile();
+        const QString earthFilesArg = parser.value(QStringLiteral("earth-files"));
+        const QStringList directories =
+            earthFilesArg.isEmpty() ? earthview3d::EarthFileCatalog::defaultSearchDirectories(mapConfig.dataRoot)
+                                    : QStringList(QDir(mapConfig.dataRoot).absoluteFilePath(earthFilesArg));
+        QStringList warnings;
+        catalog += earthview3d::EarthFileCatalog::build(directories, templatePath, QString(), &warnings);
+        for (const QString& warning : warnings)
+            fail(warning);
+    }
+
+    if (parser.isSet(QStringLiteral("list-maps"))) {
+        for (const earthview3d::MapCatalogEntry& entry : catalog) {
+            std::fprintf(stdout, "%-28s %s\n    -> %s\n", qPrintable(entry.label), qPrintable(entry.sourcePath),
+                         qPrintable(entry.earthFile));
+        }
+        return 0;
+    }
+
+    // Default to the first map built from Data/EarthFiles (the offline tile server's TMS
+    // layers) when the machine has one: the template on its own carries only the pale offline
+    // base imagery, so the 3D view came up blank next to the 2D map (I-038). The template
+    // itself stays reachable as "<name> (default)" through --map-name / the Map dropdown.
+    int mapIndex = catalog.size() > 1 ? 1 : 0;
+    if (parser.isSet(QStringLiteral("map-name"))) {
+        const QString wanted = parser.value(QStringLiteral("map-name"));
+        mapIndex = -1;
+        for (int i = 0; i < catalog.size(); ++i) {
+            if (catalog.at(i).label.compare(wanted, Qt::CaseInsensitive) == 0) {
+                mapIndex = i;
+                break;
+            }
+        }
+        if (mapIndex < 0) {
+            fail(QStringLiteral("No map named \"%1\"; run with --list-maps").arg(wanted));
+            return 2;
+        }
+    }
+    mapConfig.earthFile = catalog.at(mapIndex).earthFile;
+
     // Before any GlobeView3D exists (E1 review): OSG reads its plugin path too early for env vars.
-    earthview3d::configureRuntime(earthview3d::RuntimePaths::buildTreeDefaults());
+    earthview3d::configureRuntime(earthview3d::RuntimePaths::defaults());
 
     // Host simulation: entities published from a worker thread at 100 Hz.
     const earthview3d::demo::SyntheticFeed feed(feedSettings);
@@ -189,6 +256,7 @@ int main(int argc, char** argv)
     publisher.start();
 
     earthview3d::demo::DemoWindow window(mapConfig, feedSettings, &buffer);
+    window.setMapCatalog(catalog, mapIndex);
     window.resize(1280, 800);
     window.show();
 
