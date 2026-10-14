@@ -1,0 +1,2 @@
+<image name="Satellite_Layer_1" driver="tms"> <url> http://placeholder-ip:port/path/to/imagery/layer1/tilemapresource.xml</url></image>
+<image name="Satellite_Layer_2" driver="tms"> <url> http://placeholder-ip:port/path/to/imagery/layer2/tilemapresource.xml</url></image>

@@ -419,7 +419,7 @@ Doctrine/
 ```
 Runtime environment set by `main()` when unset: `OSG_LIBRARY_PATH`, `GDAL_DATA`,
 `PROJ_DATA`/`PROJ_LIB`, `OSG_FILE_PATH` (osgEarth data). Verify GDAL/PROJ really pick them up
-(I-011). Air-gapped build: `spikes/osgearth/OFFLINE_BUILD.md`, generalised for Doctrine in O9.
+(I-011). Air-gapped build and deployment: [`OFFLINE_BUILD.md`](OFFLINE_BUILD.md) (E7).
 
 **Licences:** osgEarth (LGPL 3 with exceptions) and OSG (OSGPL) are linked dynamically
 (DLLs), unmodified; ship their licence texts and an offer of source for any modified copy.

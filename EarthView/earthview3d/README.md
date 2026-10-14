@@ -12,15 +12,56 @@ frame and reads signals. Design: `../OSGEARTH_INTEGRATION.md`; host contract:
 | `include/earthview3d/` | Public headers — Qt/STL types only, no osgEarth/OSG (D-011) |
 | `src/GlobeView3D.cpp` | The osgEarth widget (pimpl); started as the widget from the local host test |
 | `src/MapConfig.cpp`, `src/EntityDiff.cpp`, `src/ModelTable.cpp`, `src/Picking.cpp`, `src/RuntimePaths.cpp` | GL-free logic, unit tested (`tests/tst_mapconfig`, `tst_entitydiff`, `tst_modeltable`, `tst_runtimepaths`) |
+| `src/EarthFileCatalog.cpp` | EarthView's TMS layer-list earth files → standard osgEarth earth files, one map per file (`tests/tst_earthfilecatalog`) |
 | `../Data/models/models.json` | Example model table (`MapConfig::modelTable`; format in `ModelTable.h`); armour uses `test_armour.osgt` |
 | `tools/make_test_armour.cpp` | Generator for the test model (not built) |
 | `src/Runtime.cpp` | `configureRuntime()`: OSG plugin path + GDAL/PROJ data |
+| `cmake/` | package config + `earthview3d_deploy_runtime()` (E7) |
 | `demo/` | `earthview3d_demo`: host simulator — 2D map + "Open 3D View", synthetic 100 Hz entity feed (E2) |
-| `../Data/maps/earthview.earth` | Default map, offline (E6); layer paths relative to the earth file. `earthview_online.earth` adds OSM |
+| `../Data/maps/earthview.earth` | Default map, offline (E6); layer paths relative to the earth file. `earthview_online.earth` adds OSM. Both carry the `<!--@EARTHVIEW3D_TMS_LAYERS@-->` placeholder used as a TMS template |
+| `../Data/EarthFiles/` | EarthView's own layer-list earth files (one per map source, read by the 2D viewer); see its README |
 | `../tools/offline_data/` | Offline data pipeline (imagery, hillshade, place names, DEM overviews) |
 
 CMake targets: `earthview3d_core` and `earthview3d_demo_feed` (always built), `earthview3d` and
 `earthview3d_demo` (only with `EARTHVIEW_BUILD_3D`, which defaults to ON when osgEarth is found).
+
+## Maps from EarthView's earth files (TMS)
+
+EarthView's 2D viewer scans `Data/EarthFiles` and offers one map source per file. Those files
+are not osgEarth earth files — they are a bare list of TMS layers of the local tile server,
+with no `<map>` root:
+
+```
+<image name="Dummy_Layer_1" driver="tms"> <url> http://host:port/path/to/imagery/layer1/tilemapresource.xml</url></image>
+```
+
+`EarthFileCatalog` (`include/earthview3d/EarthFileCatalog.h`) reads the same folder and writes
+one **standard** earth file per source, so osgEarth can load it, while 2D keeps reading the
+originals (unchanged):
+
+```cpp
+QStringList warnings;
+const auto maps = earthview3d::EarthFileCatalog::build(
+    earthview3d::EarthFileCatalog::defaultSearchDirectories(config.dataRoot),   // <dataRoot>/EarthFiles …
+    config.resolvedEarthFile(),   // template with the placeholder, e.g. maps/earthview.earth
+    QString(),                    // output folder; empty = next to the template
+    &warnings);
+config.earthFile = maps.first().earthFile;   // one entry per file found: maps[i].label for a dropdown
+```
+
+- Each generated file is the template with its `<!--@EARTHVIEW3D_TMS_LAYERS@-->` placeholder
+  replaced by `<TMSImage>`/`<TMSElevation>` layers, written as `tms_<source name>.earth`
+  (git-ignored). The template supplies everything the tile server does not: local elevation,
+  overlays, graticule.
+- It is written **next to the template** by default, because osgEarth resolves the template's
+  relative layer paths against the earth file itself. Pass another `outputDir` only when those
+  paths still resolve from there.
+- A file in the folder that already has a `<map>` root is offered as it is, not rewritten.
+- Labels match the 2D dropdown (`satellite`/`imagery` → "Satellite Imagery",
+  `cardg`/`topo` → "CardG Maps", otherwise the file name).
+- Demo: `earthview3d_demo --earth-files EarthFiles --list-maps`, then
+  `--map-name "Satellite Imagery"`, or pick from the window's **Map** dropdown (switching
+  rebuilds the 3D view).
 
 ## Use
 
@@ -40,8 +81,10 @@ view->setPreFrameCallback([&] { view->setEntities(buildEntitiesFromHostSnapshot(
 Runtime files: osgDB reads `OSG_LIBRARY_PATH` when its DLL loads, before `main()`, so
 setting it in the application does nothing. Call `earthview3d::configureRuntime(paths)`
 (`Runtime.h`) before the first view with the OSG plugin folder and GDAL/PROJ data folders;
-otherwise the first `GlobeView3D` uses `RuntimePaths::buildTreeDefaults()` (the vcpkg
-folders of this build tree). Explicit `GDAL_DATA`/`PROJ_DATA` variables still win.
+otherwise the first `GlobeView3D` uses `RuntimePaths::defaults()`: the deployed layout next
+to the executable (`osgPlugins-*/`, `share/gdal`, `share/proj` or `../share/…`, from
+`earthview3d_deploy_runtime()`), else the vcpkg folders of this build tree. Explicit
+`GDAL_DATA`/`PROJ_DATA` variables still win.
 
 Mouse: left-click selects an entity (`entityPicked`); left-drag rotates (orbit) or looks around
 (other modes); wheel zooms (orbit) or sets chase range / stealth eye height / free-fly speed.
@@ -87,7 +130,18 @@ build-msvc\earthview3d\demo\Release\earthview3d_demo.exe --view stealth --snapsh
 root. MSVC builds use C++20 (Qt 6.11 moc output needs it, D-016); use **VS 2026** —
 VS 2022 hits an internal compiler error in Qt 6.11's QtTest headers (I-019). The library finds the
 vcpkg OSG plugins and GDAL/PROJ data of the build tree by itself; Qt DLLs come from
-`windeployqt` or `PATH`. Deployment for other machines is roadmap E7.
+`windeployqt` or `PATH`.
+
+## Using it from a host and deploying (E7)
+```cmake
+find_package(earthview3d 0.7 CONFIG REQUIRED)   # after `cmake --install`; or add_subdirectory(.../earthview3d)
+target_link_libraries(myhost PRIVATE earthview3d::earthview3d)   # earthview3d::core for GL-free logic
+earthview3d_deploy_runtime(myhost INSTALL)      # DLLs, osgPlugins-*, GDAL/PROJ data; +Qt/MSVC on install
+```
+The package is static: configure the host with the same vcpkg toolchain and triplet.
+`earthview3d_demo` uses the same function, so its build folder is a deployed layout.
+Offline machines, caches and the install folder: [`../OFFLINE_BUILD.md`](../OFFLINE_BUILD.md).
+`tests/consumer/` is the minimal host CI builds against the installed package.
 
 ## Rules baked into the widget (do not undo)
 

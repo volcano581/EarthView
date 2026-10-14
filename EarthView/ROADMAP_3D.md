@@ -67,10 +67,11 @@
 | E4 | Camera controllers (orbit, chase, stealth, first-person, free-fly) + HUD | E1 | M | yes | Done |
 | E5 | Terrain services: height query API, clamping, vertical datum check | E1 | S | yes | Done |
 | E6 | Offline data pipeline (imagery, DEM overviews, overlays, earth template, cache) | E1 | M | yes | Done |
-| E7 | Packaging: CMake package/`add_subdirectory`, `earthview3d_deploy_runtime()`, install, offline build doc | E1 | M | no | |
+| E7 | Packaging: CMake package/`add_subdirectory`, `earthview3d_deploy_runtime()`, install, offline build doc | E1 | M | no | In review (`3d/e7-packaging`, [#14](https://github.com/volcano581/EarthView/pull/14)) |
 | E8 | Wiring kit: keep `DOCTRINE_WIRING.md` + host contract test in sync; integration checklist | E3, E4, E7 | S | no | |
 | E9 | Cleanup: remove EarthView pseudo-3D; 2D MapViewWindow "Open 3D" hook | E2 | M | yes | |
 | E10 | Performance + polish (1k entities, multiple windows, smooth motion) | E3, E4 | M | yes | |
+| E11 | TMS map catalog: EarthView's `Data/EarthFiles` layer-list files → standard earth files, one map per file | E6 | S | yes | Done |
 | L1 | **Local:** wire `earthview3d` into Doctrine (Conquer) per `DOCTRINE_WIRING.md` | E7, E8 | M | yes | local only |
 
 Parallel after E1: E3, E4, E5, E6, E7. E2 should land early (it is how every later task is
@@ -161,6 +162,19 @@ demonstrated).
 ### E10 — Performance + polish
 - 1,000 moving entities ≥ 60 fps at 1440p (demo, `--entities 1000`); interpolation between
   host ticks; multiple 3D windows; numbers recorded in `3D_PROGRESS.md`.
+
+### E11 — TMS map catalog — DONE
+- The host's tile server (local TMS) is described by EarthView's own layer-list earth files
+  (`Data/EarthFiles/*.earth`: TMS `<image>`/`<elevation>` lines, no `<map>` root). 2D reads
+  them directly and must keep doing so.
+- `EarthFileCatalog` (`earthview3d_core`) scans the same folder, offers one map per file (2D
+  labels) and writes a standard osgEarth earth file per source by splicing `<TMSImage>` /
+  `<TMSElevation>` layers into the `<!--@EARTHVIEW3D_TMS_LAYERS@-->` placeholder of a template
+  earth file (default `maps/earthview.earth`, which keeps supplying elevation and overlays).
+- Demo: `--earth-files`, `--map-template`, `--list-maps`, `--map-name`, and a **Map** dropdown
+  that rebuilds the 3D view on change.
+- Acceptance (Windows, with the tile server reachable): the dropdown lists one entry per file
+  and each one renders its TMS imagery on the terrain.
 
 ### L1 — Local Doctrine wiring (not for cloud agents)
 Done on the developer machine in Conquer, following `DOCTRINE_WIRING.md` §3–§4; results

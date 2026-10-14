@@ -383,3 +383,9 @@ EarthView/Data/imagery/*
 EarthView/Data/Cities/*.gpkg
 EarthView/Data/DEM/*.ovr
 EarthView/Data/cache*/
+
+# Local EarthView layer-list files (keep the .earth.sample copies only)
+EarthView/Data/EarthFiles/*.earth
+
+# Standard earth files generated from them by earthview3d (EarthFileCatalog)
+EarthView/Data/maps/tms_*.earth

@@ -272,7 +272,7 @@ GlobeView3D::GlobeView3D(const MapConfig& config, double homeLatDeg, double home
     , d(std::make_unique<Private>(this, config, homeLatDeg, homeLonDeg))
 {
     if (!isRuntimeConfigured())
-        configureRuntime(RuntimePaths::buildTreeDefaults());
+        configureRuntime(RuntimePaths::defaults());
     initializeOsgEarthOnce(config);
     if (!config.dataRoot.isEmpty()) {
         const std::string dataRoot = config.dataRoot.toStdString();

@@ -34,6 +34,12 @@ jobs:
         run: ctest --test-dir out --output-on-failure
         env:
           QT_QPA_PLATFORM: offscreen
+      - name: Install earthview3d and build an external consumer (E7)
+        run: |
+          cmake --install out --prefix out/stage
+          cmake -S EarthView/tests/consumer -B out/consumer -G Ninja "-DCMAKE_PREFIX_PATH=$PWD/out/stage"
+          cmake --build out/consumer
+          out/consumer/consumer_core
       - name: Snapshot smoke render
         working-directory: out
         env:
@@ -154,198 +160,166 @@ jobs:
       - name: Test
         run: ctest --test-dir build-msvc --output-on-failure
 
+      # E7 acceptance: the installed package (find_package(earthview3d CONFIG)) builds an
+      # external project; earthview3d_deploy_runtime() makes it run without vcpkg on PATH.
+      - name: Install earthview3d and build an external consumer (E7)
+        shell: pwsh
+        env:
+          VCPKG_ROOT: C:\ev-vcpkg
+        run: |
+          cmake --install build-msvc --prefix "${{ github.workspace }}\stage"
+          cmake -S EarthView/tests/consumer -B consumer -G Ninja `
+            -DCMAKE_BUILD_TYPE=Release `
+            "-DCMAKE_PREFIX_PATH=${{ github.workspace }}\stage;$env:QT_ROOT_DIR" `
+            "-DCMAKE_TOOLCHAIN_FILE=$env:EV_VCPKG_ROOT\scripts\buildsystems\vcpkg.cmake" `
+            -DVCPKG_MANIFEST_MODE=OFF `
+            "-DVCPKG_INSTALLED_DIR=${{ github.workspace }}\build-msvc\vcpkg_installed" `
+            -DVCPKG_TARGET_TRIPLET=x64-windows
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          cmake --build consumer
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          cmake --install consumer --prefix "${{ github.workspace }}\consumer-deploy"   # Qt deploy needs an absolute prefix
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          consumer\consumer_core.exe
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          consumer\consumer_3d.exe
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          consumer-deploy\bin\consumer_3d.exe
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+
       # Package a runnable folder so a Windows build can be downloaded without MSVC, Qt,
-      # vcpkg or osgEarth installed locally. The job already builds and tests all three
-      # executables; without this they were discarded. Visual checks still need a GPU.
+      # vcpkg or osgEarth installed locally.
       #
-      # Paths are discovered rather than hard-coded: the generator (Ninja here, Visual
-      # Studio locally) decides whether there is a per-config subdirectory, and vcpkg's
-      # install tree sits under the build directory or the manifest directory depending on
-      # VCPKG_INSTALLED_DIR.
+      # earthview3d_deploy_runtime() (E7) has already placed the vcpkg DLLs, osgPlugins-*
+      # (including vdatum_egm96 and freetype) and share/gdal + share/proj next to the demo
+      # executable, and demo/CMakeLists.txt copies shaders/ there too. That directory is
+      # therefore already the deployed layout, so it is copied wholesale rather than
+      # rediscovering the vcpkg tree here. Qt is not part of the build-tree deploy (only the
+      # INSTALL form of that function adds it), so windeployqt still runs.
       - name: Package Windows binaries
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
           $stage = Join-Path $env:GITHUB_WORKSPACE 'dist\earthview-win64'
-          New-Item -ItemType Directory -Force -Path $stage | Out-Null
+          New-Item -ItemType Directory -Force -Path (Split-Path $stage) | Out-Null
 
-          # 1. The three product executables, by name. Do not glob for *.exe: vcpkg installs
-          #    into build-msvc\vcpkg_installed, so a recursive glob also picks up vcpkg's own
-          #    tools (sqlite3, protoc, bomtool, brotli, ...) and CMake's compiler-probe binary,
-          #    and windeployqt then fails on the first one that is not a Qt application.
-          $wanted = 'EarthView.exe', 'earthview_snapshot.exe', 'earthview3d_demo.exe'
-          foreach ($name in $wanted) {
+          # 1. The demo's output directory, already deployed by E7. The vcpkg install tree
+          #    also lives under build-msvc, so exclude it.
+          $demo = Get-ChildItem build-msvc -Recurse -File -Filter 'earthview3d_demo.exe' |
+                  Where-Object { $_.FullName -notmatch '\\vcpkg_installed\\' } |
+                  Select-Object -First 1
+          if (-not $demo) { throw 'earthview3d_demo.exe not found under build-msvc' }
+          Copy-Item $demo.Directory.FullName $stage -Recurse -Force
+          Write-Host "Deployed layout copied from $($demo.Directory.FullName)"
+
+          # 2. What E7 deploys must actually be present: a package without the plugin folder
+          #    loads no fonts, and one without proj.db misprojects silently.
+          foreach ($need in 'share\gdal', 'share\proj', 'shaders') {
+            if (-not (Test-Path (Join-Path $stage $need))) {
+              throw "$need is missing from the deployed layout - check earthview3d_deploy_runtime()"
+            }
+          }
+          $plugins = Get-ChildItem $stage -Directory -Filter 'osgPlugins-*'
+          if (-not $plugins) { throw 'no osgPlugins-* in the deployed layout' }
+          Write-Host "OSG plugins: $(($plugins | ForEach-Object Name) -join ', ')"
+
+          # 3. The 2D executables, by name. Never glob *.exe: vcpkg installs its own tools
+          #    under build-msvc\vcpkg_installed, and windeployqt fails on the first one that
+          #    is not a Qt application.
+          $flat = @('EarthView.exe', 'earthview_snapshot.exe')
+          foreach ($name in $flat) {
             $hit = Get-ChildItem build-msvc -Recurse -File -Filter $name |
                    Where-Object { $_.FullName -notmatch '\\vcpkg_installed\\' } |
                    Select-Object -First 1
             if (-not $hit) { throw "built executable $name not found under build-msvc" }
             Copy-Item $hit.FullName $stage -Force
-            Write-Host "Executable: $($hit.FullName)"
           }
 
-          # 2. Qt runtime: this job configures with EARTHVIEW_DEPLOY_QT=OFF, so the
-          #    post-build windeployqt never ran. --compiler-runtime adds the MSVC
-          #    redistributable DLLs so the folder runs on a machine without VS.
+          # 4. Qt runtime plus the MSVC redistributable, for every executable here.
           $windeployqt = Join-Path $env:QT_ROOT_DIR 'bin\windeployqt.exe'
           if (-not (Test-Path $windeployqt)) { throw "windeployqt not found at $windeployqt" }
           foreach ($exe in Get-ChildItem $stage -Filter *.exe) {
-            & $windeployqt --release --no-translations --compiler-runtime `
-                           --dir $stage $exe.FullName
+            & $windeployqt --release --no-translations --compiler-runtime --dir $stage $exe.FullName
             if ($LASTEXITCODE -ne 0) { throw "windeployqt failed for $($exe.Name)" }
           }
 
-          # 3. osgEarth / OSG / GDAL / PROJ runtime, the OSG plugin folder, and the GDAL and
-          #    PROJ data directories that configureRuntime() resolves at startup (D-017,
-          #    D-025 — the plugin folder is what makes osgdb_freetype and the label fonts
-          #    work, so a package without it loses every non-ASCII glyph).
-          $tree = @(
-            (Join-Path $env:GITHUB_WORKSPACE 'build-msvc\vcpkg_installed\x64-windows'),
-            (Join-Path $env:GITHUB_WORKSPACE 'vcpkg_installed\x64-windows')
-          ) | Where-Object { Test-Path $_ } | Select-Object -First 1
-          if (-not $tree) {
-            $tree = (Get-ChildItem $env:GITHUB_WORKSPACE -Recurse -Directory -Filter 'x64-windows' `
-                       -ErrorAction SilentlyContinue |
-                     Where-Object { $_.FullName -match 'vcpkg_installed' } |
-                     Select-Object -First 1).FullName
-          }
-          if (-not $tree) { throw 'vcpkg installed tree (x64-windows) not found' }
-          Write-Host "vcpkg tree: $tree"
-
-          Copy-Item "$tree\bin\*.dll" $stage -Force
-
-          # vcpkg puts the OSG plugins in <tree>\plugins\osgPlugins-<version>, not in bin;
-          # earthview3d/CMakeLists.txt reads the same path for
-          # EARTHVIEW3D_DEV_OSG_PLUGIN_DIR. The package keeps the parent folder, because
-          # configureRuntime() adds the *parent* of osgPlugins-<version> to osgDB's library
-          # path list. The directory listing is logged so a layout change is diagnosable
-          # from the failure alone.
-          Write-Host "vcpkg tree contains: $((Get-ChildItem $tree -Directory | ForEach-Object Name) -join ', ')"
-          $plugins = Get-ChildItem "$tree\plugins" -Directory -Filter 'osgPlugins-*' -ErrorAction SilentlyContinue
-          if (-not $plugins) {
-            $plugins = Get-ChildItem $tree -Recurse -Directory -Filter 'osgPlugins-*' -ErrorAction SilentlyContinue
-          }
-          if (-not $plugins) { throw "no osgPlugins-* folder anywhere under $tree" }
-          New-Item -ItemType Directory -Force -Path "$stage\plugins" | Out-Null
-          $plugins | ForEach-Object { Copy-Item $_.FullName "$stage\plugins" -Recurse -Force }
-          Write-Host "OSG plugins: $(($plugins | ForEach-Object Name) -join ', ')"
-
-          # Fatal, not a warning: without share\gdal and share\proj the package starts and
-          # then misbehaves on projections and imagery, which reads like a code bug rather
-          # than a missing file. Every other guard here is fatal for the same reason.
-          New-Item -ItemType Directory -Force -Path "$stage\share" | Out-Null
-          foreach ($d in 'gdal', 'proj') {
-            if (-not (Test-Path "$tree\share\$d")) { throw "$tree\share\$d not found - $d data cannot be packaged" }
-            Copy-Item "$tree\share\$d" "$stage\share" -Recurse -Force
-            Write-Host "$d data: $((Get-ChildItem "$stage\share\$d" -Recurse -File).Count) files"
-          }
-
-          # 4. Earth files, models and the committed world base imagery.
+          # 5. Earth files, models and the committed world base imagery.
           Copy-Item (Join-Path $env:GITHUB_WORKSPACE 'EarthView\Data') $stage -Recurse -Force
 
-          # 4b. GLSL shaders. All three targets have a POST_BUILD step copying shaders\ next
-          #     to their own executable, and ShaderUtils searches
-          #     applicationDirPath()/shaders first. Staging the .exe files alone drops that
-          #     sibling folder, and the 2D app then logs "Could not find shader files ..."
-          #     for every program. One copy serves all three, since they now share a folder.
-          $shaders = Join-Path $env:GITHUB_WORKSPACE 'EarthView\shaders'
-          if (-not (Test-Path $shaders)) { throw "shaders folder not found at $shaders" }
-          Copy-Item $shaders $stage -Recurse -Force
-          Write-Host "Shaders: $((Get-ChildItem "$stage\shaders" -File).Count) files"
-
-          # 5. Launchers. Without these the package starts but cannot work:
-          #    RuntimePaths::buildTreeDefaults() carries only the compile-time CI build-tree
-          #    paths, which do not exist on a downloaded copy, and configureRuntime() skips a
-          #    directory that is not there — so no OSG plugin folder is registered and no
-          #    GDAL/PROJ data is found. applyDataEnvironment() deliberately never overrides a
-          #    variable that is already set, and osgDB reads OSG_LIBRARY_PATH when its DLL
-          #    loads, so setting these before launch is the supported way to run from an
-          #    arbitrary folder (D-017, D-025). Resolving deployed paths inside the library is
-          #    roadmap task E7; until then the launcher is what makes the package portable.
+          # 6. Launchers. E7's RuntimePaths::defaults() finds the deployed layout next to the
+          #    executable, so OSG_LIBRARY_PATH, GDAL_DATA and PROJ_DATA are no longer needed.
+          #    What remains is the demo's --data-root, which still defaults to
+          #    EARTHVIEW3D_DEFAULT_DATA_ROOT - an absolute path into the source tree of the
+          #    machine that built it (demo/CMakeLists.txt). Without it
+          #    MapConfig::validate() returns "Data root ... does not exist" and main()
+          #    returns 2 before a window appears. It goes ahead of %* so a --data-root the
+          #    user passes still wins.
           $template = @'
           @echo off
-          rem Portable launcher: point the osgEarth runtime at the folders in this package.
-          rem The executables carry the CI build-tree paths compiled in, which do not exist here,
-          rem so the paths must come from the environment (see D-017/D-025 and roadmap E7).
+          rem Portable launcher. The 3D demo's --data-root default is an absolute path from the
+          rem machine that built this, so it is supplied here. The rest of the runtime is found
+          rem next to the executable by RuntimePaths::defaults() (E7).
           setlocal
           set "EV_HOME=%~dp0"
-          set "OSG_LIBRARY_PATH=%EV_HOME%plugins"
-          set "GDAL_DATA=%EV_HOME%share\gdal"
-          set "PROJ_DATA=%EV_HOME%share\proj"
-          set "PROJ_LIB=%EV_HOME%share\proj"
           "%EV_HOME%__EXE__" __ARGS__ %*
           '@
-          # earthview3d_demo's --data-root defaults to EARTHVIEW3D_DEFAULT_DATA_ROOT, which
-          # CMake bakes in as an absolute path into the source tree it was built from. On a
-          # downloaded copy that directory does not exist, MapConfig::validate() returns
-          # "Data root ... does not exist" and main() exits 2 before a window appears -- the
-          # 3D demo closing immediately. Point it at the Data folder in this package; a
-          # --data-root the user passes still wins, because it comes later on the line.
           $extraArgs = @{ 'earthview3d_demo.exe' = '--data-root "%EV_HOME%Data"' }
-          foreach ($name in $wanted) {
+          foreach ($name in @('earthview3d_demo.exe') + $flat) {
             $cmd = 'run-' + [IO.Path]::GetFileNameWithoutExtension($name) + '.cmd'
-            $extra = if ($extraArgs.ContainsKey($name)) { $extraArgs[$name] } else { '' }
-            $template.Replace('__EXE__', $name).Replace('__ARGS__', $extra) |
+            $withArgs = if ($extraArgs.ContainsKey($name)) { $extraArgs[$name] } else { '' }
+            $template.Replace('__EXE__', $name).Replace('__ARGS__', $withArgs) |
               Set-Content -Path (Join-Path $stage $cmd) -Encoding ASCII
-            Write-Host "Launcher: $cmd -> $name $extra"
+            Write-Host "Launcher: $cmd"
           }
+
 
           $readme = @'
           EarthView - Windows x64 build
           =============================
 
           Built by CI with MSVC, Qt 6.11 (msvc2022_64) and osgEarth 3.8.1 from the pinned vcpkg
-          manifest. Nothing needs to be installed: Qt, osgEarth, OSG, GDAL and PROJ are all in
-          this folder, along with the MSVC redistributable DLLs.
+          manifest. Nothing needs to be installed: Qt, osgEarth, OSG, GDAL and PROJ are all here,
+          with the MSVC redistributable DLLs, the OSG plugin folder and share\gdal + share\proj.
 
-          Start it with one of the launchers, NOT the .exe directly:
+          Start it with one of the launchers:
 
             run-earthview3d_demo.cmd     3D / stealth view demo host (osgEarth)
             run-EarthView.cmd            2D map application
             run-earthview_snapshot.cmd   offscreen snapshot tool
 
-          The launchers set OSG_LIBRARY_PATH, GDAL_DATA and PROJ_DATA to the folders here. The
-          executables have the CI build-tree paths compiled in, so running an .exe directly means
-          osgEarth finds no plugin folder and no GDAL/PROJ data: the 3D view then fails to load
-          fonts and imagery. Any argument you pass to a launcher is forwarded, e.g.
+          The runtime next to the executables is found automatically. The launcher exists for one
+          remaining reason: the 3D demo's --data-root is compiled in as an absolute path from the
+          machine that built this, so it is passed explicitly. Run earthview3d_demo.exe directly
+          and it exits immediately with "Data root ... does not exist". Any argument you add to a
+          launcher is forwarded, e.g.
 
             run-earthview3d_demo.cmd --view stealth --entities 50
 
-          What the launchers set up for you
-          ---------------------------------
-          OSG_LIBRARY_PATH, GDAL_DATA and PROJ_DATA point at this folder, and the 3D demo
-          is given --data-root for the Data folder here. Both are needed because the
-          executables have absolute paths from the CI build machine compiled in: the 3D
-          demo would otherwise exit immediately with "Data root ... does not exist", and
-          osgEarth would find no plugins or projection data. The shaders folder must also
-          stay next to the executables, or the 2D app logs "Could not find shader files".
-
           Offline map data
           ----------------
-          Only the committed world base imagery (Data/imagery/world_base.tif) ships here, so the
+          Only the committed world base imagery (Data\imagery\world_base.tif) ships here, so the
           default map is land/sea at low resolution. For the full offline map - AOI base map,
-          hillshade and place names - run EarthView/tools/offline_data/build_offline_data.py from
+          hillshade and place names - run EarthView\tools\offline_data\build_offline_data.py from
           a checkout; it needs the GDAL command-line tools and is not run by CI.
 
           TMS maps from your own tile server
           ----------------------------------
-          Data/EarthFiles is deliberately NOT in the repository, so no TMS layer-list file and
-          no tile-server hostname is in this package. Your layer-list earth files stay on your
-          own machine.
-
-          Once a build contains the E11 map catalog, point the demo at that local folder:
+          Data\EarthFiles holds only a README and two .earth.sample files: the real layer-list
+          files carry your tile-server address and are deliberately kept out of the repository,
+          so nothing in this package points at your network. Keep them on your own machine and
+          pass the folder:
 
             run-earthview3d_demo.cmd --earth-files D:\path\to\your\EarthFiles
 
-          and use --list-maps / --map-name, or the Map dropdown, to pick one. A build without
-          E11 has no such option and ignores the folder. The catalog writes the generated
-          osgEarth earth file next to the template (Data\maps) unless you pass an output
-          directory, so keep this package somewhere writable - not under Program Files.
+          Then --list-maps to see what was found, --map-name "<label>" to pick one, or use the Map
+          dropdown in the toolbar. Each source is converted to a standard osgEarth earth file
+          written next to the template (Data\maps\tms_<name>.earth), so keep this package
+          somewhere writable - not under Program Files.
           '@
           $readme | Set-Content -Path (Join-Path $stage 'README.txt') -Encoding ASCII
 
           "{0:N1} MB packaged" -f ((Get-ChildItem $stage -Recurse -File |
               Measure-Object -Property Length -Sum).Sum / 1MB)
-          Get-ChildItem $stage | Select-Object Mode, Name | Format-Table | Out-String
 
       - name: Upload Windows binaries
         uses: actions/upload-artifact@v4
