@@ -82,6 +82,21 @@ splicing the TMS layers into the template's `<!--@EARTHVIEW3D_TMS_LAYERS@-->` pl
 rebuilding the view with the new `MapConfig` (osgEarth loads the map when the view is built).
 2D code is untouched: it still reads the original files.
 
+Those layer-list files may also carry the offline machine's DTED folder, as the 2D viewer
+reads it:
+
+```
+<elevation name="DTED" driver="dted"> <url> D:/EarthViewData/DTED </url></elevation>
+```
+
+`EarthFileCatalog` turns that entry into an osgEarth `<GDALElevation>` layer
+(`TmsLayerSpec::Kind::DtedElevation`, `vdatum` defaulting to `egm96` because DTED is
+orthometric, D-021). osgEarth opens a GDAL dataset rather than a folder, so a `<url>` that
+names a folder gets `dtedMosaicFileName()` appended — `EarthFileCatalog::dtedMosaicUrl()` is
+that rule, and `build_offline_data.py dted-vrt <folder>` writes the mosaic. The same path is
+spelled out, once per machine, in `maps/earthview*.earth` for hosts that use the template map
+directly. There is no 3D API for it: it is map configuration, not host state.
+
 Cameras (E4, `CameraControl.h`): `setCameraMode(CameraMode)` with `Orbit`, `Chase`,
 `Stealth`, `FirstPerson`, `FreeFly` (smooth 1 s transition; chase/stealth/first person follow
 the selected entity), `cameraMode()`, signal `cameraModeChanged(CameraMode)`.

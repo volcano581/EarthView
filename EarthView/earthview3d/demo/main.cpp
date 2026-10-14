@@ -225,7 +225,11 @@ int main(int argc, char** argv)
         return 0;
     }
 
-    int mapIndex = 0;
+    // Default to the first map built from Data/EarthFiles (the offline tile server's TMS
+    // layers) when the machine has one: the template on its own carries only the pale offline
+    // base imagery, so the 3D view came up blank next to the 2D map (I-038). The template
+    // itself stays reachable as "<name> (default)" through --map-name / the Map dropdown.
+    int mapIndex = catalog.size() > 1 ? 1 : 0;
     if (parser.isSet(QStringLiteral("map-name"))) {
         const QString wanted = parser.value(QStringLiteral("map-name"));
         mapIndex = -1;

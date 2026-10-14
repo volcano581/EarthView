@@ -59,6 +59,45 @@ class PureTests(unittest.TestCase):
         with self.assertRaises(bod.ToolError):
             bod.run(["definitely-not-a-gdal-tool"], quiet=True)
 
+    def test_dted_vrt_rejects_a_folder_without_tiles(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with self.assertRaises(bod.ToolError):
+                bod.dted_vrt(os.path.join(tmp, "missing"))      # folder does not exist
+            with open(os.path.join(tmp, "readme.txt"), "w", encoding="utf-8") as f:
+                f.write("no tiles here\n")
+            with self.assertRaises(bod.ToolError):
+                bod.dted_vrt(tmp)                               # folder without DTED tiles
+
+    def test_dted_vrt_collects_tiles_from_sub_folders(self):
+        """Tile discovery (the part that does not need GDAL): recursive, case-insensitive."""
+        with tempfile.TemporaryDirectory() as tmp:
+            os.makedirs(os.path.join(tmp, "n33"))
+            for name in ("n33/e073.dt2", "n33/E074.DT2", "e075.dt1", "notes.md"):
+                with open(os.path.join(tmp, name), "wb") as f:
+                    f.write(b"UHL1")
+            calls = []
+            captured = {}
+
+            def fake_gdalbuildvrt(args, quiet=False):
+                calls.append(args)
+                with open(args[args.index("-input_file_list") + 1], encoding="utf-8") as handle:
+                    captured["tiles"] = handle.read().split()
+
+            original = bod.run
+            bod.run = fake_gdalbuildvrt
+            try:
+                out = bod.dted_vrt(tmp)
+            finally:
+                bod.run = original
+
+            self.assertEqual(out, os.path.abspath(os.path.join(tmp, bod.DTED_MOSAIC)))
+            self.assertEqual(len(calls), 1)
+            self.assertEqual(calls[0][0], "gdalbuildvrt")
+            self.assertIn("-relative_to_vrt", calls[0])
+            self.assertEqual(calls[0][-1], out)
+            names = sorted(os.path.basename(t) for t in captured["tiles"])
+            self.assertEqual(names, ["E074.DT2", "e073.dt2", "e075.dt1"])   # notes.md left out
+
 
 @unittest.skipUnless(HAVE_GDAL, "GDAL command-line tools not installed")
 class GdalTests(unittest.TestCase):

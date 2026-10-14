@@ -18,6 +18,11 @@ paths in Data/maps/earthview.earth find them:
   Cities/places_minor.gpkg villages and hamlets (labels, close range only)
   DEM/dted_1arc.vrt.ovr    DTED overviews (faster zoomed-out terrain)
 
+The dted-vrt step is separate: it indexes the offline server's own DTED folder (.dt1/.dt2)
+as <folder>/dted_mosaic.vrt, which is the path the earth files point at. It writes nothing
+into the data tree:
+  python EarthView/tools/offline_data/build_offline_data.py dted-vrt D:/EarthViewData/DTED
+
 Usage (from the repository root):
   python EarthView/tools/offline_data/build_offline_data.py all \
       --mbtiles D:/Data/osm-2020-02-10-v3.11_asia_pakistan.mbtiles --aoi 70.5,32.5,75.5,35.5
@@ -202,6 +207,41 @@ def vector_base(data, mbtiles, aoi, zoom=13, res_deg=0.0002):
     return out
 
 
+DTED_EXTENSIONS = (".dt0", ".dt1", ".dt2")
+DTED_MOSAIC = "dted_mosaic.vrt"   # EarthFileCatalog::dtedMosaicFileName()
+
+
+def dted_vrt(dted_dir, output=None):
+    """Index a folder of DTED tiles (.dt0/.dt1/.dt2) as one GDAL mosaic.
+
+    osgEarth's GDALElevation layer opens a dataset, not a folder, so the earth files point at
+    this .vrt; the 2D viewer is given the folder itself. Written inside the folder with
+    relative tile paths (-relative_to_vrt), so copying the whole folder keeps it working.
+    Sub-folders are included: offline servers often split DTED by latitude band.
+    """
+    if not os.path.isdir(dted_dir):
+        raise ToolError(f"DTED folder not found: {dted_dir}")
+    tiles = sorted(
+        os.path.join(root, name)
+        for root, _dirs, names in os.walk(dted_dir)
+        for name in names
+        if name.lower().endswith(DTED_EXTENSIONS)
+    )
+    if not tiles:
+        raise ToolError(f"No .dt0/.dt1/.dt2 tiles under {dted_dir}")
+
+    vrt = os.path.abspath(output or os.path.join(dted_dir, DTED_MOSAIC))
+    os.makedirs(os.path.dirname(vrt), exist_ok=True)
+    with tempfile.TemporaryDirectory() as tmp:
+        # A file list keeps the command short: a theatre can hold thousands of tiles.
+        listing = os.path.join(tmp, "dted.txt")
+        with open(listing, "w", encoding="utf-8") as handle:
+            handle.write("\n".join(tiles) + "\n")
+        run(["gdalbuildvrt", "-relative_to_vrt", "-input_file_list", listing, vrt])
+    print(f"  {len(tiles)} DTED tiles -> {vrt}")
+    return vrt
+
+
 def read_places(cities_dir):
     """Yield (name, lon, lat, rank, country) from the Cities/<cc>/place*.ndjson files."""
     for path in sorted(glob.glob(os.path.join(cities_dir, "*", "*.ndjson"))):
@@ -259,7 +299,9 @@ def places(data):
 
 def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("step", choices=["all", "world-base", "dem-overviews", "hillshade", "vector-base", "places"])
+    p.add_argument("step", choices=["all", "world-base", "dem-overviews", "hillshade", "vector-base", "places",
+                                    "dted-vrt"])
+    p.add_argument("dted_dir", nargs="?", help="dted-vrt: folder of .dt1/.dt2 tiles from the offline server")
     p.add_argument("--data", default=DEFAULT_DATA, help="data root (default: EarthView/Data)")
     p.add_argument("--mbtiles", help="OpenMapTiles vector MBTiles (vector-base; optional for all)")
     p.add_argument("--aoi", default="70.5,32.5,75.5,35.5",
@@ -268,6 +310,8 @@ def main(argv=None):
     p.add_argument("--base-res", type=float, default=0.0002, help="vector-base pixel size in degrees (~20 m)")
     p.add_argument("--hillshade-res", type=float, default=3.0, help="hillshade pixel size in arcsec (default 3)")
     p.add_argument("--world-res", type=float, default=0.05, help="world-base pixel size in degrees")
+    p.add_argument("--dted-vrt-out", help="dted-vrt: where to write the mosaic "
+                                          f"(default: <dted_dir>/{DTED_MOSAIC})")
     a = p.parse_args(argv)
 
     data = os.path.abspath(a.data)
@@ -282,6 +326,11 @@ def main(argv=None):
             if not a.mbtiles:
                 p.error("vector-base needs --mbtiles")
             print("vector-base:"); vector_base(data, a.mbtiles, parse_aoi(a.aoi), a.zoom, a.base_res)
+        if a.step == "dted-vrt":
+            if not a.dted_dir:
+                p.error("dted-vrt needs the DTED folder, e.g. "
+                        "build_offline_data.py dted-vrt D:/EarthViewData/DTED")
+            print("dted-vrt:"); dted_vrt(a.dted_dir, a.dted_vrt_out)
         if a.step in ("all", "places"):
             print("places:"); places(data)
     except (ToolError, ValueError, OSError) as err:

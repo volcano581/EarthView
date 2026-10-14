@@ -77,6 +77,11 @@ bool isTmsDriver(const QString& driver)
     return driver.isEmpty() || driver.compare(QStringLiteral("tms"), Qt::CaseInsensitive) == 0;
 }
 
+bool isDtedDriver(const QString& driver)
+{
+    return driver.compare(QStringLiteral("dted"), Qt::CaseInsensitive) == 0;
+}
+
 /// true when the content's first element is <map>, i.e. already a standard osgEarth file.
 bool looksLikeStandardEarthFile(const QByteArray& content)
 {
@@ -106,6 +111,27 @@ void makeNamesUnique(QList<TmsLayerSpec>* layers)
 const char* EarthFileCatalog::layerPlaceholder()
 {
     return "<!--@EARTHVIEW3D_TMS_LAYERS@-->";
+}
+
+const char* EarthFileCatalog::dtedMosaicFileName()
+{
+    return "dted_mosaic.vrt";
+}
+
+QString EarthFileCatalog::dtedMosaicUrl(const QString& path)
+{
+    QString trimmed = path.trimmed();
+    while (trimmed.size() > 1
+           && (trimmed.endsWith(QLatin1Char('/')) || trimmed.endsWith(QLatin1Char('\\'))))
+        trimmed.chop(1);
+    if (trimmed.isEmpty())
+        return trimmed;
+
+    const int slash = std::max(trimmed.lastIndexOf(QLatin1Char('/')), trimmed.lastIndexOf(QLatin1Char('\\')));
+    const QString lastSegment = trimmed.mid(slash + 1);
+    if (lastSegment.contains(QLatin1Char('.')))   // already a file (.vrt, .dt2, …)
+        return trimmed;
+    return trimmed + QLatin1Char('/') + QLatin1String(dtedMosaicFileName());
 }
 
 QStringList EarthFileCatalog::defaultSearchDirectories(const QString& dataRoot)
@@ -162,11 +188,15 @@ bool EarthFileCatalog::parse(const QByteArray& content, MapCatalogEntry* entry, 
             if (elementName == QStringLiteral("image") || elementName == QStringLiteral("elevation")
                 || elementName == QStringLiteral("heightfield")) {
                 const QXmlStreamAttributes attributes = xml.attributes();
+                const QString driver = attributes.value(QStringLiteral("driver")).toString();
+                const bool image = elementName == QStringLiteral("image");
+                // DTED is an elevation-only driver: the offline server's .dt1/.dt2 folder.
+                const bool dted = !image && isDtedDriver(driver);
                 insideLayer = true;
-                skipCurrent = !isTmsDriver(attributes.value(QStringLiteral("driver")).toString());
+                skipCurrent = !dted && !isTmsDriver(driver);
                 current = TmsLayerSpec();
-                current.kind = elementName == QStringLiteral("image") ? TmsLayerSpec::Kind::Image
-                                                                     : TmsLayerSpec::Kind::Elevation;
+                current.kind = image ? TmsLayerSpec::Kind::Image
+                                     : (dted ? TmsLayerSpec::Kind::DtedElevation : TmsLayerSpec::Kind::Elevation);
                 current.name = attributes.value(QStringLiteral("name")).toString().trimmed();
                 current.minLevel = readLevel(attributes, { QStringLiteral("min_level"), QStringLiteral("minLevel"),
                                                            QStringLiteral("min_zoom"), QStringLiteral("minZoom") });
@@ -247,16 +277,22 @@ QByteArray EarthFileCatalog::layersXml(const QList<TmsLayerSpec>& layers, int in
     const QString pad = QString(std::max(0, indent), QLatin1Char(' '));
     QString xml;
     for (const TmsLayerSpec& layer : layers) {
-        const bool elevation = layer.kind == TmsLayerSpec::Kind::Elevation;
-        const QString element = elevation ? QStringLiteral("TMSElevation") : QStringLiteral("TMSImage");
+        const bool dted = layer.kind == TmsLayerSpec::Kind::DtedElevation;
+        const bool elevation = dted || layer.kind == TmsLayerSpec::Kind::Elevation;
+        const QString element = dted ? QStringLiteral("GDALElevation")
+                                     : (elevation ? QStringLiteral("TMSElevation") : QStringLiteral("TMSImage"));
+        const QString url = dted ? EarthFileCatalog::dtedMosaicUrl(layer.url) : layer.url;
         xml += QStringLiteral("%1<%2 name=\"%3\">\n").arg(pad, element, xmlEscaped(layer.name));
-        xml += QStringLiteral("%1    <url>%2</url>\n").arg(pad, xmlEscaped(layer.url));
+        xml += QStringLiteral("%1    <url>%2</url>\n").arg(pad, xmlEscaped(url));
         if (layer.minLevel >= 0)
             xml += QStringLiteral("%1    <min_level>%2</min_level>\n").arg(pad).arg(layer.minLevel);
         if (layer.maxLevel >= 0)
             xml += QStringLiteral("%1    <max_level>%2</max_level>\n").arg(pad).arg(layer.maxLevel);
-        if (elevation && !layer.vdatum.isEmpty())
-            xml += QStringLiteral("%1    <vdatum>%2</vdatum>\n").arg(pad, xmlEscaped(layer.vdatum));
+        // DTED heights are orthometric (EGM96 mean sea level); osgEarth needs that said so it
+        // converts them to the ellipsoid heights every other 3D position uses (D-021).
+        const QString vdatum = (dted && layer.vdatum.isEmpty()) ? QStringLiteral("egm96") : layer.vdatum;
+        if (elevation && !vdatum.isEmpty())
+            xml += QStringLiteral("%1    <vdatum>%2</vdatum>\n").arg(pad, xmlEscaped(vdatum));
         xml += QStringLiteral("%1</%2>\n").arg(pad, element);
     }
     if (!xml.isEmpty())

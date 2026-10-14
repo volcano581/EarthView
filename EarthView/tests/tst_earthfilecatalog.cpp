@@ -28,6 +28,9 @@ private slots:
     void rejectsFileWithoutLayers();
     void labelsFollowThe2DViewer_data();
     void labelsFollowThe2DViewer();
+    void parsesDtedElevationFolder();
+    void dtedMosaicUrlAppendsTheVrtOnlyToFolders_data();
+    void dtedMosaicUrlAppendsTheVrtOnlyToFolders();
     void layersXmlIsWellFormedAndEscaped();
     void discoverSortsAndDeduplicates();
     void generateSplicesIntoTemplate();
@@ -183,6 +186,49 @@ void TestEarthFileCatalog::labelsFollowThe2DViewer()
     QFETCH(QString, fileName);
     QFETCH(QString, label);
     QCOMPARE(EarthFileCatalog::labelForFile(QFileInfo(fileName)), label);
+}
+
+void TestEarthFileCatalog::parsesDtedElevationFolder()
+{
+    // The offline server's DTED folder, as the 2D layer list carries it.
+    const QByteArray content =
+        "<image name=\"img\" driver=\"tms\"><url>http://h/i/tilemapresource.xml</url></image>\n"
+        "<elevation name=\"DTED\" driver=\"dted\"> <url> C:/EarthViewData/DTED </url></elevation>\n";
+
+    MapCatalogEntry entry;
+    QVERIFY(EarthFileCatalog::parse(content, &entry, nullptr));
+    QCOMPARE(entry.tmsLayers.size(), 2);
+    const TmsLayerSpec& dted = entry.tmsLayers.at(1);
+    QCOMPARE(dted.kind, TmsLayerSpec::Kind::DtedElevation);
+    QCOMPARE(dted.name, QStringLiteral("DTED"));
+    QCOMPARE(dted.url, QStringLiteral("C:/EarthViewData/DTED"));
+
+    // osgEarth needs the GDAL mosaic, and DTED is orthometric: vdatum is filled in.
+    const QString xml = QString::fromUtf8(EarthFileCatalog::layersXml(entry.tmsLayers, 0));
+    QVERIFY(xml.contains(QStringLiteral("<GDALElevation name=\"DTED\">")));
+    QVERIFY(xml.contains(QStringLiteral("<url>C:/EarthViewData/DTED/dted_mosaic.vrt</url>")));
+    QVERIFY(xml.contains(QStringLiteral("<vdatum>egm96</vdatum>")));
+    QVERIFY(!xml.contains(QStringLiteral("TMSElevation")));
+}
+
+void TestEarthFileCatalog::dtedMosaicUrlAppendsTheVrtOnlyToFolders_data()
+{
+    QTest::addColumn<QString>("path");
+    QTest::addColumn<QString>("expected");
+    QTest::newRow("folder") << "C:/Data/DTED" << "C:/Data/DTED/dted_mosaic.vrt";
+    QTest::newRow("trailing slash") << "C:/Data/DTED/" << "C:/Data/DTED/dted_mosaic.vrt";
+    QTest::newRow("backslashes") << "D:\\Data\\DTED\\" << "D:\\Data\\DTED/dted_mosaic.vrt";
+    QTest::newRow("spaces") << "  /srv/dted  " << "/srv/dted/dted_mosaic.vrt";
+    QTest::newRow("vrt already") << "/srv/dted/mine.vrt" << "/srv/dted/mine.vrt";
+    QTest::newRow("single tile") << "/srv/dted/n33_e073.dt2" << "/srv/dted/n33_e073.dt2";
+    QTest::newRow("empty") << "" << "";
+}
+
+void TestEarthFileCatalog::dtedMosaicUrlAppendsTheVrtOnlyToFolders()
+{
+    QFETCH(QString, path);
+    QFETCH(QString, expected);
+    QCOMPARE(EarthFileCatalog::dtedMosaicUrl(path), expected);
 }
 
 void TestEarthFileCatalog::layersXmlIsWellFormedAndEscaped()

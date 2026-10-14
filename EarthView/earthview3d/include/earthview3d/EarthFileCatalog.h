@@ -18,14 +18,17 @@ namespace earthview3d {
  * @code
  * <image name="Layer_1" driver="tms"><url>http://host:port/imagery/l1/tilemapresource.xml</url></image>
  * @endcode
- * Only `driver="tms"` (or no driver) entries are kept; anything else is ignored, as in 2D.
+ * Only `driver="tms"` (or no driver) entries are kept, plus `driver="dted"` elevation entries
+ * (the offline server's DTED folder, see @ref dtedMosaicUrl); anything else is ignored, as
+ * in 2D.
  */
 struct TmsLayerSpec
 {
     enum class Kind
     {
-        Image,     ///< `<image>` → osgEarth TMSImage
-        Elevation  ///< `<elevation>` / `<heightfield>` → osgEarth TMSElevation
+        Image,         ///< `<image>` → osgEarth TMSImage
+        Elevation,     ///< `<elevation>` / `<heightfield>` → osgEarth TMSElevation
+        DtedElevation  ///< `<elevation driver="dted">` → osgEarth GDALElevation over DTED files
     };
 
     Kind kind = Kind::Image;
@@ -73,6 +76,16 @@ class EarthFileCatalog
 public:
     /// Marker comment in the template; generated TMS layers replace it (all occurrences).
     static const char* layerPlaceholder();
+
+    /// Name of the GDAL mosaic (.vrt) that indexes a folder of DTED tiles.
+    /// `build_offline_data.py dted-vrt --dted-dir <folder>` writes it into that folder.
+    static const char* dtedMosaicFileName();
+
+    /// What a `driver="dted"` entry's `<url>` means to osgEarth. The 2D viewer is given the
+    /// DTED *folder*; osgEarth reads a GDAL dataset, not a folder, so a path whose last
+    /// segment has no extension gets @ref dtedMosaicFileName appended. A path that already
+    /// names a file (.vrt, .dt2, …) is returned unchanged. Trailing slashes are ignored.
+    static QString dtedMosaicUrl(const QString& path);
 
     /// Folders scanned for earth files, in order, mirroring the 2D viewer's search
     /// (`<dataRoot>/EarthFiles`, `<dataRoot>/Data/EarthFiles`, `<dataRoot>`).
