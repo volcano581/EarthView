@@ -100,8 +100,9 @@ int main(int argc, char** argv)
          QStringLiteral(EARTHVIEW3D_DEFAULT_DATA_ROOT)},
         {QStringLiteral("earth-files"),
          QStringLiteral("Folder of EarthView layer-list earth files (relative to --data-root); one Map"
-                        " dropdown entry per file, converted to a standard osgEarth earth file."),
-         QStringLiteral("dir"), QStringLiteral("EarthFiles")},
+                        " dropdown entry per file, converted to a standard osgEarth earth file."
+                        " Default: search the same folders as the 2D viewer (--list-maps prints them)."),
+         QStringLiteral("dir")},
         {QStringLiteral("map-template"),
          QStringLiteral("Earth file whose <!--@EARTHVIEW3D_TMS_LAYERS@--> placeholder the TMS layers are"
                         " spliced into (default: --map)."), QStringLiteral("earth")},
@@ -196,6 +197,7 @@ int main(int argc, char** argv)
     // 2D viewer) turned into standard osgEarth earth files, one entry per file (D-027). The
     // --map earth file is always the first entry.
     QList<earthview3d::MapCatalogEntry> catalog;
+    QStringList searchedDirectories;
     {
         earthview3d::MapCatalogEntry base;
         base.sourcePath = mapConfig.resolvedEarthFile();
@@ -208,19 +210,26 @@ int main(int argc, char** argv)
             ? QDir(mapConfig.dataRoot).absoluteFilePath(parser.value(QStringLiteral("map-template")))
             : mapConfig.resolvedEarthFile();
         const QString earthFilesArg = parser.value(QStringLiteral("earth-files"));
-        const QStringList directories =
+        searchedDirectories =
             earthFilesArg.isEmpty() ? earthview3d::EarthFileCatalog::defaultSearchDirectories(mapConfig.dataRoot)
                                     : QStringList(QDir(mapConfig.dataRoot).absoluteFilePath(earthFilesArg));
         QStringList warnings;
-        catalog += earthview3d::EarthFileCatalog::build(directories, templatePath, QString(), &warnings);
+        catalog += earthview3d::EarthFileCatalog::build(searchedDirectories, templatePath, QString(), &warnings);
         for (const QString& warning : warnings)
             fail(warning);
     }
 
     if (parser.isSet(QStringLiteral("list-maps"))) {
+        std::fprintf(stdout, "Searched for EarthView layer lists (*.earth) in:\n");
+        for (const QString& directory : searchedDirectories) {
+            std::fprintf(stdout, "    %-60s %s\n", qPrintable(directory),
+                         QDir(directory).exists() ? "" : "(does not exist)");
+        }
+        std::fprintf(stdout, "\nMaps:\n");
         for (const earthview3d::MapCatalogEntry& entry : catalog) {
-            std::fprintf(stdout, "%-28s %s\n    -> %s\n", qPrintable(entry.label), qPrintable(entry.sourcePath),
-                         qPrintable(entry.earthFile));
+            std::fprintf(stdout, "%-28s %s\n    -> %s (%d TMS layer%s)\n", qPrintable(entry.label),
+                         qPrintable(entry.sourcePath), qPrintable(entry.earthFile), int(entry.tmsLayers.size()),
+                         entry.tmsLayers.size() == 1 ? "" : "s");
         }
         return 0;
     }
@@ -245,6 +254,28 @@ int main(int argc, char** argv)
         }
     }
     mapConfig.earthFile = catalog.at(mapIndex).earthFile;
+
+    // Say which map is being loaded, and say loudly when it is the template. A machine whose
+    // layer lists were not found loads a map with no tile-server imagery and looks, from the
+    // window, exactly like a machine whose tile server is unreachable — which is how I-041
+    // stayed open for three rounds. The one line below separates those two cases.
+    {
+        const earthview3d::MapCatalogEntry& chosen = catalog.at(mapIndex);
+        std::fprintf(stderr, "Map: %s -> %s (%d TMS layer%s)\n", qPrintable(chosen.label),
+                     qPrintable(chosen.earthFile), int(chosen.tmsLayers.size()),
+                     chosen.tmsLayers.size() == 1 ? "" : "s");
+        if (catalog.size() == 1) {
+            fail(QStringLiteral("No EarthView layer list (*.earth) was found, so the template map is loaded and "
+                                "the 3D view will show only the offline base imagery - no tile server. Searched:"));
+            for (const QString& directory : searchedDirectories) {
+                fail(QStringLiteral("    %1%2").arg(directory,
+                                                    QDir(directory).exists() ? QString()
+                                                                             : QStringLiteral("   (does not exist)")));
+            }
+            fail(QStringLiteral("Put the layer list the 2D viewer uses in one of those folders, or pass "
+                                "--earth-files <dir>; --list-maps shows what was found."));
+        }
+    }
 
     // Before any GlobeView3D exists (E1 review): OSG reads its plugin path too early for env vars.
     earthview3d::configureRuntime(earthview3d::RuntimePaths::defaults());
