@@ -69,7 +69,7 @@
 | E6 | Offline data pipeline (imagery, DEM overviews, overlays, earth template, cache) | E1 | M | yes | Done |
 | E7 | Packaging: CMake package/`add_subdirectory`, `earthview3d_deploy_runtime()`, install, offline build doc | E1 | M | no | Done ([#14](https://github.com/volcano581/EarthView/pull/14), `5f9bc0b`) |
 | E8 | Wiring kit: keep `DOCTRINE_WIRING.md` + host contract test in sync; integration checklist | E3, E4, E7 | S | no | Done ([#20](https://github.com/volcano581/EarthView/pull/20), `c3d1158`) |
-| E9 | Cleanup: remove EarthView pseudo-3D; 2D MapViewWindow "Open 3D" hook | E2 | M | yes | In review (`claude/e9-cleanup`) |
+| E9 | Cleanup: remove EarthView pseudo-3D; 2D MapViewWindow "Open 3D" hook | E2 | M | yes | Done ([#21](https://github.com/volcano581/EarthView/pull/21)) |
 | E10 | Performance + polish (1k entities, multiple windows, smooth motion) | E3, E4 | M | yes | |
 | E11 | TMS map catalog: EarthView's `Data/EarthFiles` layer-list files → standard earth files, one map per file | E6 | S | yes | Done |
 | L1 | **Local:** wire `earthview3d` into Doctrine (Conquer) per `DOCTRINE_WIRING.md` | E7, E8 | M | yes | local only |
