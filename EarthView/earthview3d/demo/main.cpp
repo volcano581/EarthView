@@ -96,8 +96,10 @@ int main(int argc, char** argv)
          QStringLiteral("name")},
         {QStringLiteral("map"), QStringLiteral("Earth file (absolute or relative to --data-root)."), QStringLiteral("earth"),
          QStringLiteral("maps/earthview.earth")},
-        {QStringLiteral("data-root"), QStringLiteral("Data root for relative paths."), QStringLiteral("dir"),
-         QStringLiteral(EARTHVIEW3D_DEFAULT_DATA_ROOT)},
+        {QStringLiteral("data-root"),
+         QStringLiteral("Data root for relative paths. Default: the Data folder beside this"
+                        " executable (then ../Data, then ./Data, then the build tree's)."),
+         QStringLiteral("dir")},
         {QStringLiteral("earth-files"),
          QStringLiteral("Folder of EarthView layer-list earth files (relative to --data-root); one Map"
                         " dropdown entry per file, converted to a standard osgEarth earth file."
@@ -182,7 +184,15 @@ int main(int argc, char** argv)
     }
 
     earthview3d::MapConfig mapConfig;
-    mapConfig.dataRoot = parser.value(QStringLiteral("data-root"));
+    // --data-root when given, otherwise the Data folder beside this executable. The
+    // compile-time default is the source tree of the machine that built this, which only
+    // exists there: a packaged demo run straight from its folder died on "Data root ... does
+    // not exist" and needed the launcher script to pass --data-root (I-049).
+    mapConfig.dataRoot = parser.isSet(QStringLiteral("data-root"))
+        ? parser.value(QStringLiteral("data-root"))
+        : earthview3d::MapConfig::discoverDataRoot(QCoreApplication::applicationDirPath(),
+                                                   QDir::currentPath(),
+                                                   QStringLiteral(EARTHVIEW3D_DEFAULT_DATA_ROOT));
     mapConfig.earthFile = parser.value(QStringLiteral("map"));
     mapConfig.cacheDir = parser.value(QStringLiteral("cache"));
     mapConfig.modelTable = parser.value(QStringLiteral("models"));
@@ -190,6 +200,8 @@ int main(int argc, char** argv)
     QString error;
     if (!mapConfig.validate(&error)) {
         fail(error);
+        fail(QStringLiteral("Data root: %1 (pass --data-root <dir> to set it; it should hold "
+                            "maps/, imagery/ and EarthFiles/)").arg(mapConfig.dataRoot));
         return 2;
     }
 
@@ -220,6 +232,7 @@ int main(int argc, char** argv)
     }
 
     if (parser.isSet(QStringLiteral("list-maps"))) {
+        std::fprintf(stdout, "Data root: %s\n\n", qPrintable(mapConfig.dataRoot));
         std::fprintf(stdout, "Searched for EarthView layer lists (*.earth) in:\n");
         for (const QString& directory : searchedDirectories) {
             std::fprintf(stdout, "    %-60s %s\n", qPrintable(directory),

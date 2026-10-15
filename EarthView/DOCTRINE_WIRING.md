@@ -166,7 +166,9 @@ Prerequisites: Conquer's `msvc` preset builds; osgEarth available (vcpkg tree or
    `earthview3d`; `GlobeView3D::EntityState3D` is now `earthview3d::EntityState3D`; the
    constructor takes an `earthview3d::MapConfig` (earth file, data root, cache dir, model
    table, sky and sky time; `validate()` reports a bad one and `MapConfig::fromJsonFile()`
-   reads it from a host settings file)
+   reads it from a host settings file; `MapConfig::discoverDataRoot(appDir, workingDir,
+   compiledDefault)` finds a deployed `Data` folder beside the executable, so a host needs no
+   launcher script and no build-time path to locate its data — D-033)
    instead of an earth-file path; diagnostics `DOCTRINE_3D_LOGDEPTH`/`DOCTRINE_3D_NO_SKY`
    are now `EARTHVIEW3D_LOGDEPTH`/`EARTHVIEW3D_NO_SKY`. The widget calls
    `osgEarth::initialize()` itself. Runtime files (E7): with step 3's

@@ -1,6 +1,7 @@
 #include "earthview3d/MapConfig.h"
 
 #include <QtTest>
+#include <QDir>
 #include <QTemporaryDir>
 
 using earthview3d::MapConfig;
@@ -24,6 +25,7 @@ private slots:
     void parseErrors();
     void validateChecksFiles();
     void skyTimeDefaultsToNow();
+    void discoverDataRootPrefersTheFolderBesideTheExecutable();
 
 private:
     QTemporaryDir m_dir;
@@ -169,6 +171,43 @@ void TestMapConfig::skyTimeDefaultsToNow()
 
     config.skyTime = QDateTime(QDate(2026, 1, 2), QTime(3, 4), QTimeZone::utc());
     QCOMPARE(config.effectiveSkyTime(), config.skyTime);
+}
+
+void TestMapConfig::discoverDataRootPrefersTheFolderBesideTheExecutable()
+{
+    // I-049: a shipped binary cannot use a build-time path — it names the source tree of the
+    // machine that compiled it. The deployed layout puts Data beside the executable.
+    QTemporaryDir tmp;
+    QVERIFY(tmp.isValid());
+    const QDir root(tmp.path());
+    const QString appDir = root.absoluteFilePath(QStringLiteral("bin"));
+    const QString workDir = root.absoluteFilePath(QStringLiteral("elsewhere"));
+    QVERIFY(QDir().mkpath(appDir));
+    QVERIFY(QDir().mkpath(workDir));
+    const QString compiled = QStringLiteral("D:/a/EarthView/EarthView/EarthView/Data");
+
+    // Nothing to find: the compile-time path is returned, so the error message names the path
+    // a developer recognises rather than something invented.
+    QCOMPARE(MapConfig::discoverDataRoot(appDir, workDir, compiled), QDir::cleanPath(compiled));
+    QVERIFY(MapConfig::discoverDataRoot(appDir, workDir, QString()).isEmpty());
+
+    // The working directory is the last resort, not the first.
+    const QString workData = QDir(workDir).absoluteFilePath(QStringLiteral("Data"));
+    QVERIFY(QDir().mkpath(workData));
+    QCOMPARE(MapConfig::discoverDataRoot(appDir, workDir, compiled), QDir::cleanPath(workData));
+
+    // <appDir>/../Data — an executable in bin/ with the data tree one level up — wins over it.
+    const QString parentData = root.absoluteFilePath(QStringLiteral("Data"));
+    QVERIFY(QDir().mkpath(parentData));
+    QCOMPARE(MapConfig::discoverDataRoot(appDir, workDir, compiled), QDir::cleanPath(parentData));
+
+    // Data beside the executable wins over everything: that is the packaged layout.
+    const QString appData = QDir(appDir).absoluteFilePath(QStringLiteral("Data"));
+    QVERIFY(QDir().mkpath(appData));
+    QCOMPARE(MapConfig::discoverDataRoot(appDir, workDir, compiled), QDir::cleanPath(appData));
+
+    // A host that passes neither still gets the compile-time path, never a crash.
+    QCOMPARE(MapConfig::discoverDataRoot(QString(), QString(), compiled), QDir::cleanPath(compiled));
 }
 
 QTEST_GUILESS_MAIN(TestMapConfig)

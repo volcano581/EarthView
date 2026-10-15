@@ -25,7 +25,9 @@ earthview3d_demo --list-maps
 earthview3d_demo --map-name "Satellite Imagery"
 ```
 
-`--list-maps` prints every folder searched (marking the ones that do not exist) and every map
+Run it from the folder the package was extracted to; `Data` beside the executable is found on
+its own (the `run-earthview3d_demo.cmd` launcher stays as a convenience). `--list-maps` prints
+the data root it resolved, then every folder searched (marking the ones that do not exist) and every map
 found, with its TMS layer count — run it first on a machine where the 3D view comes up without
 the tile server's imagery. With no `--earth-files`, the search covers the same folders as the
 2D viewer: `<DataRoot>/EarthFiles`, `<DataRoot>/Data/EarthFiles`, `<DataRoot>`, and then the

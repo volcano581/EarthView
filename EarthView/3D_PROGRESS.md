@@ -105,20 +105,37 @@ Cloud agents can only syntax-check osgEarth code (E3 review).
     the template was found, says so on stderr and lists every folder it searched. `--list-maps`
     prints the same folder list plus the layer count per map.
 - **Existing files touched:** `earthview3d/include/earthview3d/EarthFileCatalog.h`,
-  `earthview3d/src/EarthFileCatalog.cpp`, `earthview3d/demo/main.cpp`,
-  `tests/tst_earthfilecatalog.cpp`, `Data/EarthFiles/README.md`, `DOCTRINE_WIRING.md`,
-  this tracker.
+  `earthview3d/src/EarthFileCatalog.cpp`, `earthview3d/include/earthview3d/MapConfig.h`,
+  `earthview3d/src/MapConfig.cpp`, `earthview3d/demo/main.cpp`,
+  `tests/tst_earthfilecatalog.cpp`, `tests/tst_mapconfig.cpp`, `.github/workflows/ci.yml`,
+  `Data/EarthFiles/README.md`, `DOCTRINE_WIRING.md`, this tracker.
 - **Tests:** two new cases in `tst_earthfilecatalog` (30 assertions, was 28): the search list
   contains every folder the 2D viewer reads and holds only cleaned, unique paths; a folder of
   `*.earth.sample` files warns and offers no map, and the warning stops once one is copied to
-  `*.earth`. `ctest` 16/16 on Linux; `demo/main.cpp` syntax-checked (`g++ -fsyntax-only`), as
-  it only builds with osgEarth.
+  `*.earth`. One new case in `tst_mapconfig` (18 assertions, was 17): the data root is
+  discovered beside the executable, then one level up, then in the working directory, and the
+  compile-time path only when none exists. `ctest` 16/16 on Linux; `demo/main.cpp`
+  syntax-checked (`g++ -fsyntax-only`) against the real headers, as it only builds with
+  osgEarth.
 - **Verified:** Linux CI ✓ · Windows build pending · **The fix itself is unverified**: it is a
   diagnosis from the owner's log and from reading both search paths, not a reproduction — no
   cloud agent has that machine's folder layout. `--list-maps` on the offline machine confirms
   or refutes it in one line, which is why that output was made worth reading.
-- **Follow-ups:** I-046 (this), I-047, I-048. I-041 stays open until the owner's `--list-maps`
-  says which case it was.
+- **Second finding, same session (I-049):** the owner ran `earthview3d_demo.exe --list-maps`
+  on the package and got `Data root D:/a/EarthView/EarthView/EarthView/Data does not exist` —
+  the CI runner's workspace path, baked in at compile time by `demo/CMakeLists.txt` as
+  `EARTHVIEW3D_DEFAULT_DATA_ROOT` and the default for `--data-root` since E2. The packaged
+  `.exe` therefore cannot run on any machine but the one that built it; the packaging step
+  works around it with a `run-earthview3d_demo.cmd` launcher that supplies `--data-root`,
+  which is why the earlier console log (run through that launcher) resolved its data under the
+  download folder. Fixed properly: new `MapConfig::discoverDataRoot(appDir, workingDir,
+  compiledDefault)` takes `<appDir>/Data`, then `<appDir>/../Data`, then `<workingDir>/Data`,
+  and only then the compile-time path, so the deployed layout is found on its own; the demo
+  uses it unless `--data-root` is given, `--list-maps` prints the root it resolved, and a
+  validation failure now names the root and what it should contain. The launchers stay as a
+  convenience (they still help anyone who moved the exe out of its folder).
+- **Follow-ups:** I-046 (this), I-047, I-048, I-049 (this). I-041 stays open until the owner's
+  `--list-maps` says which case it was.
 
 ### 2026-10-15 — CI: a vcpkg binary cache every branch shares (GitHub Packages)  (In review)
 - **Branch / PR:** `claude/ci-shared-vcpkg-cache` / PR — merge —
@@ -765,6 +782,7 @@ Cloud agents can only syntax-check osgEarth code (E3 review).
 | D-030 | The offline server's DTED folder is named once per machine, in the map source: `<elevation name="DTED" driver="dted"><url>…</url></elevation>` in a 2D layer-list file, or the `GDALElevation` block in `maps/earthview*.earth`. osgEarth opens a GDAL dataset, not a folder, so a folder path means `<folder>/dted_mosaic.vrt`, built once by `build_offline_data.py dted-vrt <folder>`; DTED is orthometric, so `vdatum` defaults to `egm96` (D-021). 2D reads and reports the path; its terrain still comes from the GeoTIFF DEM mirror (I-039). | 2026-10-14 | F1 |
 | D-031 | The vcpkg binary cache is published to **GitHub Packages** (NuGet feed, `nuget,GitHubPackages,readwrite`), with `actions/cache` kept as the faster local layer and the fallback. `actions/cache` is scoped to the branch that wrote it, so under D-019 a cold osgEarth build on a PR branch was thrown away and master built it again after the merge — about two hours each time the key changed (a vcpkg.json/baseline change, or a `windows-latest` image refresh that moves MSVC and so the ABI hash, I-009). GitHub Packages is scoped to the repository, so any branch's build serves every later run, master included. The repository is public, so the packages cost nothing and are only open-source dependency binaries. Pull requests from forks get a read-only token and therefore read the feed without writing; if the feed is unreachable the step falls back to the branch cache and the build still succeeds, from source. | 2026-10-15 | owner request |
 | D-032 | The 3D map catalog searches **every folder the 2D viewer searches** (`EarthFileCatalog::defaultSearchDirectories()` mirrors `MapSourceCatalog::earthSearchDirectories()`: the data root's own folders first, then the working directory and the executable's folder, each plain and with `Data/EarthFiles`). A map the 2D pane can draw must never be missing from the 3D dropdown, and the demo searching one folder while 2D searched six is what I-041 turned out to be. The demo also reports the map it loads and, when it falls back to the template, names every folder it looked in: a 3D view with no imagery has two very different causes — no layer list found, or a tile server that will not answer — and they are indistinguishable from the window alone. | 2026-10-15 | I-046 |
+| D-033 | A deployed binary discovers its data root at runtime, never from a compile-time path: `MapConfig::discoverDataRoot()` prefers `Data` beside the executable, then `../Data`, then the working directory's, and falls back to the build-time path only so a developer's error message names something they recognise. A build-time absolute path is the build machine's source tree and exists nowhere else, so it is a default that works only for its author (I-049). The same rule already governs the OSG/GDAL/PROJ runtime (`RuntimePaths::defaults()`, D-026); this extends it to data. Launcher scripts may still pass `--data-root`, but nothing may require them. | 2026-10-15 | I-049 |
 | D-019 | CI vcpkg binary cache: every run restores, only `master` saves (complete or partial); a weekly scheduled master run keeps it from the 7-day eviction. Dependency changes build once on their PR without saving and once on master after merge. | 2026-10-12 | CI cache scope |
 | D-011 | The integration target is **Conquer** (`D:\Source\Conquer`: Doctrine + cgf-engine + EarthView superbuild, already MSVC), not the standalone `D:\Source\cgf-engine`. 3D code lives in an isolated library so osgEarth includes never reach other TUs. | 2026-10-08 | Conquer test |
 
@@ -821,6 +839,7 @@ Cloud agents can only syntax-check osgEarth code (E3 review).
 | I-046 | The demo searched one folder for layer lists (`<DataRoot>/EarthFiles`) while the 2D viewer searched six, so a layer list beside the executable or in the working directory fed the 2D map and was invisible to the 3D one; the demo then loaded the template map, which has no tile-server imagery and looks like an unreachable server. Fixed by D-032. Diagnosed from the owner's console log, **not reproduced** — confirm with `earthview3d_demo --list-maps` on that machine: more than one map listed means the layer lists are now found. | F2 | Fixed (confirm with --list-maps) |
 | I-047 | The deployed package has no `osgdb_stbdxt` plugin: the owner's log repeats "Now checking for plug-in osgPlugins-3.6.5/osgdb_stbdxt.dll" dozens of times, once per texture osgEarth tries to DXT-compress, each probe a failed file search. `earthview3d_deploy_runtime()` copies the whole `osgPlugins-*` folder (D-026), so vcpkg's osg port is not building that plugin rather than deployment dropping it. Harmless (textures stay uncompressed) but it wastes a file search per texture; check whether an osg feature adds it, or set a texture compression mode that does not need it. | E7 | Open |
 | I-048 | On the owner's machine the 2D DEM indexes resolve to nothing usable: `alldem90.vrt.index.bin` reports 479 and 23465 spatial records but "added 0 TIFF references" for both, and the viewer falls back to one sample tile (`DEM90TIF/N18.tif`, which is 55E 19N — Yemen, not the theatre). So 2D terrain has no real coverage there. Separate from the 3D elevation path; needs the index reader checked against those files. | 2D | Open |
+| I-049 | The packaged `earthview3d_demo.exe` could not run anywhere but the machine that built it: `--data-root` defaulted to `EARTHVIEW3D_DEFAULT_DATA_ROOT`, an absolute path into the build machine's source tree (`D:/a/EarthView/...` on CI), so `MapConfig::validate()` failed with "Data root ... does not exist" and `main()` returned 2 before a window appeared. Present since E2 and worked around by the `run-*.cmd` launchers, which hid it. Fixed by `MapConfig::discoverDataRoot()`. Unit-tested; **the packaged .exe running with no launcher and no arguments is still a Windows check**. | E7 | Fixed (Windows check) |
 
 ---
 
