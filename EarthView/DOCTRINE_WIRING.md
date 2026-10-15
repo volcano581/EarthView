@@ -7,6 +7,12 @@ machine** by following this document. Agents keep this document and the
 
 Everything Doctrine-specific described here is a **contract**, not code from Doctrine.
 
+> For a step-by-step wiring walkthrough with a drift-reconciliation checklist (the Doctrine
+> interface may have changed on the offline machine), plus class/call hierarchies and the
+> end-to-end 2D and 3D render pipelines, see
+> **[INTEGRATION_AND_ARCHITECTURE.md](INTEGRATION_AND_ARCHITECTURE.md)**. This file stays the
+> authoritative source for the `EntityState3D` field-mapping table.
+
 ---
 
 ## 1. What lives where

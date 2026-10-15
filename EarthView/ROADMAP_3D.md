@@ -2,7 +2,9 @@
 
 > Status, change log, decisions and issues: **[3D_PROGRESS.md](3D_PROGRESS.md)** ·
 > Design: **[OSGEARTH_INTEGRATION.md](OSGEARTH_INTEGRATION.md)** ·
-> Local Doctrine wiring: **[DOCTRINE_WIRING.md](DOCTRINE_WIRING.md)**
+> Local Doctrine wiring: **[DOCTRINE_WIRING.md](DOCTRINE_WIRING.md)** ·
+> Integration + architecture (class/call hierarchies, 2D + 3D render pipelines):
+> **[INTEGRATION_AND_ARCHITECTURE.md](INTEGRATION_AND_ARCHITECTURE.md)**
 
 **Direction (2026-10-08):**
 - The 3D / stealth view is built on **osgEarth** (D-007) as a reusable, host-independent
