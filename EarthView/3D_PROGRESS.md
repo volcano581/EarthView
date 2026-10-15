@@ -4,7 +4,7 @@ Single source of truth for **what has actually changed** in EarthView for 3D ren
 The plan lives in [ROADMAP_3D.md](ROADMAP_3D.md); this file records execution: who did
 what, in which PR/commit, how it was verified, and what is still open.
 
-Last updated: 2026-10-14
+Last updated: 2026-10-15
 
 ---
 
@@ -63,8 +63,8 @@ Cloud agents can only syntax-check osgEarth code (E3 review).
 | E5 | Terrain services | Merged | `3d/e5-terrain` | [#9](https://github.com/volcano581/EarthView/pull/9) | `3d6bae2` | pending (Windows) |
 | E6 | Offline data pipeline | Merged | `3d/e6-offline-data` | [#10](https://github.com/volcano581/EarthView/pull/10) | `27583f5` | ✓ after issue #11 fixes ([#12](https://github.com/volcano581/EarthView/pull/12), owner, 2026-10-13) |
 | E7 | Packaging + runtime deploy | Merged | `3d/e7-packaging` | [#14](https://github.com/volcano581/EarthView/pull/14) | `5f9bc0b` | pending (Windows) |
-| E8 | Wiring kit / host contract test | In review | `claude/e8-wiring-kit` | — | — | n.a. |
-| E9 | Cleanup pseudo-3D | Not started | | | | |
+| E8 | Wiring kit / host contract test | Merged | `claude/e8-wiring-kit` | [#20](https://github.com/volcano581/EarthView/pull/20) | `c3d1158` | n.a. |
+| E9 | Cleanup pseudo-3D + "Open 3D View" in the 2D app | Merged | `claude/e9-cleanup` | [#21](https://github.com/volcano581/EarthView/pull/21) | see git log | pending (Windows) |
 | E10 | Performance + polish | Not started | | | | |
 | E11 | TMS map catalog (`Data/EarthFiles` → standard earth files) | Merged | `claude/tms-earth-files-3d-ytzyzm` | [#15](https://github.com/volcano581/EarthView/pull/15) | `a5d594f` | partial ✓ (owner: files generated with correct paths, 2026-10-14; imagery not yet drawn, I-041) |
 | L1 | Local wiring into Doctrine (off GitHub) | Not started | local | — | | |
@@ -79,8 +79,60 @@ Cloud agents can only syntax-check osgEarth code (E3 review).
 
 ## Change log (newest first)
 
-### 2026-10-15 — CI: a vcpkg binary cache every branch shares (GitHub Packages)  (In review)
-- **Branch / PR:** `claude/ci-shared-vcpkg-cache` / PR — merge —
+### 2026-10-15 — E9: the pseudo-3D path removed from 2D; "Open 3D View" in the viewer  (Merged)
+- **Branch / PR:** `claude/e9-cleanup` / PR #21 / merge — see git log —
+- **Author:** cloud agent
+- **Why:** the 2D viewer still carried an earlier attempt at 3D — a pitched, fake-perspective
+  projection of the DEM and a first-person "stealth" view — which osgEarth superseded
+  (D-007). CLAUDE.md rule 2 has forbidden extending it since E1; this removes it.
+- **Scope decision (owner, 2026-10-15):** the DEM overlay **stays**, drawn flat. It only ever
+  rendered inside the pseudo-3D branch, so removing that branch would have taken the overlay,
+  `TerrainRenderer` and `DemLoader` with it — and with them the 2D DTED reader (I-039). The
+  owner chose to keep elevation in 2D, flat in Mercator, so that work stays on the table.
+- **Changes:**
+  - `Camera` loses `terrainMercatorToScreen`/`terrainScreenToMercator`, the whole stealth view
+    (`setStealthViewEnabled`, `stealthView*`, `moveCameraForward/Right`, `rotateCameraYaw`,
+    `setCameraHeightMeters`, `setCameraYawDegrees`), `setTerrain3DEnabled`,
+    `terrainPitchDegrees`, `terrainVerticalExaggeration`, the terrain anchor/focal/view-distance
+    helpers and three signals. 787 lines to 382. What is left is Mercator and orthographic,
+    untouched.
+  - `MapWidget` loses the floating **Stealth** button, the WASD/space/ctrl key tracking, the
+    pitch and exaggeration keys and the terrain-view branches; `MapWidget::keyReleaseEvent`
+    went with them (it only existed to maintain that key set).
+  - `TileRenderer`, `GridRenderer`, `BorderRenderer`, `LineBatchRenderer` and
+    `VectorTileRenderer` lose their `isTerrain3DView()` branches and the `Terrain3D` coordinate
+    mode; `colored_terrain.vert`, `terrain_line.vert` and the pitched `terrain_height.vert` are
+    deleted.
+  - The DEM overlay now draws through the new `shaders/terrain_flat.vert`: the same height
+    texture and `terrain_height.frag` hypsometric tint, projected like every other Mercator
+    layer, with no depth test and no wireframe pass (mesh edges were there to make the fake
+    relief legible; on a flat layer they were noise). It renders whenever **Terrain** is
+    ticked, instead of only inside the 3D view.
+  - The 2D viewer gains **Open 3D View** (Ctrl+3, toolbar and View menu) when `earthview3d` is
+    built: it opens `GlobeView3D` on the 2D map's current centre, reports `loadFailed` in the
+    status bar, and `earthview3d_deploy_runtime()` now also deploys next to `EarthView.exe`.
+    A 2D-only build has no action at all rather than one that cannot work.
+- **Existing files touched:** `Camera.{h,cpp}`, `MapWidget.{h,cpp}`, `TerrainRenderer.{h,cpp}`,
+  `TileRenderer.cpp`, `GridRenderer.cpp`, `BorderRenderer.{h,cpp}`, `LineBatchRenderer.{h,cpp}`,
+  `VectorTileRenderer.{h,cpp}`, `MainWindow.{h,cpp}`, `CMakeLists.txt`, `shaders/`,
+  `CLAUDE.md`, `ARCHITECTURE_AND_APIS.md`, `RENDERING_PIPELINE.md`, this tracker. Net about
+  −700 lines.
+- **Tests:** new `tst_camera2d` (8 cases): Mercator round trip across four zoom levels, the
+  centre landing in the middle of the viewport, a drag moving the centre by exactly the pixels
+  asked, the orthographic round trip and the far side of the globe not projecting, zoom halving
+  the resolution without moving the centre, and `projectionModeChanged` firing once. **The same
+  test was compiled and run against the pre-E9 `Camera` and passes identically**, which is the
+  evidence for rule 1 — the Mercator and orthographic paths behave the same before and after.
+  `ctest` 17/17 on Linux.
+- **Verified:** Linux CI ✓ · **Windows build ✓** (8 m 25 s, run 38669399317 attempt 2) — the
+  first real MSVC compile of the `EARTHVIEW_HAVE_3D` path in `MainWindow.cpp` and of `EarthView`
+  linking `earthview3d`; packaging succeeded. Visual check pending (Windows): the **Terrain**
+  toggle must still draw the DEM, now flat; Ctrl+3 must open the 3D view on the same place the
+  2D map is showing.
+- **Follow-ups:** I-044. I-039 (2D DTED) is unaffected and still open.
+
+### 2026-10-15 — CI: a vcpkg binary cache every branch shares (GitHub Packages)  (Merged)
+- **Branch / PR:** `claude/ci-shared-vcpkg-cache` / PR #22 / merge `c625b29`
 - **Author:** cloud agent
 - **Why:** the owner watched E9's Windows job spend 1 h 23 min in "Configure (installs osgEarth
   via vcpkg)" — a cold build, where a cache hit takes about 90 seconds — and asked that the
@@ -103,10 +155,11 @@ Cloud agents can only syntax-check osgEarth code (E3 review).
 - **Tests:** none (CI configuration). The workflow was parsed with a YAML loader and the step
   order, job permissions and env keys checked; the PowerShell was read for quoting, backtick
   continuations and `$LASTEXITCODE` handling.
-- **Verified:** Linux ✓ (unaffected) · **Windows: unverified until this branch's own run** —
-  nothing here can exercise a Windows runner or a NuGet feed. The first run on this branch is
-  the test: it will be a cold build that *publishes*, and the run after it should show
-  "Restored from GitHub Packages" in the vcpkg output and finish in minutes.
+- **Verified:** Linux ✓ · Windows ✓ (10 m 53 s, run 38677615557). The job log confirms the
+  registration took effect — `VCPKG_BINARY_SOURCES: clear;files,C:\ev-vcpkg-cache,readwrite;nuget,GitHubPackages,readwrite`
+  — so the feed resolves and the token is accepted; the fallback warning did not fire. A
+  *restore from* the feed is still unproven and shows up as a fast Configure on the first
+  Windows run after this merge (I-045).
 - **Follow-ups:** I-045.
 
 ### 2026-10-14 — E8: host contract pinned by a test, wiring document brought up to date  (In review)
@@ -775,6 +828,7 @@ Cloud agents can only syntax-check osgEarth code (E3 review).
 | I-041 | The demo's 3D window shows no imagery from a generated `tms_*.earth` on the owner's offline machine, although `EarthView.exe` renders the same TMS layers and the generated file has the right URLs. The 2D half of the same report was a missing map source in `DemoWindow` and is fixed (F2); the 3D half is unexplained and needs the osgEarth console output from that machine (which layer fails to open and why). First suspect is I-034: osgEarth's TMS driver rejecting a `tilemapresource.xml` whose SRS it cannot resolve, where a `<profile>` has to be declared. | F2 | Open (needs the owner's log) |
 | I-042 | DTED folders are indexed by `DtedMosaic` from the cells' own headers, not by `gdalbuildvrt`, so the written `.vrt` has never been opened by GDAL in CI (no GDAL on the cloud runners, and the Windows job has no DTED data). The grid matches what GDAL's DTED driver reports, cell for cell, but confirm on Windows that osgEarth loads a generated mosaic and that terrain heights match the per-cell values (`earthview3d_demo --spot 33.5497,72.8253,537`). | F3 | Open (Windows check) |
 | I-043 | A map loaded directly by osgEarth (`maps/earthview.earth`, the Doctrine/L1 route) still has to name the `.vrt`: only `EarthFileCatalog` passes through code that could index a folder. Either give `MapConfig` a DTED folder and add the elevation layer at runtime, or resolve the earth file's own `<url>` before handing it to osgEarth. Decide with L1. | F3 | Open |
+| I-044 | The 2D DEM overlay is flat now (E9), so its colours carry all the relief: the hypsometric ramp and the slope shading in `terrain_height.frag` were tuned for a pitched surface and have not been looked at on a flat one. Check on Windows with the **Terrain** toggle over the Islamabad DTED, and tune the ramp (or add a proper hillshade) if it reads poorly. | E9 | Open (Windows check) |
 | I-045 | The GitHub Packages binary cache (D-031) is unproven: no cloud agent can run a Windows runner, so the NuGet registration, the token's `packages: write` scope and vcpkg's restore from the feed are all first exercised by this branch's own CI run. Watch two consecutive Windows runs: the first should publish (cold build), the second restore in minutes. If the feed is rejected, the step warns and the job still builds from source, so the failure mode is slow rather than broken. Packages accumulate per ABI hash and are never pruned — check the repository's Packages page occasionally and delete old versions. | CI | Open (first run proves it) |
 
 ---

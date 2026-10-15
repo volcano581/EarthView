@@ -195,15 +195,7 @@ void TileRenderer::render()
             QPointF topRight;
             QPointF bottomRight;
             QPointF bottomLeft;
-            if (m_camera->isTerrain3DView()) {
-                if (!m_camera->projectMercatorToScreen(tile.mercatorBounds.topLeft(), &topLeft)
-                    || !m_camera->projectMercatorToScreen(QPointF(tile.mercatorBounds.right(), tile.mercatorBounds.top()), &topRight)
-                    || !m_camera->projectMercatorToScreen(tile.mercatorBounds.bottomRight(), &bottomRight)
-                    || !m_camera->projectMercatorToScreen(QPointF(tile.mercatorBounds.left(), tile.mercatorBounds.bottom()), &bottomLeft)) {
-                    continue;
-                }
-            }
-            else {
+            {
                 topLeft = m_camera->mercatorToScreen(tile.mercatorBounds.topLeft());
                 bottomRight = m_camera->mercatorToScreen(tile.mercatorBounds.bottomRight());
                 topRight = QPointF(bottomRight.x(), topLeft.y());

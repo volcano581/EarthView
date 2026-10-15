@@ -370,7 +370,7 @@ void appendProjectedSegment(
     const QColor& color,
     CoordinateMode mode)
 {
-    if (mode == CoordinateMode::Mercator || mode == CoordinateMode::Terrain3D) {
+    if (mode == CoordinateMode::Mercator) {
         LineBatchRenderer::appendSegment(vertices, a, b, color);
         return;
     }
@@ -393,7 +393,7 @@ void appendProjectedTileBackground(
     const QColor& color,
     CoordinateMode mode)
 {
-    if (mode == CoordinateMode::Mercator || mode == CoordinateMode::Terrain3D) {
+    if (mode == CoordinateMode::Mercator) {
         appendColoredQuad(
             vertices,
             bounds.topLeft(),
@@ -514,7 +514,7 @@ void appendProjectedWindingPath(
     if (ringSize < 3)
         return;
 
-    if (mode == CoordinateMode::Mercator || mode == CoordinateMode::Terrain3D) {
+    if (mode == CoordinateMode::Mercator) {
         const QPointF origin = mercatorPath.first();
         for (int i = 0; i < ringSize; ++i) {
             const QPointF& a = mercatorPath.at(i);
@@ -679,15 +679,6 @@ void VectorTileRenderer::initializeGpuResources()
     if (!ShaderUtils::loadProgram(
             &m_mercatorFillProgram,
             QStringLiteral("colored_mercator.vert"),
-            QStringLiteral("colored_line.frag"),
-            &errorMessage)) {
-        qWarning() << errorMessage;
-        return;
-    }
-
-    if (!ShaderUtils::loadProgram(
-            &m_terrainFillProgram,
-            QStringLiteral("colored_terrain.vert"),
             QStringLiteral("colored_line.frag"),
             &errorMessage)) {
         qWarning() << errorMessage;
@@ -1023,9 +1014,6 @@ void VectorTileRenderer::rebuildBatches()
     if (m_camera && m_camera->isOrthographic()) {
         m_coordinateMode = CoordinateMode::Screen;
     }
-    else if (m_camera && m_camera->isTerrain3DView()) {
-        m_coordinateMode = CoordinateMode::Terrain3D;
-    }
     else {
         m_coordinateMode = CoordinateMode::Mercator;
     }
@@ -1208,26 +1196,6 @@ void VectorTileRenderer::bindFillProgram(QOpenGLShaderProgram* program, LineBatc
             "u_pixelsPerMercator",
             static_cast<float>(GIS::EARTH_RADIUS / m_camera->getResolution()));
     }
-    else if (mode == CoordinateMode::Terrain3D) {
-        program->setUniformValue(
-            "u_centerMercator",
-            QVector2D(
-                static_cast<float>(m_camera->getCenterMercator().x()),
-                static_cast<float>(m_camera->getCenterMercator().y())));
-        program->setUniformValue("u_pixelsPerMeter", static_cast<float>(1.0 / m_camera->getResolution()));
-        program->setUniformValue("u_earthRadius", static_cast<float>(GIS::EARTH_RADIUS));
-        program->setUniformValue("u_pitchRadians", qDegreesToRadians(m_camera->terrainPitchDegrees()));
-        program->setUniformValue(
-            "u_yawRadians",
-            m_camera->isStealthViewEnabled() ? qDegreesToRadians(m_camera->cameraYawDegrees()) : 0.0f);
-        program->setUniformValue(
-            "u_screenAnchor",
-            QVector2D(
-                static_cast<float>(m_camera->terrainScreenAnchor().x()),
-                static_cast<float>(m_camera->terrainScreenAnchor().y())));
-        program->setUniformValue("u_focalPixels", static_cast<float>(m_camera->terrainFocalPixels()));
-        program->setUniformValue("u_viewDistanceMeters", static_cast<float>(m_camera->terrainViewDistanceMeters()));
-    }
 }
 
 void VectorTileRenderer::drawInstancedBackground()
@@ -1299,9 +1267,6 @@ void VectorTileRenderer::drawFillBatch()
     QOpenGLShaderProgram* windingProgram = &m_screenFillProgram;
     if (m_coordinateMode == CoordinateMode::Mercator) {
         windingProgram = &m_mercatorFillProgram;
-    }
-    else if (m_coordinateMode == CoordinateMode::Terrain3D) {
-        windingProgram = &m_terrainFillProgram;
     }
     if (!windingProgram->isLinked() || !m_screenFillProgram.isLinked())
         return;
@@ -1430,9 +1395,6 @@ void VectorTileRenderer::render()
     CoordinateMode currentMode = CoordinateMode::Mercator;
     if (m_camera->isOrthographic()) {
         currentMode = CoordinateMode::Screen;
-    }
-    else if (m_camera->isTerrain3DView()) {
-        currentMode = CoordinateMode::Terrain3D;
     }
 
     if (!m_hasBatchCameraState || currentMode != m_coordinateMode) {
