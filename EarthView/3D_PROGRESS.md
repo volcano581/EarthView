@@ -79,6 +79,36 @@ Cloud agents can only syntax-check osgEarth code (E3 review).
 
 ## Change log (newest first)
 
+### 2026-10-15 — CI: a vcpkg binary cache every branch shares (GitHub Packages)  (In review)
+- **Branch / PR:** `claude/ci-shared-vcpkg-cache` / PR — merge —
+- **Author:** cloud agent
+- **Why:** the owner watched E9's Windows job spend 1 h 23 min in "Configure (installs osgEarth
+  via vcpkg)" — a cold build, where a cache hit takes about 90 seconds — and asked that the
+  result be shared with master instead of thrown away. Under D-019 it could not be: GitHub
+  scopes `actions/cache` to the branch that wrote it, so only master's own runs could save a
+  cache master could read, and every invalidation cost two full rebuilds (once on the PR,
+  once on master after the merge). The invalidation here was not a dependency change: PR #20's
+  Windows job took 10 minutes eight hours earlier, so the likely cause is a `windows-latest`
+  image refresh moving MSVC and with it vcpkg's ABI hash (I-009).
+- **Changes:** the Windows job registers the repository's GitHub Packages NuGet feed as a vcpkg
+  binary source and composes `VCPKG_BINARY_SOURCES` as `files` (branch cache) + `nuget`
+  (repository feed). `permissions: packages: write` added to that job;
+  `VCPKG_BINARY_SOURCES` moved out of the job-level `env:` so the step's `$GITHUB_ENV` value
+  is not shadowed. Fork pull requests get `read` instead of `readwrite`, since their token
+  cannot publish. The whole registration is wrapped so that an unreachable feed warns and
+  falls back to the branch cache rather than failing the job. D-019's "only master saves"
+  stays for the `actions/cache` layer (D-031 amends rather than replaces it).
+- **Existing files touched:** `.github/workflows/ci.yml`, this tracker. No source, CMake,
+  shader or data file.
+- **Tests:** none (CI configuration). The workflow was parsed with a YAML loader and the step
+  order, job permissions and env keys checked; the PowerShell was read for quoting, backtick
+  continuations and `$LASTEXITCODE` handling.
+- **Verified:** Linux ✓ (unaffected) · **Windows: unverified until this branch's own run** —
+  nothing here can exercise a Windows runner or a NuGet feed. The first run on this branch is
+  the test: it will be a cold build that *publishes*, and the run after it should show
+  "Restored from GitHub Packages" in the vcpkg output and finish in minutes.
+- **Follow-ups:** I-045.
+
 ### 2026-10-14 — E8: host contract pinned by a test, wiring document brought up to date  (In review)
 - **Branch / PR:** `claude/e8-wiring-kit` / PR — merge —
 - **Author:** cloud agent
@@ -692,6 +722,7 @@ Cloud agents can only syntax-check osgEarth code (E3 review).
 | D-028 | The Windows CI job uploads a runnable folder (`earthview-win64`) rather than only building and testing. It copies the demo's build output directory, which `earthview3d_deploy_runtime()` (D-026) has already filled with the vcpkg DLLs, `osgPlugins-<ver>/` and `share/gdal` + `share/proj`, and into which `demo/CMakeLists.txt` copies `shaders/`; that directory is the deployed layout, so the step no longer rediscovers the vcpkg tree. It then adds the two 2D executables, the Qt runtime (`windeployqt --compiler-runtime` — the build-tree form of the deploy function omits Qt) and `Data/`. Every expected input is fatal if missing, because each one fails silently at runtime rather than loudly. The single remaining launcher argument is the demo's `--data-root`, which still defaults to `EARTHVIEW3D_DEFAULT_DATA_ROOT` — an absolute path into the source tree of the machine that built it, which D-026 does not cover. `Data/EarthFiles` is deliberately absent from the repository, so no TMS layer-list file and no tile-server address is packaged. | 2026-10-14 | E7, E11 |
 | D-029 | Entity marker and selection-ring size is computed by `GlobeView3D` once per frame (`screenscale::`, `updateMarkerScales()`) from this view's camera — vertical field of view, viewport height, eye-to-entity distance — and capped at 50 km; `osg::AutoTransform`'s screen auto-scaling and `osg::LOD`'s `PIXEL_SIZE_ON_SCREEN` are not used for entities. Both derive their value during a cull traversal and keep it on the node, so any other camera's traversal, or one with the marker on the near plane, decides what the next frame draws (I-037). The arithmetic is GL-free and unit tested. | 2026-10-14 | F1 |
 | D-030 | The offline server's DTED folder is named once per machine, in the map source: `<elevation name="DTED" driver="dted"><url>…</url></elevation>` in a 2D layer-list file, or the `GDALElevation` block in `maps/earthview*.earth`. osgEarth opens a GDAL dataset, not a folder, so a folder path means `<folder>/dted_mosaic.vrt`, built once by `build_offline_data.py dted-vrt <folder>`; DTED is orthometric, so `vdatum` defaults to `egm96` (D-021). 2D reads and reports the path; its terrain still comes from the GeoTIFF DEM mirror (I-039). | 2026-10-14 | F1 |
+| D-031 | The vcpkg binary cache is published to **GitHub Packages** (NuGet feed, `nuget,GitHubPackages,readwrite`), with `actions/cache` kept as the faster local layer and the fallback. `actions/cache` is scoped to the branch that wrote it, so under D-019 a cold osgEarth build on a PR branch was thrown away and master built it again after the merge — about two hours each time the key changed (a vcpkg.json/baseline change, or a `windows-latest` image refresh that moves MSVC and so the ABI hash, I-009). GitHub Packages is scoped to the repository, so any branch's build serves every later run, master included. The repository is public, so the packages cost nothing and are only open-source dependency binaries. Pull requests from forks get a read-only token and therefore read the feed without writing; if the feed is unreachable the step falls back to the branch cache and the build still succeeds, from source. | 2026-10-15 | owner request |
 | D-019 | CI vcpkg binary cache: every run restores, only `master` saves (complete or partial); a weekly scheduled master run keeps it from the 7-day eviction. Dependency changes build once on their PR without saving and once on master after merge. | 2026-10-12 | CI cache scope |
 | D-011 | The integration target is **Conquer** (`D:\Source\Conquer`: Doctrine + cgf-engine + EarthView superbuild, already MSVC), not the standalone `D:\Source\cgf-engine`. 3D code lives in an isolated library so osgEarth includes never reach other TUs. | 2026-10-08 | Conquer test |
 
@@ -744,6 +775,7 @@ Cloud agents can only syntax-check osgEarth code (E3 review).
 | I-041 | The demo's 3D window shows no imagery from a generated `tms_*.earth` on the owner's offline machine, although `EarthView.exe` renders the same TMS layers and the generated file has the right URLs. The 2D half of the same report was a missing map source in `DemoWindow` and is fixed (F2); the 3D half is unexplained and needs the osgEarth console output from that machine (which layer fails to open and why). First suspect is I-034: osgEarth's TMS driver rejecting a `tilemapresource.xml` whose SRS it cannot resolve, where a `<profile>` has to be declared. | F2 | Open (needs the owner's log) |
 | I-042 | DTED folders are indexed by `DtedMosaic` from the cells' own headers, not by `gdalbuildvrt`, so the written `.vrt` has never been opened by GDAL in CI (no GDAL on the cloud runners, and the Windows job has no DTED data). The grid matches what GDAL's DTED driver reports, cell for cell, but confirm on Windows that osgEarth loads a generated mosaic and that terrain heights match the per-cell values (`earthview3d_demo --spot 33.5497,72.8253,537`). | F3 | Open (Windows check) |
 | I-043 | A map loaded directly by osgEarth (`maps/earthview.earth`, the Doctrine/L1 route) still has to name the `.vrt`: only `EarthFileCatalog` passes through code that could index a folder. Either give `MapConfig` a DTED folder and add the elevation layer at runtime, or resolve the earth file's own `<url>` before handing it to osgEarth. Decide with L1. | F3 | Open |
+| I-045 | The GitHub Packages binary cache (D-031) is unproven: no cloud agent can run a Windows runner, so the NuGet registration, the token's `packages: write` scope and vcpkg's restore from the feed are all first exercised by this branch's own CI run. Watch two consecutive Windows runs: the first should publish (cold build), the second restore in minutes. If the feed is rejected, the step warns and the job still builds from source, so the failure mode is slow rather than broken. Packages accumulate per ABI hash and are never pruned — check the repository's Packages page occasionally and delete old versions. | CI | Open (first run proves it) |
 
 ---
 
