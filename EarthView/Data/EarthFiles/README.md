@@ -34,6 +34,16 @@ the tile server's imagery. With no `--earth-files`, the search covers the same f
 working directory and the executable's folder, each with `Data/EarthFiles` (I-046). Pass
 `--earth-files <dir>` to search one folder instead.
 
+**No tile server, but internet?** `Data/maps/earthview_online.earth` is the offline map plus
+an online OpenStreetMap layer, and it is offered in the Map dropdown (`--map-name "earthview
+online"`). Without it, a machine with no layer list sees only `imagery/world_base.tif` — 0.9 MB
+for the whole globe, so a pale low-resolution world, which looks like nothing loaded at all.
+
+**No tile server, but internet?** `Data/maps/earthview_online.earth` is the offline map plus an
+online OpenStreetMap layer, and it is offered in the Map dropdown (`--map-name "earthview
+online"`). Without it, a machine with no layer list sees only `imagery/world_base.tif` — 0.9 MB
+for the whole globe, so a pale low-resolution world, which reads as nothing having loaded.
+
 **The files must end in `.earth`.** A folder holding only the shipped `*.earth.sample`
 templates offers no map, and the 3D view then loads the template map — the pale offline base
 imagery and no tile server, which looks much like an unreachable server. The demo says so on
