@@ -13,12 +13,6 @@ Camera::Camera(QObject* parent)
     , m_viewportHeight(600)
     , m_horizontalWrapEnabled(false)
     , m_projectionMode(ProjectionMode::Mercator)
-    , m_terrain3DEnabled(false)
-    , m_terrainPitchDegrees(58.0f)
-    , m_terrainVerticalExaggeration(4.0f)
-    , m_stealthViewEnabled(false)
-    , m_cameraHeightMeters(1.7)  // Human eye level
-    , m_cameraYawDegrees(0.0f)
     , m_cachedResolution(0.0)
     , m_cacheValid(false)
 {
@@ -64,24 +58,6 @@ void Camera::zoom(float delta, const QPointF& screenCenter)
 
 void Camera::pan(const QPointF& delta)
 {
-    if (isStealthViewEnabled()) {
-        // In stealth view, pan is like looking around - use mouse look instead
-        rotateCameraYaw(-delta.x() * 0.1f);  // Negative because mouse rightward should look right
-        return;
-    }
-
-    if (isTerrain3DView()) {
-        const QPointF anchor(m_viewportWidth / 2.0, m_viewportHeight / 2.0);
-        const QPointF before = screenToMercator(anchor);
-        const QPointF after = screenToMercator(anchor - delta);
-        m_centerMercator += after - before;
-        clampCenter();
-        m_cacheValid = false;
-        updateMatrices();
-        emit cameraChanged();
-        return;
-    }
-
     if (isOrthographic()) {
         const double radius = getOrthographicRadius();
         if (radius > 0.0) {
@@ -146,86 +122,19 @@ void Camera::setHorizontalWrapEnabled(bool enabled)
 
 void Camera::setProjectionMode(ProjectionMode mode)
 {
-    const bool projectionChanged = m_projectionMode != mode;
-    const bool disableTerrain3D = mode == ProjectionMode::Orthographic && m_terrain3DEnabled;
-    const bool disableStealthView = mode == ProjectionMode::Orthographic && m_stealthViewEnabled;
-    if (!projectionChanged && !disableTerrain3D && !disableStealthView)
+    if (m_projectionMode == mode)
         return;
 
     m_projectionMode = mode;
-    if (disableTerrain3D) {
-        m_terrain3DEnabled = false;
-    }
-    if (disableStealthView) {
-        m_stealthViewEnabled = false;
-    }
     clampCenter();
     m_cacheValid = false;
     updateMatrices();
-    if (projectionChanged) {
-        emit projectionModeChanged(mode);
-    }
-    if (disableTerrain3D) {
-        emit terrain3DChanged(false);
-    }
-    if (disableStealthView) {
-        emit stealthViewChanged(false);
-    }
-    emit cameraChanged();
-}
-
-void Camera::setTerrain3DEnabled(bool enabled)
-{
-    const bool projectionChanged = enabled && isOrthographic();
-    if (m_terrain3DEnabled == enabled && !projectionChanged)
-        return;
-
-    if (projectionChanged) {
-        m_projectionMode = ProjectionMode::Mercator;
-    }
-    m_terrain3DEnabled = enabled;
-    clampCenter();
-    m_cacheValid = false;
-    updateMatrices();
-    if (projectionChanged) {
-        emit projectionModeChanged(m_projectionMode);
-    }
-    emit terrain3DChanged(enabled);
-    emit cameraChanged();
-}
-
-void Camera::setTerrainPitchDegrees(float pitchDegrees)
-{
-    const float clamped = qBound(15.0f, pitchDegrees, 75.0f);
-    if (qFuzzyCompare(m_terrainPitchDegrees, clamped))
-        return;
-
-    m_terrainPitchDegrees = clamped;
-    emit terrainViewParametersChanged();
-    emit cameraChanged();
-}
-
-void Camera::setTerrainVerticalExaggeration(float exaggeration)
-{
-    const float clamped = qBound(0.5f, exaggeration, 12.0f);
-    if (qFuzzyCompare(m_terrainVerticalExaggeration, clamped))
-        return;
-
-    m_terrainVerticalExaggeration = clamped;
-    emit terrainViewParametersChanged();
+    emit projectionModeChanged(mode);
     emit cameraChanged();
 }
 
 QPointF Camera::screenToMercator(const QPointF& screenPos) const
 {
-    if (isStealthViewEnabled()) {
-        return stealthViewScreenToMercator(screenPos);
-    }
-
-    if (isTerrain3DView()) {
-        return terrainScreenToMercator(screenPos);
-    }
-
     if (isOrthographic()) {
         QPointF mercatorPos;
         if (MercatorProjection::orthographicScreenToMercator(
@@ -250,14 +159,6 @@ QPointF Camera::screenToMercator(const QPointF& screenPos) const
 
 QPointF Camera::mercatorToScreen(const QPointF& mercatorPos) const
 {
-    if (isStealthViewEnabled()) {
-        return stealthViewMercatorToScreen(mercatorPos);
-    }
-
-    if (isTerrain3DView()) {
-        return terrainMercatorToScreen(mercatorPos);
-    }
-
     if (isOrthographic()) {
         QPointF screenPos;
         MercatorProjection::orthographicMercatorToScreen(
@@ -283,16 +184,6 @@ bool Camera::projectMercatorToScreen(const QPointF& mercatorPos, QPointF* screen
     if (!screenPos)
         return false;
 
-    if (isStealthViewEnabled()) {
-        *screenPos = stealthViewMercatorToScreen(mercatorPos);
-        return std::isfinite(screenPos->x()) && std::isfinite(screenPos->y());
-    }
-
-    if (isTerrain3DView()) {
-        *screenPos = terrainMercatorToScreen(mercatorPos);
-        return std::isfinite(screenPos->x()) && std::isfinite(screenPos->y());
-    }
-
     if (isOrthographic()) {
         return MercatorProjection::orthographicMercatorToScreen(
             mercatorPos,
@@ -314,46 +205,6 @@ double Camera::getOrthographicRadius() const
 
 QRectF Camera::getVisibleMercatorExtent() const
 {
-    if (isTerrain3DView()) {
-        constexpr int samplesPerAxis = 8;
-        const double screenMargin = GIS::TILE_SIZE * 0.5;
-        bool hasSample = false;
-        double minX = 0.0;
-        double maxX = 0.0;
-        double minY = 0.0;
-        double maxY = 0.0;
-
-        auto includeScreenSample = [&](const QPointF& screenPos) {
-            const QPointF mercatorPos = screenToMercator(screenPos);
-            if (!std::isfinite(mercatorPos.x()) || !std::isfinite(mercatorPos.y()))
-                return;
-
-            if (!hasSample) {
-                minX = maxX = mercatorPos.x();
-                minY = maxY = mercatorPos.y();
-                hasSample = true;
-            }
-            else {
-                minX = qMin(minX, mercatorPos.x());
-                maxX = qMax(maxX, mercatorPos.x());
-                minY = qMin(minY, mercatorPos.y());
-                maxY = qMax(maxY, mercatorPos.y());
-            }
-        };
-
-        for (int ix = 0; ix <= samplesPerAxis; ++ix) {
-            for (int iy = 0; iy <= samplesPerAxis; ++iy) {
-                includeScreenSample(QPointF(
-                    -screenMargin + (m_viewportWidth + 2.0 * screenMargin) * ix / samplesPerAxis,
-                    -screenMargin + (m_viewportHeight + 2.0 * screenMargin) * iy / samplesPerAxis));
-            }
-        }
-
-        if (hasSample) {
-            return QRectF(QPointF(minX, maxY), QPointF(maxX, minY));
-        }
-    }
-
     if (isOrthographic()) {
         const int samplesPerAxis = 16;
         const int perimeterSamples = 128;
@@ -524,264 +375,4 @@ double Camera::calculateResolution() const
         return GIS::EARTH_CIRCUMFERENCE;
 
     return GIS::EARTH_CIRCUMFERENCE / (GIS::TILE_SIZE * pow(2.0, m_zoomLevel));
-}
-
-QPointF Camera::terrainScreenAnchor() const
-{
-    if (isStealthViewEnabled()) {
-        return QPointF(m_viewportWidth * 0.5, m_viewportHeight * 0.65);
-    }
-
-    return QPointF(m_viewportWidth * 0.5, m_viewportHeight * 0.70);
-}
-
-double Camera::terrainFocalPixels() const
-{
-    return m_viewportHeight * 1.25;
-}
-
-double Camera::terrainViewDistanceMeters() const
-{
-    return getResolution() * m_viewportHeight * 5.0;
-}
-
-QPointF Camera::terrainMercatorToScreen(const QPointF& mercatorPos, double elevationMeters) const
-{
-    const double pixelsPerMeter = 1.0 / getResolution();
-    const QPointF anchor = terrainScreenAnchor();
-    const double pitchRadians = qDegreesToRadians(static_cast<double>(m_terrainPitchDegrees));
-    const double cosPitch = std::cos(pitchRadians);
-    const double sinPitch = std::sin(pitchRadians);
-    const double localX = (mercatorPos.x() - m_centerMercator.x()) * GIS::EARTH_RADIUS;
-    const double localY = (mercatorPos.y() - m_centerMercator.y()) * GIS::EARTH_RADIUS;
-    const double elevation = qMax(0.0, elevationMeters) * m_terrainVerticalExaggeration;
-
-    const double tiltedNorth = localY * cosPitch + elevation * sinPitch;
-    const double depth = localY * sinPitch - elevation * cosPitch;
-    const double focal = terrainFocalPixels();
-    const double perspective = qBound(
-        0.35,
-        focal / qMax(focal + depth * pixelsPerMeter, 1.0),
-        3.0);
-
-    return QPointF(
-        anchor.x() + localX * pixelsPerMeter * perspective,
-        anchor.y() - tiltedNorth * pixelsPerMeter * perspective);
-}
-
-QPointF Camera::terrainScreenToMercator(const QPointF& screenPos) const
-{
-    const double pixelsPerMeter = 1.0 / getResolution();
-    const QPointF anchor = terrainScreenAnchor();
-    const double focal = terrainFocalPixels();
-    const double pitchRadians = qDegreesToRadians(static_cast<double>(m_terrainPitchDegrees));
-    const double cosPitch = std::cos(pitchRadians);
-    const double sinPitch = std::sin(pitchRadians);
-    const double screenNorth = anchor.y() - screenPos.y();
-    const double denom = pixelsPerMeter * (cosPitch * focal - screenNorth * sinPitch);
-
-    if (std::abs(denom) <= 1.0e-9) {
-        return MercatorProjection::screenToMercator(
-            screenPos,
-            m_centerMercator,
-            m_viewportWidth,
-            m_viewportHeight,
-            getResolution());
-    }
-
-    const double maxDistance = terrainViewDistanceMeters();
-    const double localY = qBound(-maxDistance, screenNorth * focal / denom, maxDistance);
-    const double rawPerspective = focal / qMax(focal + localY * sinPitch * pixelsPerMeter, 1.0);
-    const double perspective = qBound(0.35, rawPerspective, 3.0);
-    const double localX = qBound(
-        -maxDistance,
-        (screenPos.x() - anchor.x()) / (pixelsPerMeter * perspective),
-        maxDistance);
-
-    return QPointF(
-        m_centerMercator.x() + localX / GIS::EARTH_RADIUS,
-        m_centerMercator.y() + localY / GIS::EARTH_RADIUS);
-}
-
-void Camera::setStealthViewEnabled(bool enabled)
-{
-    if (m_stealthViewEnabled == enabled)
-        return;
-
-    m_stealthViewEnabled = enabled;
-    if (enabled) {
-        const bool projectionChanged = isOrthographic();
-        if (projectionChanged) {
-            m_projectionMode = ProjectionMode::Mercator;
-            emit projectionModeChanged(m_projectionMode);
-        }
-        // Enable terrain 3D when entering stealth view
-        m_terrain3DEnabled = true;
-        // Set stealth view parameters: lower pitch for forward-looking view
-        m_terrainPitchDegrees = 45.0f;
-        m_terrainVerticalExaggeration = 1.5f;
-    }
-    else {
-        m_terrain3DEnabled = false;
-    }
-    m_cacheValid = false;
-    updateMatrices();
-    emit stealthViewChanged(enabled);
-    emit terrain3DChanged(m_terrain3DEnabled);
-    emit terrainViewParametersChanged();
-    emit cameraChanged();
-}
-
-void Camera::setCameraHeightMeters(double heightMeters)
-{
-    const double clamped = qBound(0.5, heightMeters, 100.0);
-    if (qFuzzyCompare(m_cameraHeightMeters, clamped))
-        return;
-
-    m_cameraHeightMeters = clamped;
-    m_cacheValid = false;
-    updateMatrices();
-    emit terrainViewParametersChanged();
-    emit cameraChanged();
-}
-
-void Camera::setCameraYawDegrees(float yawDegrees)
-{
-    const float normalized = std::fmod(yawDegrees, 360.0f);
-    if (qFuzzyCompare(m_cameraYawDegrees, normalized))
-        return;
-
-    m_cameraYawDegrees = normalized;
-    m_cacheValid = false;
-    updateMatrices();
-    emit terrainViewParametersChanged();
-    emit cameraChanged();
-}
-
-void Camera::moveCameraForward(double distance)
-{
-    if (!isStealthViewEnabled())
-        return;
-
-    // Move in the direction camera is facing (based on yaw)
-    const double yawRadians = qDegreesToRadians(static_cast<double>(m_cameraYawDegrees));
-    const double mercatorDelta = distance / GIS::EARTH_RADIUS;
-    m_centerMercator.rx() += std::sin(yawRadians) * mercatorDelta;
-    m_centerMercator.ry() += std::cos(yawRadians) * mercatorDelta;
-    clampCenter();
-    m_cacheValid = false;
-    updateMatrices();
-    emit cameraChanged();
-}
-
-void Camera::moveCameraRight(double distance)
-{
-    if (!isStealthViewEnabled())
-        return;
-
-    // Move perpendicular to camera facing direction (right)
-    const double yawRadians = qDegreesToRadians(static_cast<double>(m_cameraYawDegrees));
-    const double mercatorDelta = distance / GIS::EARTH_RADIUS;
-    m_centerMercator.rx() += std::cos(yawRadians) * mercatorDelta;
-    m_centerMercator.ry() -= std::sin(yawRadians) * mercatorDelta;
-    clampCenter();
-    m_cacheValid = false;
-    updateMatrices();
-    emit cameraChanged();
-}
-
-void Camera::rotateCameraYaw(float deltaYaw)
-{
-    setCameraYawDegrees(m_cameraYawDegrees + deltaYaw);
-}
-
-QPointF Camera::stealthViewMercatorToScreen(const QPointF& mercatorPos, double elevationMeters) const
-{
-    // Stealth view: first-person perspective with yaw rotation
-    double resolution = getResolution();
-    if (resolution <= 0.0 || !std::isfinite(resolution) || 
-        m_viewportWidth <= 0 || m_viewportHeight <= 0) {
-        // Fallback to regular terrain view
-        return terrainMercatorToScreen(mercatorPos, elevationMeters);
-    }
-
-    const double pixelsPerMeter = 1.0 / resolution;
-    const QPointF anchor = terrainScreenAnchor();  // Eye level, slightly lower in stealth view
-    const double pitchRadians = qDegreesToRadians(static_cast<double>(m_terrainPitchDegrees));
-    const double yawRadians = qDegreesToRadians(static_cast<double>(m_cameraYawDegrees));
-    const double cosPitch = std::cos(pitchRadians);
-    const double sinPitch = std::sin(pitchRadians);
-    const double cosYaw = std::cos(yawRadians);
-    const double sinYaw = std::sin(yawRadians);
-
-    // Rotate to camera's facing direction
-    double localX = (mercatorPos.x() - m_centerMercator.x()) * GIS::EARTH_RADIUS;
-    double localY = (mercatorPos.y() - m_centerMercator.y()) * GIS::EARTH_RADIUS;
-    
-    // Apply yaw rotation
-    const double rotatedX = localX * cosYaw - localY * sinYaw;
-    const double rotatedY = localX * sinYaw + localY * cosYaw;
-    
-    const double elevation = qMax(0.0, elevationMeters - m_cameraHeightMeters) * m_terrainVerticalExaggeration;
-    const double tiltedForward = rotatedY * cosPitch + elevation * sinPitch;
-    const double depth = rotatedY * sinPitch - elevation * cosPitch;
-    const double focal = terrainFocalPixels();
-    const double perspective = qBound(
-        0.35,
-        focal / qMax(focal + depth * pixelsPerMeter, 1.0),
-        3.0);
-
-    return QPointF(
-        anchor.x() + rotatedX * pixelsPerMeter * perspective,
-        anchor.y() - tiltedForward * pixelsPerMeter * perspective);
-}
-
-QPointF Camera::stealthViewScreenToMercator(const QPointF& screenPos) const
-{
-    // Inverse transformation for stealth view
-    double resolution = getResolution();
-    if (resolution <= 0.0 || !std::isfinite(resolution) || 
-        m_viewportWidth <= 0 || m_viewportHeight <= 0) {
-        // Fallback to regular terrain view
-        return terrainScreenToMercator(screenPos);
-    }
-
-    const double pixelsPerMeter = 1.0 / resolution;
-    const QPointF anchor = terrainScreenAnchor();
-    const double focal = terrainFocalPixels();
-    const double pitchRadians = qDegreesToRadians(static_cast<double>(m_terrainPitchDegrees));
-    const double yawRadians = qDegreesToRadians(static_cast<double>(m_cameraYawDegrees));
-    const double cosPitch = std::cos(pitchRadians);
-    const double sinPitch = std::sin(pitchRadians);
-    const double cosYaw = std::cos(yawRadians);
-    const double sinYaw = std::sin(yawRadians);
-    
-    const double screenForward = anchor.y() - screenPos.y();
-    const double denom = pixelsPerMeter * (cosPitch * focal - screenForward * sinPitch);
-
-    if (std::abs(denom) <= 1.0e-9) {
-        return MercatorProjection::screenToMercator(
-            screenPos,
-            m_centerMercator,
-            m_viewportWidth,
-            m_viewportHeight,
-            resolution);
-    }
-
-    const double maxDistance = terrainViewDistanceMeters();
-    const double rotatedY = qBound(-maxDistance, screenForward * focal / denom, maxDistance);
-    const double rawPerspective = focal / qMax(focal + rotatedY * sinPitch * pixelsPerMeter, 1.0);
-    const double perspective = qBound(0.35, rawPerspective, 3.0);
-    const double rotatedX = qBound(
-        -maxDistance,
-        (screenPos.x() - anchor.x()) / (pixelsPerMeter * perspective),
-        maxDistance);
-
-    // Apply inverse yaw rotation
-    const double localX = rotatedX * cosYaw + rotatedY * sinYaw;
-    const double localY = -rotatedX * sinYaw + rotatedY * cosYaw;
-
-    return QPointF(
-        m_centerMercator.x() + localX / GIS::EARTH_RADIUS,
-        m_centerMercator.y() + localY / GIS::EARTH_RADIUS);
 }

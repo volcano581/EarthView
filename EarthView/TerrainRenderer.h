@@ -22,10 +22,6 @@ public:
     void setEnabled(bool enabled);
     bool isEnabled() const { return m_enabled; }
     void render();
-    void setPitchDegrees(float pitchDegrees);
-    void setVerticalExaggeration(float exaggeration);
-    float pitchDegrees() const { return m_pitchDegrees; }
-    float verticalExaggeration() const { return m_verticalExaggeration; }
 
 private:
     struct TerrainVertex {
@@ -53,9 +49,6 @@ private:
     QMap<QString, TileGeometry> m_tileGeometry;
     bool m_gpuResourcesInitialized;
     bool m_enabled;
-    float m_pitchDegrees;
-    float m_verticalExaggeration;
-    bool m_drawWireframe;
 };
 
 #endif // TERRAINRENDERER_H

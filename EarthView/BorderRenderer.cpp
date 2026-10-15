@@ -326,15 +326,6 @@ void BorderRenderer::initializeGpuResources()
         return;
     }
 
-    if (!ShaderUtils::loadProgram(
-            &m_terrainLineProgram,
-            QStringLiteral("terrain_line.vert"),
-            QStringLiteral("solid_2d.frag"),
-            &errorMessage)) {
-        qWarning() << errorMessage;
-        return;
-    }
-
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
     f->initializeOpenGLFunctions();
     f->glGenVertexArrays(1, &m_staticVao);
@@ -490,9 +481,7 @@ void BorderRenderer::uploadMercatorVertices()
 
 void BorderRenderer::renderMercator()
 {
-    QOpenGLShaderProgram* program = m_camera->isTerrain3DView()
-        ? &m_terrainLineProgram
-        : &m_mercatorLineProgram;
+    QOpenGLShaderProgram* program = &m_mercatorLineProgram;
     if (!program->isLinked())
         return;
 
@@ -526,26 +515,9 @@ void BorderRenderer::renderMercator()
         QVector2D(
             static_cast<float>(m_camera->getCenterMercator().x()),
             static_cast<float>(m_camera->getCenterMercator().y())));
-    if (m_camera->isTerrain3DView()) {
-        program->setUniformValue("u_pixelsPerMeter", static_cast<float>(1.0 / m_camera->getResolution()));
-        program->setUniformValue("u_earthRadius", static_cast<float>(GIS::EARTH_RADIUS));
-        program->setUniformValue("u_pitchRadians", qDegreesToRadians(m_camera->terrainPitchDegrees()));
-        program->setUniformValue(
-            "u_yawRadians",
-            m_camera->isStealthViewEnabled() ? qDegreesToRadians(m_camera->cameraYawDegrees()) : 0.0f);
-        program->setUniformValue(
-            "u_screenAnchor",
-            QVector2D(
-                static_cast<float>(m_camera->terrainScreenAnchor().x()),
-                static_cast<float>(m_camera->terrainScreenAnchor().y())));
-        program->setUniformValue("u_focalPixels", static_cast<float>(m_camera->terrainFocalPixels()));
-        program->setUniformValue("u_viewDistanceMeters", static_cast<float>(m_camera->terrainViewDistanceMeters()));
-    }
-    else {
-        program->setUniformValue(
-            "u_pixelsPerMercator",
-            static_cast<float>(GIS::EARTH_RADIUS / m_camera->getResolution()));
-    }
+    program->setUniformValue(
+        "u_pixelsPerMercator",
+        static_cast<float>(GIS::EARTH_RADIUS / m_camera->getResolution()));
     program->setUniformValue("u_color", QVector4D(0.2f, 0.2f, 0.8f, 0.8f));
 
     f->glBindVertexArray(m_staticVao);

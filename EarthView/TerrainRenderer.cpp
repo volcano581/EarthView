@@ -49,9 +49,6 @@ TerrainRenderer::TerrainRenderer(Camera* camera, DemLoader* demLoader, QObject* 
     , m_demLoader(demLoader)
     , m_gpuResourcesInitialized(false)
     , m_enabled(true)
-    , m_pitchDegrees(58.0f)
-    , m_verticalExaggeration(4.0f)
-    , m_drawWireframe(true)
 {
     initializeOpenGLFunctions();
 }
@@ -86,22 +83,6 @@ void TerrainRenderer::setEnabled(bool enabled)
     m_enabled = enabled;
 }
 
-void TerrainRenderer::setPitchDegrees(float pitchDegrees)
-{
-    m_pitchDegrees = qBound(15.0f, pitchDegrees, 75.0f);
-    if (m_camera) {
-        m_camera->setTerrainPitchDegrees(m_pitchDegrees);
-    }
-}
-
-void TerrainRenderer::setVerticalExaggeration(float exaggeration)
-{
-    m_verticalExaggeration = qBound(0.5f, exaggeration, 12.0f);
-    if (m_camera) {
-        m_camera->setTerrainVerticalExaggeration(m_verticalExaggeration);
-    }
-}
-
 void TerrainRenderer::initializeGpuResources()
 {
     if (m_gpuResourcesInitialized)
@@ -110,7 +91,7 @@ void TerrainRenderer::initializeGpuResources()
     QString errorMessage;
     if (!ShaderUtils::loadProgram(
             &m_program,
-            QStringLiteral("terrain_height.vert"),
+            QStringLiteral("terrain_flat.vert"),
             QStringLiteral("terrain_height.frag"),
             &errorMessage)) {
         qWarning() << errorMessage;
@@ -330,7 +311,7 @@ void TerrainRenderer::appendTileMesh(QVector<TerrainVertex>* vertices, const QRe
 
 void TerrainRenderer::render()
 {
-    if (!m_enabled || !m_camera || !m_demLoader || !m_camera->isTerrain3DView())
+    if (!m_enabled || !m_camera || !m_demLoader)
         return;
 
     initializeGpuResources();
@@ -340,8 +321,8 @@ void TerrainRenderer::render()
     const QRectF visible = m_camera->getVisibleMercatorExtent();
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
 
-    glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_LEQUAL);
+    // Flat layer now (E9): it sits in the 2D draw order with the imagery, so no depth test.
+    glDisable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
@@ -359,23 +340,9 @@ void TerrainRenderer::render()
     m_program.setUniformValue(
         "u_pixelsPerMercator",
         static_cast<float>(GIS::EARTH_RADIUS / m_camera->getResolution()));
-    m_program.setUniformValue("u_pixelsPerMeter", static_cast<float>(1.0 / m_camera->getResolution()));
-    m_program.setUniformValue("u_earthRadius", static_cast<float>(GIS::EARTH_RADIUS));
-    m_program.setUniformValue("u_pitchRadians", qDegreesToRadians(m_camera->terrainPitchDegrees()));
-    m_program.setUniformValue(
-        "u_yawRadians",
-        m_camera->isStealthViewEnabled() ? qDegreesToRadians(m_camera->cameraYawDegrees()) : 0.0f);
-    m_program.setUniformValue("u_verticalExaggeration", m_camera->terrainVerticalExaggeration());
-    m_program.setUniformValue(
-        "u_screenAnchor",
-        QVector2D(
-            static_cast<float>(m_camera->terrainScreenAnchor().x()),
-            static_cast<float>(m_camera->terrainScreenAnchor().y())));
-    m_program.setUniformValue("u_focalPixels", static_cast<float>(m_camera->terrainFocalPixels()));
-    m_program.setUniformValue("u_viewDistanceMeters", static_cast<float>(m_camera->terrainViewDistanceMeters()));
+    m_program.setUniformValue("u_worldOffset", 0.0f);
     m_program.setUniformValue("u_heightTexture", 0);
     m_program.setUniformValue("u_opacity", 1.0f);
-    m_program.setUniformValue("u_wireMode", 0);
 
     f->glActiveTexture(GL_TEXTURE0);
     for (auto it = m_demLoader->activeTiles().begin(); it != m_demLoader->activeTiles().end(); ++it) {
@@ -404,16 +371,6 @@ void TerrainRenderer::render()
         f->glDrawArrays(GL_TRIANGLES, 0, geometry.vertexCount);
         FrameProfiler::recordCount(QStringLiteral("draw.calls"));
         FrameProfiler::recordCount(QStringLiteral("draw.terrain.vertices"), geometry.vertexCount);
-
-        if (m_drawWireframe) {
-            m_program.setUniformValue("u_wireMode", 1);
-            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-            glLineWidth(1.0f);
-            f->glDrawArrays(GL_TRIANGLES, 0, geometry.vertexCount);
-            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-            m_program.setUniformValue("u_wireMode", 0);
-            FrameProfiler::recordCount(QStringLiteral("draw.calls"));
-        }
     }
 
     f->glBindVertexArray(0);

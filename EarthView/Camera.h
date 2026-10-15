@@ -16,6 +16,10 @@
  * - Zoom and pan operations
  * - Screen to Mercator coordinate conversion
  * - OpenGL transformation matrices
+ *
+ * Mercator and orthographic only. The pseudo-3D terrain projection and the first-person
+ * "stealth" view this class used to carry were removed in roadmap E9: 3D is osgEarth's
+ * (earthview3d), and the 2D DEM overlay is drawn flat in Mercator like every other layer.
  */
 class Camera : public QObject
 {
@@ -39,15 +43,6 @@ public:
     void setZoomLevel(double zoom);
     void setHorizontalWrapEnabled(bool enabled);
     void setProjectionMode(ProjectionMode mode);
-    void setTerrain3DEnabled(bool enabled);
-    void setTerrainPitchDegrees(float pitchDegrees);
-    void setTerrainVerticalExaggeration(float exaggeration);
-    void setStealthViewEnabled(bool enabled);
-    void setCameraHeightMeters(double heightMeters);
-    void setCameraYawDegrees(float yawDegrees);
-    void moveCameraForward(double distance);
-    void moveCameraRight(double distance);
-    void rotateCameraYaw(float deltaYaw);
 
     // Getters
     QPointF getCenterMercator() const { return m_centerMercator; }
@@ -57,13 +52,6 @@ public:
     bool isHorizontalWrapEnabled() const { return m_horizontalWrapEnabled; }
     ProjectionMode projectionMode() const { return m_projectionMode; }
     bool isOrthographic() const { return m_projectionMode == ProjectionMode::Orthographic; }
-    bool isTerrain3DEnabled() const { return m_terrain3DEnabled; }
-    bool isTerrain3DView() const { return m_terrain3DEnabled && !isOrthographic(); }
-    bool isStealthViewEnabled() const { return m_stealthViewEnabled; }
-    float terrainPitchDegrees() const { return m_terrainPitchDegrees; }
-    float terrainVerticalExaggeration() const { return m_terrainVerticalExaggeration; }
-    double cameraHeightMeters() const { return m_cameraHeightMeters; }
-    float cameraYawDegrees() const { return m_cameraYawDegrees; }
 
     // Coordinate conversion
     QPointF screenToMercator(const QPointF& screenPos) const;
@@ -83,26 +71,16 @@ public:
 
     // Resolution (meters per pixel)
     double getResolution() const;
-    QPointF terrainScreenAnchor() const;
-    double terrainFocalPixels() const;
-    double terrainViewDistanceMeters() const;
 
 signals:
     void cameraChanged();
     void horizontalWrapChanged(bool enabled);
     void projectionModeChanged(Camera::ProjectionMode mode);
-    void terrain3DChanged(bool enabled);
-    void terrainViewParametersChanged();
-    void stealthViewChanged(bool enabled);
 
 private:
     void updateMatrices();
     void clampCenter();
     double calculateResolution() const;
-    QPointF terrainMercatorToScreen(const QPointF& mercatorPos, double elevationMeters = 0.0) const;
-    QPointF terrainScreenToMercator(const QPointF& screenPos) const;
-    QPointF stealthViewMercatorToScreen(const QPointF& mercatorPos, double elevationMeters = 0.0) const;
-    QPointF stealthViewScreenToMercator(const QPointF& screenPos) const;
 
 private:
     QPointF m_centerMercator;
@@ -111,12 +89,6 @@ private:
     int m_viewportHeight;
     bool m_horizontalWrapEnabled;
     ProjectionMode m_projectionMode;
-    bool m_terrain3DEnabled;
-    float m_terrainPitchDegrees;
-    float m_terrainVerticalExaggeration;
-    bool m_stealthViewEnabled;
-    double m_cameraHeightMeters;
-    float m_cameraYawDegrees;
     mutable double m_cachedResolution;
     mutable bool m_cacheValid;
 

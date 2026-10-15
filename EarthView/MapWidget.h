@@ -8,7 +8,6 @@
 #include <QWheelEvent>
 #include <QKeyEvent>
 #include <QList>
-#include <QSet>
 #include <QOpenGLShaderProgram>
 #include <QString>
 #include <QTimer>
@@ -27,7 +26,6 @@ class LineBatchRenderer;
 class VectorTileRenderer;
 class DemLoader;
 class TerrainRenderer;
-class QToolButton;
 
 /**
  * @brief MapWidget is the main OpenGL rendering widget
@@ -61,7 +59,6 @@ public:
     void setGridVisible(bool visible);
     void setCitiesVisible(bool visible);
     void setTerrainVisible(bool visible);
-    void setStealthViewEnabled(bool enabled);
 
     // Accessors
     Camera* camera() const { return m_camera; }
@@ -81,7 +78,6 @@ protected:
     void mouseReleaseEvent(QMouseEvent* event) override;
     void wheelEvent(QWheelEvent* event) override;
     void keyPressEvent(QKeyEvent* event) override;
-    void keyReleaseEvent(QKeyEvent* event) override;
     void rebuildMapLabelsIfNeeded();
     void rebuildLineBatchIfNeeded();
     void invalidateMapLabels();
@@ -91,8 +87,6 @@ protected:
     void drawGlobeBackdrop();
     void drawScaleBarOverlay();
     void initializeShapeResources();
-    void positionOverlayControls();
-    void updateStealthViewMovement();
 
 private slots:
     void onCameraChanged();
@@ -109,7 +103,6 @@ private:
     TerrainRenderer* m_terrainRenderer;
     LineBatchRenderer* m_lineBatchRenderer;
     TextRenderer* m_textRenderer;
-    QToolButton* m_stealthViewButton;
     QVector<LineBatchRenderer::LineVertex> m_cachedLineVertices;
     QVector<TextRenderer::Label> m_cachedMapLabels;
     LineBatchRenderer::CoordinateMode m_lineBatchMode;
@@ -133,9 +126,6 @@ private:
     bool m_shapeResourcesInitialized;
     bool m_lineBatchDirty;
     bool m_mapLabelsDirty;
-    // Stealth view controls
-    QSet<int> m_keysPressed;
-    double m_stealthMoveSpeed;  // Meters per frame
 };
 
 #endif // MAPWIDGET_H

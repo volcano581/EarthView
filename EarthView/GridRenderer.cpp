@@ -134,32 +134,6 @@ void GridRenderer::appendMercatorLines(QVector<LineBatchRenderer::LineVertex>& v
     int lastCopy = 0;
     visibleWorldCopyRange(m_camera, &firstCopy, &lastCopy);
 
-    if (m_camera->isTerrain3DView()) {
-        for (int copy = firstCopy; copy <= lastCopy; ++copy) {
-            const double lonOffsetDegrees = copy * 360.0;
-
-            for (double lon = startLon; lon <= 180.0 + 0.001; lon += step) {
-                QPointF previous = MercatorProjection::latLonToMercator(-85.0, lon + lonOffsetDegrees);
-                for (double lat = -84.0; lat <= 85.0 + 0.001; lat += 1.0) {
-                    const QPointF current = MercatorProjection::latLonToMercator(lat, lon + lonOffsetDegrees);
-                    LineBatchRenderer::appendSegment(vertices, previous, current, gridColor);
-                    previous = current;
-                }
-            }
-
-            const double lonStart = -180.0 + lonOffsetDegrees;
-            const double lonEnd = 180.0 + lonOffsetDegrees;
-            for (double lat = startLat; lat <= 80.0 + 0.001; lat += step) {
-                QPointF previous = MercatorProjection::latLonToMercator(lat, lonStart);
-                for (double lon = lonStart + 1.0; lon <= lonEnd + 0.001; lon += 1.0) {
-                    const QPointF current = MercatorProjection::latLonToMercator(lat, lon);
-                    LineBatchRenderer::appendSegment(vertices, previous, current, gridColor);
-                    previous = current;
-                }
-            }
-        }
-        return;
-    }
 
     for (int copy = firstCopy; copy <= lastCopy; ++copy) {
         const double lonOffsetDegrees = copy * 360.0;

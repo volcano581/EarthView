@@ -83,15 +83,6 @@ void LineBatchRenderer::initializeGpuResources()
         return;
     }
 
-    if (!ShaderUtils::loadProgram(
-            &m_terrainProgram,
-            QStringLiteral("colored_terrain.vert"),
-            QStringLiteral("colored_line.frag"),
-            &errorMessage)) {
-        qWarning() << errorMessage;
-        return;
-    }
-
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
     f->initializeOpenGLFunctions();
     f->glGenVertexArrays(1, &m_vao);
@@ -165,9 +156,6 @@ void LineBatchRenderer::render(CoordinateMode mode, float lineWidth)
     if (mode == CoordinateMode::Mercator) {
         program = &m_mercatorProgram;
     }
-    else if (mode == CoordinateMode::Terrain3D) {
-        program = &m_terrainProgram;
-    }
     if (!program->isLinked())
         return;
 
@@ -194,27 +182,6 @@ void LineBatchRenderer::render(CoordinateMode mode, float lineWidth)
             "u_pixelsPerMercator",
             static_cast<float>(GIS::EARTH_RADIUS / m_camera->getResolution()));
     }
-    else if (mode == CoordinateMode::Terrain3D) {
-        program->setUniformValue(
-            "u_centerMercator",
-            QVector2D(
-                static_cast<float>(m_camera->getCenterMercator().x()),
-                static_cast<float>(m_camera->getCenterMercator().y())));
-        program->setUniformValue("u_pixelsPerMeter", static_cast<float>(1.0 / m_camera->getResolution()));
-        program->setUniformValue("u_earthRadius", static_cast<float>(GIS::EARTH_RADIUS));
-        program->setUniformValue("u_pitchRadians", qDegreesToRadians(m_camera->terrainPitchDegrees()));
-        program->setUniformValue(
-            "u_yawRadians",
-            m_camera->isStealthViewEnabled() ? qDegreesToRadians(m_camera->cameraYawDegrees()) : 0.0f);
-        program->setUniformValue(
-            "u_screenAnchor",
-            QVector2D(
-                static_cast<float>(m_camera->terrainScreenAnchor().x()),
-                static_cast<float>(m_camera->terrainScreenAnchor().y())));
-        program->setUniformValue("u_focalPixels", static_cast<float>(m_camera->terrainFocalPixels()));
-        program->setUniformValue("u_viewDistanceMeters", static_cast<float>(m_camera->terrainViewDistanceMeters()));
-    }
-
     f->glBindVertexArray(m_vao);
     f->glDrawArrays(GL_LINES, 0, m_vertexCount);
     FrameProfiler::recordCount(QStringLiteral("draw.calls"));
