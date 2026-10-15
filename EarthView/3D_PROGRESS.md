@@ -71,9 +71,38 @@ Cloud agents can only syntax-check osgEarth code (E3 review).
 | F1 | Marker scale fix (I-037), DTED folder path (2D + 3D), TMS map by default (I-038) | Merged | `claude/entity-rendering-dted-6tsdtt` | [#17](https://github.com/volcano581/EarthView/pull/17) | `2ceb9ce` | pending (Windows) |
 | F2 | Demo's 2D pane gets the real map sources (I-041) | Merged | `claude/demo-2d-map-source` | [#18](https://github.com/volcano581/EarthView/pull/18) | `39edabe` | pending (Windows) |
 | F3 | DTED folder indexed in the app (I-042) | Merged | `claude/dted-folder-scan` | [#19](https://github.com/volcano581/EarthView/pull/19) | `99719b8` | pending (Windows) |
+| F4 | CI: vcpkg binary cache shared across branches (D-031) | Merged | `claude/ci-shared-vcpkg-cache` | [#22](https://github.com/volcano581/EarthView/pull/22) | `c625b29` | n.a. |
+| F5 | Layer-list search widened + runtime data root (I-046, I-049) | Merged | `claude/entity-rendering-dted-6tsdtt` | [#23](https://github.com/volcano581/EarthView/pull/23) | `0e80d8c` | I-049 ✓ (owner, 2026-10-15) |
+| F6 | Shipped maps offered as sources (I-051) | In review | `claude/entity-rendering-dted-6tsdtt` | [#24](https://github.com/volcano581/EarthView/pull/24) | — | pending (Windows) |
 | S1 | osgEarth evaluation spike (`spikes/osgearth`) | Done — led to D-007 | master | — | `241c108`…`0b5f729` | partial ✓ (2026-10-08) |
 
 **Direction:** host-independent `earthview3d` (osgEarth, MSVC) finished on GitHub by agents; Doctrine wired locally (D-007, D-008, D-012). Design: [OSGEARTH_INTEGRATION.md](OSGEARTH_INTEGRATION.md) · Local wiring: [DOCTRINE_WIRING.md](DOCTRINE_WIRING.md).
+
+### What is left (2026-10-15)
+
+**E1–E9 and E11 are merged.** Two roadmap tasks remain, and both need hardware no cloud agent
+has:
+
+| | Task | Needs | Blocked on |
+| -- | ---- | ----- | ---------- |
+| **E10** | Performance + polish: the 1,000-entity / 60 fps budget, frame-time scaling (I-025), `HeightCache` growth (I-028) | A GPU and the owner's frame numbers | Measurement, not code |
+| **L1** | Wire `earthview3d` into Doctrine/Conquer | The host tree, which is not on GitHub | Owner only; contract is pinned by `tst_hostcontract` (E8) and documented in `DOCTRINE_WIRING.md` |
+
+**One functional defect is still open: I-041** — no tile-server imagery in the 3D window on the
+machine whose layer lists *are* found. Discovery, the data root and the generated earth files
+are all ruled out (F5, F6, and `--list-maps` showing 8 and 24 TMS layers). The layers open
+without an osgEarth warning and the imagery still does not appear. Leading suspect I-050 (the 2D
+zoom ladder flattened into a full-range stack), then I-034 (TMS profile). Needs an
+`OSGEARTH_NOTIFY_LEVEL=INFO` log from that machine, taken while zooming in.
+
+**Windows checks outstanding** (cloud agents cannot run them): I-037 markers from orbit,
+I-042 a generated DTED mosaic loading, I-044 the flat DEM colour ramp, I-051 the shipped online
+map drawing, I-033/I-036 packaging on a clean machine, and E4/E5/E7's visual checks.
+
+**Owner's machine, found but not fixed here:** I-047 (`osgdb_stbdxt` missing from the package),
+I-048 (the 2D DEM indexes yield 0 TIFF references and fall back to a sample tile in Yemen, so
+2D terrain over the theatre has no real coverage), I-052 (osgText shaders shadowed by our
+`shaders/` folder), I-039 (2D DTED reader, deferred by owner).
 
 ---
 
