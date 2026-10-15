@@ -283,13 +283,12 @@ jobs:
           Copy-Item (Join-Path $env:GITHUB_WORKSPACE 'EarthView\Data') $stage -Recurse -Force
 
           # 6. Launchers. E7's RuntimePaths::defaults() finds the deployed layout next to the
-          #    executable, so OSG_LIBRARY_PATH, GDAL_DATA and PROJ_DATA are no longer needed.
-          #    What remains is the demo's --data-root, which still defaults to
-          #    EARTHVIEW3D_DEFAULT_DATA_ROOT - an absolute path into the source tree of the
-          #    machine that built it (demo/CMakeLists.txt). Without it
-          #    MapConfig::validate() returns "Data root ... does not exist" and main()
-          #    returns 2 before a window appears. It goes ahead of %* so a --data-root the
-          #    user passes still wins.
+          #    executable, so OSG_LIBRARY_PATH, GDAL_DATA and PROJ_DATA are no longer needed,
+          #    and since I-049 the demo finds Data next to the executable too
+          #    (MapConfig::discoverDataRoot), so the .exe runs on its own. The launchers are
+          #    kept as a convenience and still pass --data-root explicitly: it goes ahead of
+          #    %* so a --data-root the user passes wins, and it keeps working for anyone who
+          #    moved the exe out of the folder.
           $template = @'
           @echo off
           rem Portable launcher. The 3D demo's --data-root default is an absolute path from the

@@ -44,6 +44,18 @@ struct MapConfig
     /// Check the configuration can be loaded: earth file set and present, data root present.
     bool validate(QString* error = nullptr) const;
 
+    /// The data root to use when the host was given none: the first existing `Data` folder
+    /// among `<appDir>/Data`, `<appDir>/../Data` and `<workingDir>/Data`, else
+    /// @p compiledDefault (which may itself be missing — the caller then reports it, and the
+    /// path in the message is the one a developer recognises).
+    ///
+    /// A build-time path is not a default a shipped binary can use: it names the source tree
+    /// of the machine that compiled it, so running the executable anywhere else failed with
+    /// "Data root ... does not exist" and needed a launcher script to supply `--data-root`
+    /// (I-049). Hosts that deploy their data beside the executable need no such wrapper.
+    static QString discoverDataRoot(const QString& appDir, const QString& workingDir,
+                                    const QString& compiledDefault);
+
     /// Parse the JSON form. Relative dataRoot resolves against @p baseDir.
     static bool fromJson(const QByteArray& json, const QString& baseDir, MapConfig* config,
                          QString* error = nullptr);

@@ -87,8 +87,12 @@ public:
     /// names a file (.vrt, .dt2, …) is returned unchanged. Trailing slashes are ignored.
     static QString dtedMosaicUrl(const QString& path);
 
-    /// Folders scanned for earth files, in order, mirroring the 2D viewer's search
-    /// (`<dataRoot>/EarthFiles`, `<dataRoot>/Data/EarthFiles`, `<dataRoot>`).
+    /// Folders scanned for earth files, in order: the data root's own
+    /// (`<dataRoot>/EarthFiles`, `<dataRoot>/Data/EarthFiles`, `<dataRoot>`) followed by
+    /// every folder the 2D viewer looks in (`MapSourceCatalog::earthSearchDirectories`:
+    /// the working directory and the executable's folder, each with `Data/EarthFiles`, plus
+    /// `<exe>/../Data/EarthFiles`). The 2D viewer searching more widely than this was I-046:
+    /// a layer list beside the executable fed the 2D map and was invisible to the 3D one.
     static QStringList defaultSearchDirectories(const QString& dataRoot);
 
     /// Dropdown label for a file: "Satellite Imagery"/"CardG Maps" for the names the 2D

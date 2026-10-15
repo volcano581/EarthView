@@ -94,7 +94,11 @@ line, no `<map>` root). `EarthFileCatalog::build(directories, templatePath, outp
 &warnings)` returns one `MapCatalogEntry` per file — `label` for a host dropdown (same labels
 as 2D), `earthFile` for `MapConfig::earthFile` — writing a standard earth file per source by
 splicing the TMS layers into the template's `<!--@EARTHVIEW3D_TMS_LAYERS@-->` placeholder.
-`defaultSearchDirectories(dataRoot)` gives the folders to scan. The host switches map by
+`defaultSearchDirectories(dataRoot)` gives the folders to scan — the data root's own, then the
+working directory and the executable's folder with `Data/EarthFiles`, which is every folder the
+2D viewer reads, so a layer list that feeds the 2D map is never invisible to the 3D one
+(I-046). It returns cleaned, de-duplicated absolute paths; `build()`'s `warnings` names a
+folder holding only `*.earth.sample` templates. The host switches map by
 rebuilding the view with the new `MapConfig` (osgEarth loads the map when the view is built).
 2D code is untouched: it still reads the original files.
 
@@ -162,7 +166,9 @@ Prerequisites: Conquer's `msvc` preset builds; osgEarth available (vcpkg tree or
    `earthview3d`; `GlobeView3D::EntityState3D` is now `earthview3d::EntityState3D`; the
    constructor takes an `earthview3d::MapConfig` (earth file, data root, cache dir, model
    table, sky and sky time; `validate()` reports a bad one and `MapConfig::fromJsonFile()`
-   reads it from a host settings file)
+   reads it from a host settings file; `MapConfig::discoverDataRoot(appDir, workingDir,
+   compiledDefault)` finds a deployed `Data` folder beside the executable, so a host needs no
+   launcher script and no build-time path to locate its data — D-033)
    instead of an earth-file path; diagnostics `DOCTRINE_3D_LOGDEPTH`/`DOCTRINE_3D_NO_SKY`
    are now `EARTHVIEW3D_LOGDEPTH`/`EARTHVIEW3D_NO_SKY`. The widget calls
    `osgEarth::initialize()` itself. Runtime files (E7): with step 3's

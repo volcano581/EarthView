@@ -21,9 +21,23 @@ placeholder of a template earth file (`maps/earthview.earth` by default), which 
 local elevation, overlays and graticule. The demo lists the result in its **Map** dropdown:
 
 ```
-earthview3d_demo --earth-files EarthFiles --list-maps
-earthview3d_demo --earth-files EarthFiles --map-name "Satellite Imagery"
+earthview3d_demo --list-maps
+earthview3d_demo --map-name "Satellite Imagery"
 ```
+
+Run it from the folder the package was extracted to; `Data` beside the executable is found on
+its own (the `run-earthview3d_demo.cmd` launcher stays as a convenience). `--list-maps` prints
+the data root it resolved, then every folder searched (marking the ones that do not exist) and every map
+found, with its TMS layer count — run it first on a machine where the 3D view comes up without
+the tile server's imagery. With no `--earth-files`, the search covers the same folders as the
+2D viewer: `<DataRoot>/EarthFiles`, `<DataRoot>/Data/EarthFiles`, `<DataRoot>`, and then the
+working directory and the executable's folder, each with `Data/EarthFiles` (I-046). Pass
+`--earth-files <dir>` to search one folder instead.
+
+**The files must end in `.earth`.** A folder holding only the shipped `*.earth.sample`
+templates offers no map, and the 3D view then loads the template map — the pale offline base
+imagery and no tile server, which looks much like an unreachable server. The demo says so on
+stderr, naming the folders it searched.
 
 A file in this folder that already has a `<map>` root is passed to osgEarth unchanged.
 2D behaviour is unchanged: it still reads these files itself.
