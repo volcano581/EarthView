@@ -17,8 +17,7 @@ class LineBatchRenderer : public QObject, protected QOpenGLFunctions
 public:
     enum class CoordinateMode {
         Screen,
-        Mercator,
-        Terrain3D
+        Mercator
     };
 
     struct LineVertex {
@@ -47,7 +46,6 @@ private:
     Camera* m_camera;
     QOpenGLShaderProgram m_screenProgram;
     QOpenGLShaderProgram m_mercatorProgram;
-    QOpenGLShaderProgram m_terrainProgram;
     StreamingBuffer m_vertexBuffer;
     GLuint m_vao;
     qsizetype m_vertexCount;

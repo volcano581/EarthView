@@ -23,7 +23,6 @@
 #include <QFontMetrics>
 #include <QSurfaceFormat>
 #include <QSignalBlocker>
-#include <QToolButton>
 #include <QtGlobal>
 #include <QVector2D>
 #include <QVector4D>
@@ -194,7 +193,6 @@ MapWidget::MapWidget(QWidget* parent)
     , m_terrainRenderer(nullptr)
     , m_lineBatchRenderer(nullptr)
     , m_textRenderer(nullptr)
-    , m_stealthViewButton(new QToolButton(this))
     , m_lineBatchMode(LineBatchRenderer::CoordinateMode::Mercator)
     , m_isPanning(false)
     , m_texturesVisible(true)
@@ -208,43 +206,12 @@ MapWidget::MapWidget(QWidget* parent)
     , m_shapeResourcesInitialized(false)
     , m_lineBatchDirty(true)
     , m_mapLabelsDirty(true)
-    , m_stealthMoveSpeed(50.0)  // meters per frame
 {
     setFormat(OpenGLRuntime::defaultSurfaceFormat());
 
     setFocusPolicy(Qt::StrongFocus);
     setMouseTracking(true);
 
-    // Setup stealth view button
-    m_stealthViewButton->setText(QStringLiteral("Stealth"));
-    m_stealthViewButton->setCheckable(true);
-    m_stealthViewButton->setAutoRaise(true);
-    m_stealthViewButton->setToolTip(QStringLiteral("Toggle first-person stealth view.\nUse WASD to move, mouse to look around."));
-    m_stealthViewButton->setCursor(Qt::ArrowCursor);
-    m_stealthViewButton->setFocusPolicy(Qt::NoFocus);
-    m_stealthViewButton->setStyleSheet(QStringLiteral(
-        "QToolButton {"
-        "background: rgba(12, 18, 24, 190);"
-        "color: rgb(235, 245, 250);"
-        "border: 1px solid rgba(210, 230, 240, 120);"
-        "border-radius: 4px;"
-        "padding: 5px 11px;"
-        "font-weight: 700;"
-        "}"
-        "QToolButton:checked {"
-        "background: rgba(178, 35, 35, 225);"
-        "border-color: rgba(255, 235, 235, 180);"
-        "}"
-        "QToolButton:hover {"
-        "background: rgba(70, 30, 30, 215);"
-        "}"));
-    connect(m_stealthViewButton, &QToolButton::toggled, this, &MapWidget::setStealthViewEnabled);
-    connect(m_camera, &Camera::stealthViewChanged, this, [this](bool enabled) {
-        QSignalBlocker blocker(m_stealthViewButton);
-        m_stealthViewButton->setChecked(enabled);
-    });
-
-    positionOverlayControls();
 
     m_updateTimer = new QTimer(this);
     m_updateTimer->setTimerType(Qt::PreciseTimer);
@@ -432,9 +399,6 @@ void MapWidget::setTerrainVisible(bool visible)
 
     m_terrainVisible = visible;
     m_demLoader->setEnabled(visible);
-    if (!visible && m_camera && m_camera->isStealthViewEnabled()) {
-        m_camera->setStealthViewEnabled(false);
-    }
     if (m_terrainRenderer) {
         m_terrainRenderer->setEnabled(visible);
     }
@@ -479,19 +443,6 @@ void MapWidget::initializeShapeResources()
     m_shapeResourcesInitialized = true;
 }
 
-void MapWidget::positionOverlayControls()
-{
-    if (!m_stealthViewButton)
-        return;
-
-    const QSize size = m_stealthViewButton->sizeHint();
-    m_stealthViewButton->resize(qMax(70, size.width()), qMax(30, size.height()));
-    m_stealthViewButton->move(
-        qMax(8, width() - m_stealthViewButton->width() - 12),
-        12);
-    m_stealthViewButton->raise();
-}
-
 void MapWidget::initializeGL()
 {
     initializeOpenGLFunctions();
@@ -530,7 +481,7 @@ void MapWidget::initializeGL()
     if (m_texturesVisible) {
         m_tileLoader->updateVisibleTiles();
     }
-    if (m_terrainVisible && m_camera->isTerrain3DView()) {
+    if (m_terrainVisible) {
         m_demLoader->updateVisibleTiles();
     }
     invalidateLineBatch();
@@ -546,7 +497,6 @@ void MapWidget::resizeGL(int w, int h)
 {
     m_camera->setViewportSize(w, h);
     glViewport(0, 0, w, h);
-    positionOverlayControls();
     invalidateLineBatch();
     invalidateMapLabels();
 }
@@ -554,9 +504,6 @@ void MapWidget::resizeGL(int w, int h)
 void MapWidget::paintGL()
 {
     FrameProfiler::beginFrame();
-
-    // Update stealth view movement based on pressed keys
-    updateStealthViewMovement();
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
@@ -572,7 +519,7 @@ void MapWidget::paintGL()
         FrameProfiler::Scope drawScope(QStringLiteral("draw.rasterTiles"));
         m_tileRenderer->render();
     }
-    if (m_terrainVisible && m_camera->isTerrain3DView() && m_terrainRenderer) {
+    if (m_terrainVisible && m_terrainRenderer) {
         FrameProfiler::Scope drawScope(QStringLiteral("draw.terrain"));
         m_terrainRenderer->render();
     }
@@ -662,9 +609,6 @@ void MapWidget::keyPressEvent(QKeyEvent* event)
         return;
     }
 
-    // Track key states for stealth view movement
-    m_keysPressed.insert(event->key());
-
     const float PAN_STEP = 50.0f;
 
     switch (event->key()) {
@@ -690,103 +634,15 @@ void MapWidget::keyPressEvent(QKeyEvent* event)
         m_camera->setCenter(QPointF(0, 0));
         m_camera->setZoomLevel(2.0);
         break;
-    case Qt::Key_BracketLeft:
-        if (m_terrainRenderer) {
-            m_terrainRenderer->setPitchDegrees(m_terrainRenderer->pitchDegrees() - 4.0f);
-        }
-        break;
-    case Qt::Key_BracketRight:
-        if (m_terrainRenderer) {
-            m_terrainRenderer->setPitchDegrees(m_terrainRenderer->pitchDegrees() + 4.0f);
-        }
-        break;
-    case Qt::Key_PageDown:
-        if (m_terrainRenderer) {
-            m_terrainRenderer->setVerticalExaggeration(m_terrainRenderer->verticalExaggeration() - 0.5f);
-        }
-        break;
-    case Qt::Key_PageUp:
-        if (m_terrainRenderer) {
-            m_terrainRenderer->setVerticalExaggeration(m_terrainRenderer->verticalExaggeration() + 0.5f);
-        }
-        break;
     default:
         QOpenGLWidget::keyPressEvent(event);
     }
     update();
 }
 
-void MapWidget::keyReleaseEvent(QKeyEvent* event)
-{
-    if (event->isAutoRepeat()) {
-        event->ignore();
-        return;
-    }
-
-    m_keysPressed.remove(event->key());
-
-    QOpenGLWidget::keyReleaseEvent(event);
-}
-
-void MapWidget::setStealthViewEnabled(bool enabled)
-{
-    if (enabled && !m_terrainVisible) {
-        setTerrainVisible(true);
-    }
-
-    if (m_camera) {
-        m_camera->setStealthViewEnabled(enabled);
-    }
-
-    if (m_stealthViewButton && m_stealthViewButton->isChecked() != enabled) {
-        QSignalBlocker blocker(m_stealthViewButton);
-        m_stealthViewButton->setChecked(enabled);
-    }
-
-    if (enabled && m_terrainVisible && m_demLoader) {
-        m_demLoader->updateVisibleTiles();
-    }
-    
-    // Clear key tracking when entering/leaving stealth view
-    m_keysPressed.clear();
-    
-    invalidateLineBatch();
-    invalidateMapLabels();
-    update();
-}
-
-void MapWidget::updateStealthViewMovement()
-{
-    if (!m_camera || !m_camera->isStealthViewEnabled()) {
-        return;
-    }
-
-    // WASD movement
-    if (m_keysPressed.contains(Qt::Key_W) || m_keysPressed.contains('w')) {
-        m_camera->moveCameraForward(m_stealthMoveSpeed);
-    }
-    if (m_keysPressed.contains(Qt::Key_S) || m_keysPressed.contains('s')) {
-        m_camera->moveCameraForward(-m_stealthMoveSpeed);
-    }
-    if (m_keysPressed.contains(Qt::Key_D) || m_keysPressed.contains('d')) {
-        m_camera->moveCameraRight(m_stealthMoveSpeed);
-    }
-    if (m_keysPressed.contains(Qt::Key_A) || m_keysPressed.contains('a')) {
-        m_camera->moveCameraRight(-m_stealthMoveSpeed);
-    }
-
-    // Height adjustment
-    if (m_keysPressed.contains(Qt::Key_Space)) {
-        m_camera->setCameraHeightMeters(m_camera->cameraHeightMeters() + 0.5);
-    }
-    if (m_keysPressed.contains(Qt::Key_Control)) {
-        m_camera->setCameraHeightMeters(m_camera->cameraHeightMeters() - 0.5);
-    }
-}
-
 void MapWidget::onCameraChanged()
 {
-    if (m_terrainVisible && m_camera->isTerrain3DView() && m_demLoader) {
+    if (m_terrainVisible && m_demLoader) {
         m_demLoader->updateVisibleTiles();
     }
     invalidateLineBatch();
@@ -812,9 +668,6 @@ void MapWidget::rebuildLineBatchIfNeeded()
     m_cachedLineVertices.clear();
     if (m_camera->isOrthographic()) {
         m_lineBatchMode = LineBatchRenderer::CoordinateMode::Screen;
-    }
-    else if (m_camera->isTerrain3DView()) {
-        m_lineBatchMode = LineBatchRenderer::CoordinateMode::Terrain3D;
     }
     else {
         m_lineBatchMode = LineBatchRenderer::CoordinateMode::Mercator;

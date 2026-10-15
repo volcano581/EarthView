@@ -21,6 +21,16 @@ get_target_property(_earthview_2d_libs EarthView LINK_LIBRARIES)
 target_link_libraries(tst_mapsourcecatalog PRIVATE ${_earthview_2d_libs} Qt6::Test)
 add_test(NAME tst_mapsourcecatalog COMMAND tst_mapsourcecatalog)
 
+# The 2D camera's projections (E9 removed its pseudo-3D ones; these must not move).
+add_executable(tst_camera2d
+    tst_camera2d.cpp
+    ../Camera.cpp
+    ../MercatorProjection.cpp
+)
+target_include_directories(tst_camera2d PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/..")
+target_link_libraries(tst_camera2d PRIVATE Qt6::Core Qt6::Gui Qt6::Test)
+add_test(NAME tst_camera2d COMMAND tst_camera2d)
+
 add_executable(tst_mercatorprojection
     tst_mercatorprojection.cpp
     ../MercatorProjection.cpp

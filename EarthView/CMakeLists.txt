@@ -98,16 +98,14 @@ set(SHADERS
     shaders/textured_quad.frag
     shaders/colored_2d.vert
     shaders/colored_mercator.vert
-    shaders/colored_terrain.vert
     shaders/instanced_rect_mercator.vert
     shaders/colored_line.frag
     shaders/solid_2d.vert
     shaders/solid_2d.frag
     shaders/mercator_line.vert
-    shaders/terrain_line.vert
     shaders/point_marker.vert
     shaders/point_marker.frag
-    shaders/terrain_height.vert
+    shaders/terrain_flat.vert
     shaders/terrain_height.frag
 )
 
@@ -200,6 +198,15 @@ set_target_properties(earthview_scene3d PROPERTIES AUTOMOC OFF AUTOUIC OFF AUTOR
 add_subdirectory(earthview3d)
 # Demo host (roadmap E2): feed library always; the app only when earthview3d is built.
 add_subdirectory(earthview3d/demo)
+
+# "Open 3D View" in the 2D viewer (roadmap E9). Only when the osgEarth widget was built: a
+# 2D-only build has no action at all rather than one that cannot work. The deploy helper puts
+# the OSG plugins and GDAL/PROJ data next to EarthView.exe, which the view needs at runtime.
+if(TARGET earthview3d)
+    target_link_libraries(${PROJECT_NAME} PRIVATE earthview3d)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE EARTHVIEW_HAVE_3D=1)
+    earthview3d_deploy_runtime(${PROJECT_NAME})
+endif()
 
 option(EARTHVIEW_BUILD_TESTS "Build EarthView unit tests" ON)
 if(EARTHVIEW_BUILD_TESTS AND TARGET Qt6::Test)

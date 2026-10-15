@@ -102,7 +102,6 @@ private:
     LineBatchRenderer* m_lineRenderer;
     QOpenGLShaderProgram m_screenFillProgram;
     QOpenGLShaderProgram m_mercatorFillProgram;
-    QOpenGLShaderProgram m_terrainFillProgram;
     QOpenGLShaderProgram m_mercatorBackgroundProgram;
     StreamingBuffer m_fillBuffer;
     GLuint m_fillVao;

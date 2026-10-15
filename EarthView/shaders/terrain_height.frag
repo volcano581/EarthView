@@ -1,7 +1,9 @@
 #version 330 core
 
+// Hypsometric colouring of the DEM overlay. The wireframe pass that used to draw the mesh
+// edges went with the pseudo-3D path (E9): on a flat layer it was only noise.
+
 uniform float u_opacity;
-uniform int u_wireMode;
 
 in float v_heightMix;
 in float v_heightMeters;
@@ -10,11 +12,6 @@ out vec4 fragColor;
 
 void main()
 {
-    if (u_wireMode == 1) {
-        fragColor = vec4(0.03, 0.04, 0.035, 0.42);
-        return;
-    }
-
     vec3 lowColor = vec3(0.12, 0.34, 0.17);
     vec3 midColor = vec3(0.55, 0.48, 0.30);
     vec3 highColor = vec3(0.88, 0.86, 0.78);
