@@ -43,6 +43,7 @@ private slots:
     void buildReportsSkippedFiles();
     void searchCoversEverywhereThe2DViewerLooks();
     void warnsWhenOnlySamplesWereShipped();
+    void offersShippedMapsAndSkipsGeneratedOnes();
 
 private:
     QString write(const QString& relativePath, const QString& content) const;
@@ -453,6 +454,38 @@ void TestEarthFileCatalog::warnsWhenOnlySamplesWereShipped()
     warnings.clear();
     QCOMPARE(EarthFileCatalog::discover({ m_dir().filePath(QStringLiteral("EarthFiles")) }, &warnings).size(), 1);
     QVERIFY(warnings.isEmpty());
+}
+
+void TestEarthFileCatalog::offersShippedMapsAndSkipsGeneratedOnes()
+{
+    // I-051: Data/maps holds the standard osgEarth maps the product ships, and
+    // earthview_online.earth (the offline map plus online OpenStreetMap) is the only one with
+    // real imagery on a machine with internet and no layer list of its own. It has to be
+    // offered, not reachable only by spelling out --map.
+    const QStringList dirs = EarthFileCatalog::defaultSearchDirectories(m_dir().path());
+    QVERIFY(dirs.contains(QDir(m_dir().path()).absoluteFilePath(QStringLiteral("maps"))));
+
+    QVERIFY(!write(QStringLiteral("maps/earthview_online.earth"),
+                   QStringLiteral("<map name=\"EarthView\" version=\"3\">\n"
+                                  "    <XYZImage name=\"OpenStreetMap\"><url>http://t/{z}/{x}/{y}.png</url></XYZImage>\n"
+                                  "</map>\n"))
+                 .isEmpty());
+    // A generated tms_*.earth sits in the same folder and must NOT be offered again: it is
+    // already the earthFile of the layer list it was written from.
+    QVERIFY(!write(QStringLiteral("maps/tms_imagery_config.earth"),
+                   QStringLiteral("<map name=\"EarthView\" version=\"3\">\n"
+                                  "    <TMSImage name=\"L\"><url>http://h/l/tilemapresource.xml</url></TMSImage>\n"
+                                  "</map>\n"))
+                 .isEmpty());
+
+    const QList<MapCatalogEntry> entries =
+        EarthFileCatalog::discover({ m_dir().filePath(QStringLiteral("maps")) }, nullptr);
+    QCOMPARE(entries.size(), 1);
+    QCOMPARE(entries.at(0).label, QStringLiteral("earthview online"));
+    // A standard map is handed to osgEarth as it is, and carries no TMS layer specs of its own.
+    QVERIFY(entries.at(0).standardEarthFile);
+    QCOMPARE(entries.at(0).earthFile, entries.at(0).sourcePath);
+    QVERIFY(entries.at(0).tmsLayers.isEmpty());
 }
 
 QTEST_MAIN(TestEarthFileCatalog)

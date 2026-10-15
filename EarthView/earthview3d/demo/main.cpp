@@ -226,7 +226,15 @@ int main(int argc, char** argv)
             earthFilesArg.isEmpty() ? earthview3d::EarthFileCatalog::defaultSearchDirectories(mapConfig.dataRoot)
                                     : QStringList(QDir(mapConfig.dataRoot).absoluteFilePath(earthFilesArg));
         QStringList warnings;
-        catalog += earthview3d::EarthFileCatalog::build(searchedDirectories, templatePath, QString(), &warnings);
+        const QList<earthview3d::MapCatalogEntry> found =
+            earthview3d::EarthFileCatalog::build(searchedDirectories, templatePath, QString(), &warnings);
+        for (const earthview3d::MapCatalogEntry& entry : found) {
+            // The --map file itself now turns up in the search (maps/ is scanned since I-051);
+            // it is already the first entry, so listing it again would offer it twice.
+            if (QFileInfo(entry.sourcePath) == QFileInfo(base.sourcePath))
+                continue;
+            catalog.append(entry);
+        }
         for (const QString& warning : warnings)
             fail(warning);
     }
@@ -247,11 +255,19 @@ int main(int argc, char** argv)
         return 0;
     }
 
-    // Default to the first map built from Data/EarthFiles (the offline tile server's TMS
-    // layers) when the machine has one: the template on its own carries only the pale offline
-    // base imagery, so the 3D view came up blank next to the 2D map (I-038). The template
-    // itself stays reachable as "<name> (default)" through --map-name / the Map dropdown.
-    int mapIndex = catalog.size() > 1 ? 1 : 0;
+    // Default to a map with the tile server's TMS layers in it when the machine has one: the
+    // template on its own carries only the pale offline base imagery, so the 3D view came up
+    // blank next to the 2D map (I-038). Picking by layer count rather than by position matters
+    // now that maps/ is searched (I-051): the standard maps found there have no TMS layers, so
+    // "the second entry" is no longer the same thing as "the one with a tile server". The
+    // template stays reachable as "<name> (default)" through --map-name / the Map dropdown.
+    int mapIndex = 0;
+    for (int i = 0; i < catalog.size(); ++i) {
+        if (!catalog.at(i).tmsLayers.isEmpty()) {
+            mapIndex = i;
+            break;
+        }
+    }
     if (parser.isSet(QStringLiteral("map-name"))) {
         const QString wanted = parser.value(QStringLiteral("map-name"));
         mapIndex = -1;
@@ -277,9 +293,11 @@ int main(int argc, char** argv)
         std::fprintf(stderr, "Map: %s -> %s (%d TMS layer%s)\n", qPrintable(chosen.label),
                      qPrintable(chosen.earthFile), int(chosen.tmsLayers.size()),
                      chosen.tmsLayers.size() == 1 ? "" : "s");
-        if (catalog.size() == 1) {
-            fail(QStringLiteral("No EarthView layer list (*.earth) was found, so the template map is loaded and "
-                                "the 3D view will show only the offline base imagery - no tile server. Searched:"));
+        if (chosen.tmsLayers.isEmpty()) {
+            fail(QStringLiteral("No EarthView layer list (*.earth) was found, so a map with no tile-server imagery "
+                                "is loaded and the 3D view will show only the offline base (world_base.tif, a low "
+                                "resolution world). With internet, maps/earthview_online.earth adds OpenStreetMap: "
+                                "pick it from the Map dropdown or pass --map-name. Searched:"));
             for (const QString& directory : searchedDirectories) {
                 fail(QStringLiteral("    %1%2").arg(directory,
                                                     QDir(directory).exists() ? QString()

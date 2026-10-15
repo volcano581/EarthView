@@ -97,8 +97,12 @@ splicing the TMS layers into the template's `<!--@EARTHVIEW3D_TMS_LAYERS@-->` pl
 `defaultSearchDirectories(dataRoot)` gives the folders to scan — the data root's own, then the
 working directory and the executable's folder with `Data/EarthFiles`, which is every folder the
 2D viewer reads, so a layer list that feeds the 2D map is never invisible to the 3D one
-(I-046). It returns cleaned, de-duplicated absolute paths; `build()`'s `warnings` names a
-folder holding only `*.earth.sample` templates. The host switches map by
+(I-046), plus `<dataRoot>/maps` so the standard osgEarth maps shipped in the data tree are
+offered too — generated `tms_*.earth` files are skipped there, each being already the
+`earthFile` of its own source entry (I-051). It returns cleaned, de-duplicated absolute paths;
+`build()`'s `warnings` names a folder holding only `*.earth.sample` templates. An entry with no
+`tmsLayers` is a standard map rather than a tile-server one, which is how a host should pick a
+default. The host switches map by
 rebuilding the view with the new `MapConfig` (osgEarth loads the map when the view is built).
 2D code is untouched: it still reads the original files.
 
