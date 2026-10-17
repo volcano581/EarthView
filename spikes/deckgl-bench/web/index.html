@@ -1,0 +1,104 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  html, body { margin: 0; width: 100%; height: 100%; background: #111; overflow: hidden; }
+  #hud { position: fixed; top: 8px; left: 8px; z-index: 10; color: #0f0; font: 12px monospace;
+         background: #000a; padding: 6px 8px; }
+</style>
+<script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+<script src="deck.gl.min.js"></script>
+</head>
+<body>
+<div id="hud">starting…</div>
+<script>
+const P = new URLSearchParams(location.search);
+const MODE = P.get('mode');
+const N = +P.get('n');
+
+const positions = new Float32Array(N * 3);
+let lat = [], frames = 0, recv = 0, lastSeq = 0, dropped = 0, version = 0, pendingT = 0;
+let bridge = null;
+
+function ingest(tMs, f32, seq) {
+  for (let i = 0; i < N; i++) {
+    positions[i * 3]     = f32[i * 4];
+    positions[i * 3 + 1] = f32[i * 4 + 1];
+    positions[i * 3 + 2] = f32[i * 4 + 2];
+  }
+  if (seq && lastSeq && seq > lastSeq + 1) dropped += seq - lastSeq - 1;
+  if (seq) lastSeq = seq;
+  version++; recv++;
+  pendingT = tMs;
+}
+
+function parseBin(buf) {
+  const dv = new DataView(buf);
+  const count = dv.getUint32(8, true);
+  ingest(dv.getFloat64(0, true), new Float32Array(buf, 16, count * 4), dv.getUint32(12, true));
+}
+
+const deckgl = new deck.Deck({
+  parent: document.body,
+  views: new deck.MapView({ repeat: false }),
+  initialViewState: { longitude: 0, latitude: 20, zoom: 1.5 },
+  controller: true,
+  getTooltip: ({ index }) => index >= 0 && `entity ${index}`,
+  onAfterRender: () => {
+    frames++;
+    if (pendingT) { lat.push(Date.now() - pendingT); pendingT = 0; }
+  }
+});
+
+function render() {
+  deckgl.setProps({ layers: [new deck.ScatterplotLayer({
+    id: 'entities',
+    pickable: true,
+    autoHighlight: true,
+    data: { length: N, attributes: { getPosition: { value: positions, size: 3 } } },
+    getRadius: 20000,
+    radiusMinPixels: 2,
+    getFillColor: [0, 200, 255],
+    updateTriggers: { getPosition: version }
+  })] });
+  requestAnimationFrame(render);
+}
+
+new QWebChannel(qt.webChannelTransport, ch => {
+  bridge = ch.objects.bridge;
+  if (MODE === 'json') {
+    bridge.frameJson.connect((t, arr) => ingest(t, Float32Array.from(arr), 0));
+  } else if (MODE === 'b64') {
+    bridge.frameB64.connect(s => {
+      const bin = atob(s), u8 = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+      parseBin(u8.buffer);
+    });
+  }
+});
+
+if (MODE === 'scheme') {
+  (async function poll() {
+    for (;;) {
+      const r = await fetch('sim://frame');
+      parseBin(await r.arrayBuffer());
+      await new Promise(requestAnimationFrame);
+    }
+  })();
+}
+
+setInterval(() => {
+  lat.sort((a, b) => a - b);
+  const q = p => lat.length ? lat[Math.floor(p * (lat.length - 1))] : 0;
+  const s = `${MODE} N=${N} fps=${frames} recv/s=${recv} ` +
+            `lat p50=${q(.5)} p95=${q(.95)} p99=${q(.99)} ms dropped=${dropped}`;
+  document.getElementById('hud').textContent = s;
+  if (bridge) bridge.report(s);
+  frames = 0; recv = 0; lat = [];
+}, 1000);
+
+requestAnimationFrame(render);
+</script>
+</body>
+</html>

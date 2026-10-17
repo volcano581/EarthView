@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/">
+        <file>web/index.html</file>
+        <file>web/deck.gl.min.js</file>
+    </qresource>
+</RCC>
