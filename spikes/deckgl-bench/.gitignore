@@ -1,3 +1,5 @@
 web/deck.gl.min.js
+web/maplibre-gl.js
+web/maplibre-gl.css
 build/
 build-*/

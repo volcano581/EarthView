@@ -2,5 +2,7 @@
     <qresource prefix="/">
         <file>web/index.html</file>
         <file>web/deck.gl.min.js</file>
+        <file>web/maplibre-gl.js</file>
+        <file>web/maplibre-gl.css</file>
     </qresource>
 </RCC>
