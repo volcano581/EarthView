@@ -2,6 +2,7 @@
 
 #include "earthview3d/DtedMosaic.h"
 
+#include <QCoreApplication>
 #include <QDir>
 #include <QFile>
 #include <QSet>
@@ -143,6 +144,30 @@ QStringList EarthFileCatalog::defaultSearchDirectories(const QString& dataRoot)
     directories << root.absoluteFilePath(QStringLiteral("EarthFiles"))
                 << root.absoluteFilePath(QStringLiteral("Data/EarthFiles"))
                 << root.absolutePath();
+
+    // The same folders the 2D viewer reads (MapSourceCatalog::earthSearchDirectories). A
+    // deployment puts the executable beside Data/, so the data root usually covers these —
+    // but not always, and a layer list the 2D map was happily using must not be invisible
+    // here just because it sits next to the .exe instead (I-046).
+    const QDir cwd(QDir::currentPath());
+    const QDir appDir(QCoreApplication::applicationDirPath());
+    directories << cwd.absoluteFilePath(QStringLiteral("Data/EarthFiles"))
+                << cwd.absolutePath()
+                << appDir.absoluteFilePath(QStringLiteral("Data/EarthFiles"))
+                << appDir.absolutePath()
+                << appDir.absoluteFilePath(QStringLiteral("../Data/EarthFiles"))
+                << appDir.absoluteFilePath(QStringLiteral(".."));
+
+    // The standard osgEarth maps shipped in the data tree, so they are offered as map sources
+    // too. `earthview_online.earth` is the one that matters: it is the offline map plus online
+    // OpenStreetMap imagery, and on a machine with internet and no layer list of its own it is
+    // the only map with real imagery — but it could only be reached by spelling out
+    // `--map maps/earthview_online.earth`, which nothing told the user about (I-051).
+    directories << root.absoluteFilePath(QStringLiteral("maps"))
+                << root.absoluteFilePath(QStringLiteral("Data/maps"));
+
+    for (QString& directory : directories)
+        directory = QDir::cleanPath(directory);
     directories.removeDuplicates();
     return directories;
 }
@@ -313,11 +338,27 @@ QList<MapCatalogEntry> EarthFileCatalog::discover(const QStringList& directories
             continue;
         const QFileInfoList files =
             directory.entryInfoList({ QStringLiteral("*.earth") }, QDir::Files | QDir::Readable, QDir::Name);
+        // The distribution ships the layer lists as *.earth.sample, so that a machine without a
+        // tile server gets no half-configured map. A folder holding only those is a machine
+        // where they were never copied to *.earth, which looks exactly like "no maps found"
+        // unless it is said out loud (I-046).
+        if (files.isEmpty()
+            && !directory.entryInfoList({ QStringLiteral("*.earth.sample") }, QDir::Files).isEmpty()) {
+            addWarning(warnings,
+                       QStringLiteral("%1 holds only *.earth.sample templates; copy one to *.earth "
+                                      "(and put your tile server's URL in it) for it to be offered as a map")
+                           .arg(directory.absolutePath()));
+        }
         for (const QFileInfo& file : files) {
             const QString absolutePath = file.absoluteFilePath();
             if (seen.contains(absolutePath))
                 continue;
             seen.insert(absolutePath);
+            // Generated output, not a source: a `tms_<name>.earth` is already the `earthFile`
+            // of the layer list it was written from, so listing it again would offer the same
+            // map twice under two labels (I-051, now that maps/ is searched).
+            if (file.fileName().startsWith(QStringLiteral("tms_"), Qt::CaseInsensitive))
+                continue;
 
             MapCatalogEntry entry;
             QString error;

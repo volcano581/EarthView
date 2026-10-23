@@ -3,6 +3,11 @@
 #include "MapViewWindow.h"
 #include "Camera.h"
 #include "MapSourceCatalog.h"
+
+#ifdef EARTHVIEW_HAVE_3D
+#include <earthview3d/GlobeView3D.h>
+#include <earthview3d/MapConfig.h>
+#endif
 #include "MercatorProjection.h"
 #ifdef EARTHVIEW_HAS_MAP_CONTROLS
 #include "MapControlsOverlay.h"
@@ -182,6 +187,19 @@ void MainWindow::setupUI()
     viewMenu->addAction(citiesVisibleAction);
     viewMenu->addAction(terrainVisibleAction);
     viewMenu->addAction(secondaryWindowAction);
+
+    // osgEarth 3D view (E9). Built only when earthview3d is: a 2D-only build has no action
+    // rather than one that explains it cannot work.
+#ifdef EARTHVIEW_HAVE_3D
+    QAction* open3DAction = new QAction("Open 3D View", this);
+    open3DAction->setShortcut(QKeySequence("Ctrl+3"));
+    open3DAction->setToolTip("Open the osgEarth 3D view centred on the current 2D view.");
+    connect(open3DAction, &QAction::triggered, this, &MainWindow::open3DView);
+    toolbar->addSeparator();
+    toolbar->addAction(open3DAction);
+    viewMenu->addSeparator();
+    viewMenu->addAction(open3DAction);
+#endif
     viewMenu->addSeparator();
     viewMenu->addAction(wrapLongitudeAction);
     viewMenu->addAction(globeViewAction);
@@ -284,3 +302,60 @@ void MainWindow::createStatusBar()
     statusBar()->addWidget(m_coordLabel);
     statusBar()->addPermanentWidget(m_zoomLabel);
 }
+
+#ifdef EARTHVIEW_HAVE_3D
+namespace {
+/// Data root the 3D view resolves its map and models against: the same folder the 2D viewer
+/// finds its own data in.
+QString dataRootForView3D()
+{
+    const QStringList candidates = {
+        QDir::current().absoluteFilePath(QStringLiteral("Data")),
+        QDir(QCoreApplication::applicationDirPath()).absoluteFilePath(QStringLiteral("Data")),
+        QDir(QCoreApplication::applicationDirPath()).absoluteFilePath(QStringLiteral("../Data"))
+    };
+    for (const QString& candidate : candidates) {
+        if (QFileInfo(candidate).isDir())
+            return QFileInfo(candidate).absoluteFilePath();
+    }
+    return QDir::current().absoluteFilePath(QStringLiteral("Data"));
+}
+} // namespace
+
+void MainWindow::open3DView()
+{
+    if (m_window3D) {
+        m_window3D->raise();
+        m_window3D->activateWindow();
+        return;
+    }
+
+    earthview3d::MapConfig config;
+    config.dataRoot = dataRootForView3D();
+    config.earthFile = QStringLiteral("maps/earthview.earth");
+    config.modelTable = QStringLiteral("models/models.json");
+    config.cacheDir = QStringLiteral("cache");
+    QString error;
+    if (!config.validate(&error)) {
+        statusBar()->showMessage(QStringLiteral("3D view: %1").arg(error), 8000);
+        return;
+    }
+
+    // Open on what the 2D map is centred on, so the two views agree at the moment of opening.
+    const QPointF latLon = MercatorProjection::mercatorToLatLon(
+        m_mapWidget->camera()->getCenterMercator().x(),
+        m_mapWidget->camera()->getCenterMercator().y());
+
+    auto* window = new QMainWindow(this);
+    window->setAttribute(Qt::WA_DeleteOnClose);
+    window->setWindowTitle(QStringLiteral("EarthView — 3D view"));
+    auto* view = new earthview3d::GlobeView3D(config, latLon.x(), latLon.y(), window);
+    connect(view, &earthview3d::GlobeView3D::loadFailed, this, [this](const QString& reason) {
+        statusBar()->showMessage(QStringLiteral("3D view: %1").arg(reason), 8000);
+    });
+    window->setCentralWidget(view);
+    window->resize(1280, 800);
+    window->show();
+    m_window3D = window;
+}
+#endif // EARTHVIEW_HAVE_3D

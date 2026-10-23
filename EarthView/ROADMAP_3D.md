@@ -1,6 +1,6 @@
 # EarthView 3D — Roadmap for Agent Handoff
 
-> **Paused (2026-10-23, D-032).** The owner has chosen to focus on the 2D view with on-map
+> **Paused (2026-10-23, D-034).** The owner has chosen to focus on the 2D view with on-map
 > controls (`MAP_CONTROLS_CHANGELOG.md`). Do not start further E-tasks unless the owner reopens them.
 
 > Status, change log, decisions and issues: **[3D_PROGRESS.md](3D_PROGRESS.md)** ·
@@ -73,14 +73,14 @@
 | E5 | Terrain services: height query API, clamping, vertical datum check | E1 | S | yes | Done |
 | E6 | Offline data pipeline (imagery, DEM overviews, overlays, earth template, cache) | E1 | M | yes | Done |
 | E7 | Packaging: CMake package/`add_subdirectory`, `earthview3d_deploy_runtime()`, install, offline build doc | E1 | M | no | Done ([#14](https://github.com/volcano581/EarthView/pull/14), `5f9bc0b`) |
-| E8 | Wiring kit: keep `DOCTRINE_WIRING.md` + host contract test in sync; integration checklist | E3, E4, E7 | S | no | |
-| E9 | Cleanup: remove EarthView pseudo-3D; 2D MapViewWindow "Open 3D" hook | E2 | M | yes | |
+| E8 | Wiring kit: keep `DOCTRINE_WIRING.md` + host contract test in sync; integration checklist | E3, E4, E7 | S | no | Done ([#20](https://github.com/volcano581/EarthView/pull/20), `c3d1158`) |
+| E9 | Cleanup: remove EarthView pseudo-3D; 2D MapViewWindow "Open 3D" hook | E2 | M | yes | Done ([#21](https://github.com/volcano581/EarthView/pull/21)) |
 | E10 | Performance + polish (1k entities, multiple windows, smooth motion) | E3, E4 | M | yes | |
 | E11 | TMS map catalog: EarthView's `Data/EarthFiles` layer-list files → standard earth files, one map per file | E6 | S | yes | Done |
 | L1 | **Local:** wire `earthview3d` into Doctrine (Conquer) per `DOCTRINE_WIRING.md` | E7, E8 | M | yes | local only |
 | F1 | Fixes from the owner's Windows run: per-frame marker scale (I-037), DTED folder path in the 2D layer lists and the earth files, TMS map by default (I-038) | E11 | S | yes | Done ([#17](https://github.com/volcano581/EarthView/pull/17), `2ceb9ce`) |
 | F2 | Demo's 2D pane reads the 2D viewer's own map sources (I-041) | E11 | S | yes | Done ([#18](https://github.com/volcano581/EarthView/pull/18)) |
-| F3 | DTED folder indexed in the app: cell headers to a GDAL mosaic, no GDAL tools needed (I-042) | F1 | S | yes | In review ([#19](https://github.com/volcano581/EarthView/pull/19)) |
+| F3 | DTED folder indexed in the app: cell headers to a GDAL mosaic, no GDAL tools needed (I-042) | F1 | S | yes | Done ([#19](https://github.com/volcano581/EarthView/pull/19), `99719b8`) |
 
 Parallel after E1: E3, E4, E5, E6, E7. E2 should land early (it is how every later task is
 demonstrated).
@@ -158,14 +158,20 @@ demonstrated).
 - Acceptance: a tiny external CMake project (in `tests/consumer/`) builds against the
   installed package in CI.
 
-### E8 — Wiring kit
+### E8 — Wiring kit — IN REVIEW
 - Keep `DOCTRINE_WIRING.md` §2/§3 aligned with the final API (field names, signals, CMake
   calls). Add a compile-only "host contract" test that fills `EntityState3D` from a
   struct shaped like the contract table, so API drift breaks CI.
+- Done in `tests/tst_hostcontract.cpp`: the adapter of §2 plus `static_assert` over every
+  field and signature the document names. It includes `GlobeView3D.h` without linking the
+  widget (public headers are osgEarth-free, D-011), so the check also runs on Linux.
 
-### E9 — Cleanup
+### E9 — Cleanup — IN REVIEW
 - Remove the pseudo-3D/stealth path from EarthView 2D (Camera branches, shaders, UI).
 - EarthView viewer app: "Open 3D View" action using `earthview3d` when built.
+- Scope call by the owner (2026-10-15): the DEM overlay **stays**, drawn flat in Mercator
+  (`terrain_flat.vert`), so the 2D DTED reader (I-039) remains possible. Only the pitched
+  projection and the stealth view go.
 
 ### E10 — Performance + polish
 - 1,000 moving entities ≥ 60 fps at 1440p (demo, `--entities 1000`); interpolation between

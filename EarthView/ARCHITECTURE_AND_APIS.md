@@ -69,11 +69,13 @@ same GPU context:
 Full file-by-file reference, frame order, and dirty-flag caching rules are in
 DEVELOPERS_GUIDE.md §6–§21 and RENDERING_PIPELINE.md.
 
-**Do not extend** the legacy pseudo-3D path still present in this stack
-(`Camera::terrainMercatorToScreen`, `stealthViewMercatorToScreen`,
-`shaders/terrain_height.*`, `colored_terrain.vert`, `terrain_line.vert`,
-`isStealthViewEnabled()`/`isTerrain3DView()`); it is superseded by `earthview3d` and removed
-in roadmap task E9 (CLAUDE.md rule 2).
+The legacy pseudo-3D path — `Camera::terrainMercatorToScreen`,
+`stealthViewMercatorToScreen`, `colored_terrain.vert`, `terrain_line.vert`, the pitched
+`terrain_height.vert` and the `isStealthViewEnabled()`/`isTerrain3DView()` branches — **was
+removed in roadmap task E9**, superseded by `earthview3d`. Do not bring it back (CLAUDE.md
+rule 2). The DEM overlay stayed: it is drawn flat in Mercator like every other 2D layer
+(`shaders/terrain_flat.vert` + `terrain_height.frag`), and the 2D viewer gained an
+"Open 3D View" action that hands the current centre to `earthview3d::GlobeView3D`.
 
 ---
 
@@ -141,7 +143,7 @@ them:
 
 An earlier plan (superseded milestones M2–M10, O0–O11) attempted a custom 3D
 terrain/imagery renderer on top of the 2D engine's OpenGL code
-(`terrain_height.vert`, `stealthViewMercatorToScreen`, etc.). It was dropped in favor of
+(the pitched `terrain_height.vert`, `stealthViewMercatorToScreen`, etc.; removed in E9). It was dropped in favor of
 osgEarth because terrain LOD, imagery draping, vertical datum handling, and camera
 manipulation are a large, mature surface area that osgEarth already solves; EarthView's
 value-add is the thin, host-independent integration layer (`earthview3d`), not a

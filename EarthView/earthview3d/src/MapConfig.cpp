@@ -47,6 +47,26 @@ QDateTime MapConfig::effectiveSkyTime() const
     return skyTime.isValid() ? skyTime.toUTC() : QDateTime::currentDateTimeUtc();
 }
 
+QString MapConfig::discoverDataRoot(const QString& appDir, const QString& workingDir,
+                                    const QString& compiledDefault)
+{
+    QStringList candidates;
+    if (!appDir.isEmpty()) {
+        const QDir dir(appDir);
+        candidates << dir.absoluteFilePath(QStringLiteral("Data"))
+                   << dir.absoluteFilePath(QStringLiteral("../Data"));
+    }
+    if (!workingDir.isEmpty())
+        candidates << QDir(workingDir).absoluteFilePath(QStringLiteral("Data"));
+
+    for (const QString& candidate : candidates) {
+        const QString cleaned = QDir::cleanPath(candidate);
+        if (QFileInfo(cleaned).isDir())
+            return cleaned;
+    }
+    return compiledDefault.isEmpty() ? QString() : QDir::cleanPath(compiledDefault);
+}
+
 bool MapConfig::validate(QString* error) const
 {
     if (earthFile.isEmpty()) {

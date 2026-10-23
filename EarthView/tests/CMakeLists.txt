@@ -2,6 +2,15 @@
 
 # The 2D map-source reader: Qt Network (tilemapresource.xml over HTTP) and MbTilesReader for
 # the .mbtiles sources. TMSLoader is header-only here (TileSourceLayer is a plain struct).
+# Host contract (E8): stands in for Doctrine's adapter and pins the public API with static
+# assertions. It includes GlobeView3D.h but never links earthview3d — the public headers are
+# osgEarth-free (D-011), and decltype does not odr-use anything — so API drift breaks the
+# Linux job too, where the osgEarth widget is not built.
+add_executable(tst_hostcontract tst_hostcontract.cpp)
+target_link_libraries(tst_hostcontract PRIVATE earthview3d_core Qt6::Core Qt6::Widgets
+                                               Qt6::OpenGLWidgets Qt6::Test)
+add_test(NAME tst_hostcontract COMMAND tst_hostcontract)
+
 add_executable(tst_mapsourcecatalog
     tst_mapsourcecatalog.cpp
     ../MapSourceCatalog.cpp
@@ -11,6 +20,16 @@ target_include_directories(tst_mapsourcecatalog PRIVATE "${CMAKE_CURRENT_SOURCE_
 get_target_property(_earthview_2d_libs EarthView LINK_LIBRARIES)
 target_link_libraries(tst_mapsourcecatalog PRIVATE ${_earthview_2d_libs} Qt6::Test)
 add_test(NAME tst_mapsourcecatalog COMMAND tst_mapsourcecatalog)
+
+# The 2D camera's projections (E9 removed its pseudo-3D ones; these must not move).
+add_executable(tst_camera2d
+    tst_camera2d.cpp
+    ../Camera.cpp
+    ../MercatorProjection.cpp
+)
+target_include_directories(tst_camera2d PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/..")
+target_link_libraries(tst_camera2d PRIVATE Qt6::Core Qt6::Gui Qt6::Test)
+add_test(NAME tst_camera2d COMMAND tst_camera2d)
 
 add_executable(tst_mercatorprojection
     tst_mercatorprojection.cpp

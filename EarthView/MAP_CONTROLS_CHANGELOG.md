@@ -4,7 +4,7 @@ This file is the hand-over for the dev team working on the offline machine. Ever
 a section below that lists **all** files added, changed and removed, the build and deploy steps,
 and how to verify. Apply the changes in order; each section can be checked off on its own.
 
-Background: decision **D-032** in `3D_PROGRESS.md`. 3D work is paused, and the 2D view gets
+Background: decision **D-034** in `3D_PROGRESS.md`. 3D work is paused, and the 2D view gets
 Google-Maps-style on-map controls in QML over the existing OpenGL map (`QQuickWidget` overlay,
 "option A"). `MapWidget` and the 2D renderers are unchanged.
 
@@ -61,7 +61,7 @@ Planned PRs:
 | `EarthView/MainWindow.cpp` | Creates `MapControlsOverlay` on the main map (under `#ifdef EARTHVIEW_HAS_MAP_CONTROLS`). Globe View is no longer added to the toolbar; it stays in the View menu. |
 | `EarthView/MapViewWindow.cpp` | Creates `MapControlsOverlay` on the secondary map. Globe View action removed (toolbar was its only place); the status-bar message on projection change is kept. |
 | `EarthView/tests/CMakeLists.txt` | Adds `tst_mapcontrolsmodel` (links `earthview::core` + `Qt6::Test`; no Qt Quick needed). |
-| `EarthView/3D_PROGRESS.md` | Decision **D-032**: 3D paused, 2D on-map controls. |
+| `EarthView/3D_PROGRESS.md` | Decision **D-034**: 3D paused, 2D on-map controls. |
 | `EarthView/ROADMAP_3D.md` | "Paused" note at the top. |
 | `EarthView/DOCTRINE_WIRING.md` | §5: how a host adds the on-map controls (optional). |
 

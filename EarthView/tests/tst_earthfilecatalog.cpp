@@ -1,6 +1,9 @@
 #include "earthview3d/EarthFileCatalog.h"
 
 #include <QtTest>
+#include <QCoreApplication>
+#include <QDir>
+#include <QSet>
 #include <QTemporaryDir>
 #include <QXmlStreamReader>
 
@@ -38,6 +41,9 @@ private slots:
     void generateLeavesStandardFilesAlone();
     void generateFailsWithoutPlaceholder();
     void buildReportsSkippedFiles();
+    void searchCoversEverywhereThe2DViewerLooks();
+    void warnsWhenOnlySamplesWereShipped();
+    void offersShippedMapsAndSkipsGeneratedOnes();
 
 private:
     QString write(const QString& relativePath, const QString& content) const;
@@ -399,11 +405,87 @@ void TestEarthFileCatalog::buildReportsSkippedFiles()
     QCOMPARE(warnings.size(), 1);
     QVERIFY(warnings.at(0).contains(QStringLiteral("empty.earth")));
 
-    // Default search folders follow the 2D viewer's layout.
+    // Default search folders follow the 2D viewer's layout: the data root's own come first.
     const QStringList dirs = EarthFileCatalog::defaultSearchDirectories(m_dir().path());
-    QCOMPARE(dirs.size(), 3);
+    QVERIFY(dirs.size() >= 3);
     QCOMPARE(dirs.at(0), QDir(m_dir().path()).absoluteFilePath(QStringLiteral("EarthFiles")));
     QCOMPARE(dirs.at(1), QDir(m_dir().path()).absoluteFilePath(QStringLiteral("Data/EarthFiles")));
+}
+
+void TestEarthFileCatalog::searchCoversEverywhereThe2DViewerLooks()
+{
+    // I-046: the 2D viewer finds a layer list beside the executable or in the working
+    // directory, so the 3D catalog has to look there too — a map the 2D pane is drawing must
+    // never be missing from the 3D dropdown.
+    const QStringList dirs = EarthFileCatalog::defaultSearchDirectories(m_dir().path());
+    const QDir appDir(QCoreApplication::applicationDirPath());
+    const QDir cwd(QDir::currentPath());
+    for (const QString& expected : { appDir.absolutePath(),
+                                     appDir.absoluteFilePath(QStringLiteral("Data/EarthFiles")),
+                                     cwd.absolutePath(),
+                                     cwd.absoluteFilePath(QStringLiteral("Data/EarthFiles")) }) {
+        QVERIFY2(dirs.contains(QDir::cleanPath(expected)), qPrintable(expected));
+    }
+    // `..` and the like are resolved, so a folder reached two ways is searched once.
+    QCOMPARE(dirs.size(), QSet<QString>(dirs.cbegin(), dirs.cend()).size());
+    for (const QString& dir : dirs)
+        QCOMPARE(dir, QDir::cleanPath(dir));
+}
+
+void TestEarthFileCatalog::warnsWhenOnlySamplesWereShipped()
+{
+    // What the distribution ships: *.earth.sample and no *.earth. Silence here reads as
+    // "this machine has no maps", which is what hid I-041/I-046.
+    QVERIFY(!write(QStringLiteral("EarthFiles/satellite_imagery.earth.sample"),
+                   QStringLiteral("<image name=\"L\" driver=\"tms\"><url>http://h/l/tilemapresource.xml</url></image>\n"))
+                 .isEmpty());
+
+    QStringList warnings;
+    const QList<MapCatalogEntry> entries =
+        EarthFileCatalog::discover({ m_dir().filePath(QStringLiteral("EarthFiles")) }, &warnings);
+    QVERIFY(entries.isEmpty());
+    QCOMPARE(warnings.size(), 1);
+    QVERIFY(warnings.at(0).contains(QStringLiteral(".earth.sample")));
+
+    // Once one is copied to *.earth it is a map, and the warning stops.
+    QVERIFY(!write(QStringLiteral("EarthFiles/satellite_imagery.earth"),
+                   QStringLiteral("<image name=\"L\" driver=\"tms\"><url>http://h/l/tilemapresource.xml</url></image>\n"))
+                 .isEmpty());
+    warnings.clear();
+    QCOMPARE(EarthFileCatalog::discover({ m_dir().filePath(QStringLiteral("EarthFiles")) }, &warnings).size(), 1);
+    QVERIFY(warnings.isEmpty());
+}
+
+void TestEarthFileCatalog::offersShippedMapsAndSkipsGeneratedOnes()
+{
+    // I-051: Data/maps holds the standard osgEarth maps the product ships, and
+    // earthview_online.earth (the offline map plus online OpenStreetMap) is the only one with
+    // real imagery on a machine with internet and no layer list of its own. It has to be
+    // offered, not reachable only by spelling out --map.
+    const QStringList dirs = EarthFileCatalog::defaultSearchDirectories(m_dir().path());
+    QVERIFY(dirs.contains(QDir(m_dir().path()).absoluteFilePath(QStringLiteral("maps"))));
+
+    QVERIFY(!write(QStringLiteral("maps/earthview_online.earth"),
+                   QStringLiteral("<map name=\"EarthView\" version=\"3\">\n"
+                                  "    <XYZImage name=\"OpenStreetMap\"><url>http://t/{z}/{x}/{y}.png</url></XYZImage>\n"
+                                  "</map>\n"))
+                 .isEmpty());
+    // A generated tms_*.earth sits in the same folder and must NOT be offered again: it is
+    // already the earthFile of the layer list it was written from.
+    QVERIFY(!write(QStringLiteral("maps/tms_imagery_config.earth"),
+                   QStringLiteral("<map name=\"EarthView\" version=\"3\">\n"
+                                  "    <TMSImage name=\"L\"><url>http://h/l/tilemapresource.xml</url></TMSImage>\n"
+                                  "</map>\n"))
+                 .isEmpty());
+
+    const QList<MapCatalogEntry> entries =
+        EarthFileCatalog::discover({ m_dir().filePath(QStringLiteral("maps")) }, nullptr);
+    QCOMPARE(entries.size(), 1);
+    QCOMPARE(entries.at(0).label, QStringLiteral("earthview online"));
+    // A standard map is handed to osgEarth as it is, and carries no TMS layer specs of its own.
+    QVERIFY(entries.at(0).standardEarthFile);
+    QCOMPARE(entries.at(0).earthFile, entries.at(0).sourcePath);
+    QVERIFY(entries.at(0).tmsLayers.isEmpty());
 }
 
 QTEST_MAIN(TestEarthFileCatalog)

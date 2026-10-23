@@ -4,7 +4,7 @@ Single source of truth for **what has actually changed** in EarthView for 3D ren
 The plan lives in [ROADMAP_3D.md](ROADMAP_3D.md); this file records execution: who did
 what, in which PR/commit, how it was verified, and what is still open.
 
-Last updated: 2026-10-14
+Last updated: 2026-10-15
 
 ---
 
@@ -63,21 +63,260 @@ Cloud agents can only syntax-check osgEarth code (E3 review).
 | E5 | Terrain services | Merged | `3d/e5-terrain` | [#9](https://github.com/volcano581/EarthView/pull/9) | `3d6bae2` | pending (Windows) |
 | E6 | Offline data pipeline | Merged | `3d/e6-offline-data` | [#10](https://github.com/volcano581/EarthView/pull/10) | `27583f5` | ✓ after issue #11 fixes ([#12](https://github.com/volcano581/EarthView/pull/12), owner, 2026-10-13) |
 | E7 | Packaging + runtime deploy | Merged | `3d/e7-packaging` | [#14](https://github.com/volcano581/EarthView/pull/14) | `5f9bc0b` | pending (Windows) |
-| E8 | Wiring kit / host contract test | Not started | | | | |
-| E9 | Cleanup pseudo-3D | Not started | | | | |
+| E8 | Wiring kit / host contract test | Merged | `claude/e8-wiring-kit` | [#20](https://github.com/volcano581/EarthView/pull/20) | `c3d1158` | n.a. |
+| E9 | Cleanup pseudo-3D + "Open 3D View" in the 2D app | Merged | `claude/e9-cleanup` | [#21](https://github.com/volcano581/EarthView/pull/21) | `4405c8e` | pending (Windows) |
 | E10 | Performance + polish | Not started | | | | |
 | E11 | TMS map catalog (`Data/EarthFiles` → standard earth files) | Merged | `claude/tms-earth-files-3d-ytzyzm` | [#15](https://github.com/volcano581/EarthView/pull/15) | `a5d594f` | partial ✓ (owner: files generated with correct paths, 2026-10-14; imagery not yet drawn, I-041) |
 | L1 | Local wiring into Doctrine (off GitHub) | Not started | local | — | | |
 | F1 | Marker scale fix (I-037), DTED folder path (2D + 3D), TMS map by default (I-038) | Merged | `claude/entity-rendering-dted-6tsdtt` | [#17](https://github.com/volcano581/EarthView/pull/17) | `2ceb9ce` | pending (Windows) |
 | F2 | Demo's 2D pane gets the real map sources (I-041) | Merged | `claude/demo-2d-map-source` | [#18](https://github.com/volcano581/EarthView/pull/18) | `39edabe` | pending (Windows) |
-| F3 | DTED folder indexed in the app (I-042) | In review | `claude/dted-folder-scan` | [#19](https://github.com/volcano581/EarthView/pull/19) | — | pending (Windows) |
+| F3 | DTED folder indexed in the app (I-042) | Merged | `claude/dted-folder-scan` | [#19](https://github.com/volcano581/EarthView/pull/19) | `99719b8` | pending (Windows) |
+| F4 | CI: vcpkg binary cache shared across branches (D-031) | Merged | `claude/ci-shared-vcpkg-cache` | [#22](https://github.com/volcano581/EarthView/pull/22) | `c625b29` | n.a. |
+| F5 | Layer-list search widened + runtime data root (I-046, I-049) | Merged | `claude/entity-rendering-dted-6tsdtt` | [#23](https://github.com/volcano581/EarthView/pull/23) | `0e80d8c` | I-049 ✓ (owner, 2026-10-15) |
+| F6 | Shipped maps offered as sources (I-051) | In review | `claude/entity-rendering-dted-6tsdtt` | [#24](https://github.com/volcano581/EarthView/pull/24) | — | pending (Windows) |
 | S1 | osgEarth evaluation spike (`spikes/osgearth`) | Done — led to D-007 | master | — | `241c108`…`0b5f729` | partial ✓ (2026-10-08) |
 
 **Direction:** host-independent `earthview3d` (osgEarth, MSVC) finished on GitHub by agents; Doctrine wired locally (D-007, D-008, D-012). Design: [OSGEARTH_INTEGRATION.md](OSGEARTH_INTEGRATION.md) · Local wiring: [DOCTRINE_WIRING.md](DOCTRINE_WIRING.md).
 
+### What is left (2026-10-15)
+
+**E1–E9 and E11 are merged.** Two roadmap tasks remain, and both need hardware no cloud agent
+has:
+
+| | Task | Needs | Blocked on |
+| -- | ---- | ----- | ---------- |
+| **E10** | Performance + polish: the 1,000-entity / 60 fps budget, frame-time scaling (I-025), `HeightCache` growth (I-028) | A GPU and the owner's frame numbers | Measurement, not code |
+| **L1** | Wire `earthview3d` into Doctrine/Conquer | The host tree, which is not on GitHub | Owner only; contract is pinned by `tst_hostcontract` (E8) and documented in `DOCTRINE_WIRING.md` |
+
+**One functional defect is still open: I-041** — no tile-server imagery in the 3D window on the
+machine whose layer lists *are* found. Discovery, the data root and the generated earth files
+are all ruled out (F5, F6, and `--list-maps` showing 8 and 24 TMS layers). The layers open
+without an osgEarth warning and the imagery still does not appear. Leading suspect I-050 (the 2D
+zoom ladder flattened into a full-range stack), then I-034 (TMS profile). Needs an
+`OSGEARTH_NOTIFY_LEVEL=INFO` log from that machine, taken while zooming in.
+
+**Windows checks outstanding** (cloud agents cannot run them): I-037 markers from orbit,
+I-042 a generated DTED mosaic loading, I-044 the flat DEM colour ramp, I-051 the shipped online
+map drawing, I-033/I-036 packaging on a clean machine, and E4/E5/E7's visual checks.
+
+**Owner's machine, found but not fixed here:** I-047 (`osgdb_stbdxt` missing from the package),
+I-048 (the 2D DEM indexes yield 0 TIFF references and fall back to a sample tile in Yemen, so
+2D terrain over the theatre has no real coverage), I-052 (osgText shaders shadowed by our
+`shaders/` folder), I-039 (2D DTED reader, deferred by owner).
+
 ---
 
 ## Change log (newest first)
+
+### 2026-10-15 — I-049 confirmed on Windows; the shipped online map is offered as a map source  (In review)
+- **Branch / PR:** `claude/entity-rendering-dted-6tsdtt` / PR — merge —
+- **Author:** cloud agent
+- **Why:** the owner ran the packaged `earthview3d_demo.exe --list-maps` on a fresh extract,
+  with no launcher and no arguments. **I-049 is confirmed fixed**: it printed
+  `Data root: C:/Users/.../earthview-win64/Data`, found by `MapConfig::discoverDataRoot()`
+  beside the executable, and the `*.earth.sample` warning (I-046) fired exactly as designed.
+  That machine has internet and still showed no imagery, which is correct behaviour and a
+  usability fault: with no layer list of its own the only map offered is the offline template,
+  whose imagery is `world_base.tif` alone — 0.9 MB for the whole globe, so a pale low-resolution
+  world. `maps/earthview_online.earth` ships for exactly this case (the offline map plus an
+  `<XYZImage>` OpenStreetMap layer) and was unreachable except by spelling out
+  `--map maps/earthview_online.earth`, which nothing told the user about (I-051).
+- **Changes:**
+  - `defaultSearchDirectories()` also searches `<dataRoot>/maps` and `<dataRoot>/Data/maps`, so
+    the standard maps the product ships are offered in the Map dropdown.
+  - `discover()` skips `tms_*.earth`: a generated file is already the `earthFile` of the layer
+    list it came from, so listing it would offer the same map twice under two labels.
+  - The demo skips a found entry that is the `--map` file itself, which `maps/` now contains.
+  - The default map is chosen by **having TMS layers**, not by being the second entry: the maps
+    found in `maps/` have none, so position no longer means "has a tile server".
+  - The no-tile-server warning now names `maps/earthview_online.earth` as the thing to pick on
+    a machine with internet, and says what the offline base actually is.
+- **Existing files touched:** `earthview3d/src/EarthFileCatalog.cpp`, `earthview3d/demo/main.cpp`,
+  `tests/tst_earthfilecatalog.cpp`, `Data/EarthFiles/README.md`, `DOCTRINE_WIRING.md`, this tracker.
+- **Tests:** one new case in `tst_earthfilecatalog` (31 assertions, was 30): `maps/` is in the
+  search list, a shipped standard map is offered with its label and no TMS layer specs, and a
+  `tms_*.earth` beside it is not offered again. `ctest` 17/17 on Linux; `demo/main.cpp`
+  syntax-checked, as it only builds with osgEarth.
+- **Verified:** Linux CI ✓ · Windows build pending · I-049's Windows check is **done** (above).
+  Not verified: that the OpenStreetMap layer actually draws — that needs a machine with
+  internet and a GPU, so it is the owner's check.
+- **Follow-ups:** I-051 (this). I-041 is unaffected and still open: it is about a machine whose
+  layer lists *are* found, where the TMS layers open and the imagery still does not appear.
+
+### 2026-10-15 — I-041: the 3D catalog now searches everywhere the 2D viewer does, and says what it loaded  (In review)
+- **Branch / PR:** `claude/entity-rendering-dted-6tsdtt` / PR — merge —
+- **Author:** cloud agent
+- **Why:** the owner's 3D demo console output from the offline machine. Every osgEarth warning
+  in it names a layer of the **template** map (`maps/earthview.earth`): `Base map`,
+  `Hillshade`, `DTED (offline server)` still on the repo's placeholder path, and both
+  `Places` layers. No TMS layer appears at all — and the placeholder those layers are spliced
+  into sits between `Base map` and `Hillshade`, exactly where the log goes straight from one to
+  the other. So the map that loaded carried no tile-server layer, and the reason is a search
+  path: `MapSourceCatalog::earthSearchDirectories()` (2D) looks in six folders, including the
+  executable's own and the working directory, while the demo passed `EarthFileCatalog` a single
+  folder — `<DataRoot>/EarthFiles` — because `--earth-files` had a non-empty default, which
+  also made `defaultSearchDirectories()` dead code in the demo. A layer list that the 2D pane
+  reads happily is therefore invisible to the 3D view (I-046).
+- **Changes:**
+  - `EarthFileCatalog::defaultSearchDirectories()` adds the four folders the 2D viewer reads
+    that it was missing (working directory and executable folder, each plain and with
+    `Data/EarthFiles`, plus `<exe>/../Data/EarthFiles`), cleans every path and de-duplicates.
+  - The demo's `--earth-files` default is empty, so that search actually runs; passing a folder
+    still restricts it to that one.
+  - `EarthFileCatalog::discover()` warns when a folder holds `*.earth.sample` templates and no
+    `*.earth` — the state the distribution ships in, which otherwise reads as "no maps here".
+  - The demo prints the map it is loading (label, earth file, TMS layer count) and, when only
+    the template was found, says so on stderr and lists every folder it searched. `--list-maps`
+    prints the same folder list plus the layer count per map.
+- **Existing files touched:** `earthview3d/include/earthview3d/EarthFileCatalog.h`,
+  `earthview3d/src/EarthFileCatalog.cpp`, `earthview3d/include/earthview3d/MapConfig.h`,
+  `earthview3d/src/MapConfig.cpp`, `earthview3d/demo/main.cpp`,
+  `tests/tst_earthfilecatalog.cpp`, `tests/tst_mapconfig.cpp`, `.github/workflows/ci.yml`,
+  `Data/EarthFiles/README.md`, `DOCTRINE_WIRING.md`, this tracker.
+- **Tests:** two new cases in `tst_earthfilecatalog` (30 assertions, was 28): the search list
+  contains every folder the 2D viewer reads and holds only cleaned, unique paths; a folder of
+  `*.earth.sample` files warns and offers no map, and the warning stops once one is copied to
+  `*.earth`. One new case in `tst_mapconfig` (18 assertions, was 17): the data root is
+  discovered beside the executable, then one level up, then in the working directory, and the
+  compile-time path only when none exists. `ctest` 16/16 on Linux; `demo/main.cpp`
+  syntax-checked (`g++ -fsyntax-only`) against the real headers, as it only builds with
+  osgEarth.
+- **Verified:** Linux CI ✓ · Windows build pending · **The fix itself is unverified**: it is a
+  diagnosis from the owner's log and from reading both search paths, not a reproduction — no
+  cloud agent has that machine's folder layout. `--list-maps` on the offline machine confirms
+  or refutes it in one line, which is why that output was made worth reading.
+- **Second finding, same session (I-049):** the owner ran `earthview3d_demo.exe --list-maps`
+  on the package and got `Data root D:/a/EarthView/EarthView/EarthView/Data does not exist` —
+  the CI runner's workspace path, baked in at compile time by `demo/CMakeLists.txt` as
+  `EARTHVIEW3D_DEFAULT_DATA_ROOT` and the default for `--data-root` since E2. The packaged
+  `.exe` therefore cannot run on any machine but the one that built it; the packaging step
+  works around it with a `run-earthview3d_demo.cmd` launcher that supplies `--data-root`,
+  which is why the earlier console log (run through that launcher) resolved its data under the
+  download folder. Fixed properly: new `MapConfig::discoverDataRoot(appDir, workingDir,
+  compiledDefault)` takes `<appDir>/Data`, then `<appDir>/../Data`, then `<workingDir>/Data`,
+  and only then the compile-time path, so the deployed layout is found on its own; the demo
+  uses it unless `--data-root` is given, `--list-maps` prints the root it resolved, and a
+  validation failure now names the root and what it should contain. The launchers stay as a
+  convenience (they still help anyone who moved the exe out of its folder).
+- **Follow-ups:** I-046 (this), I-047, I-048, I-049 (this). I-041 stays open until the owner's
+  `--list-maps` says which case it was.
+
+### 2026-10-15 — E9: the pseudo-3D path removed from 2D; "Open 3D View" in the viewer  (Merged)
+- **Branch / PR:** `claude/e9-cleanup` / PR #21 / merge `4405c8e`
+- **Author:** cloud agent
+- **Why:** the 2D viewer still carried an earlier attempt at 3D — a pitched, fake-perspective
+  projection of the DEM and a first-person "stealth" view — which osgEarth superseded
+  (D-007). CLAUDE.md rule 2 has forbidden extending it since E1; this removes it.
+- **Scope decision (owner, 2026-10-15):** the DEM overlay **stays**, drawn flat. It only ever
+  rendered inside the pseudo-3D branch, so removing that branch would have taken the overlay,
+  `TerrainRenderer` and `DemLoader` with it — and with them the 2D DTED reader (I-039). The
+  owner chose to keep elevation in 2D, flat in Mercator, so that work stays on the table.
+- **Changes:**
+  - `Camera` loses `terrainMercatorToScreen`/`terrainScreenToMercator`, the whole stealth view
+    (`setStealthViewEnabled`, `stealthView*`, `moveCameraForward/Right`, `rotateCameraYaw`,
+    `setCameraHeightMeters`, `setCameraYawDegrees`), `setTerrain3DEnabled`,
+    `terrainPitchDegrees`, `terrainVerticalExaggeration`, the terrain anchor/focal/view-distance
+    helpers and three signals. 787 lines to 382. What is left is Mercator and orthographic,
+    untouched.
+  - `MapWidget` loses the floating **Stealth** button, the WASD/space/ctrl key tracking, the
+    pitch and exaggeration keys and the terrain-view branches; `MapWidget::keyReleaseEvent`
+    went with them (it only existed to maintain that key set).
+  - `TileRenderer`, `GridRenderer`, `BorderRenderer`, `LineBatchRenderer` and
+    `VectorTileRenderer` lose their `isTerrain3DView()` branches and the `Terrain3D` coordinate
+    mode; `colored_terrain.vert`, `terrain_line.vert` and the pitched `terrain_height.vert` are
+    deleted.
+  - The DEM overlay now draws through the new `shaders/terrain_flat.vert`: the same height
+    texture and `terrain_height.frag` hypsometric tint, projected like every other Mercator
+    layer, with no depth test and no wireframe pass (mesh edges were there to make the fake
+    relief legible; on a flat layer they were noise). It renders whenever **Terrain** is
+    ticked, instead of only inside the 3D view.
+  - The 2D viewer gains **Open 3D View** (Ctrl+3, toolbar and View menu) when `earthview3d` is
+    built: it opens `GlobeView3D` on the 2D map's current centre, reports `loadFailed` in the
+    status bar, and `earthview3d_deploy_runtime()` now also deploys next to `EarthView.exe`.
+    A 2D-only build has no action at all rather than one that cannot work.
+- **Existing files touched:** `Camera.{h,cpp}`, `MapWidget.{h,cpp}`, `TerrainRenderer.{h,cpp}`,
+  `TileRenderer.cpp`, `GridRenderer.cpp`, `BorderRenderer.{h,cpp}`, `LineBatchRenderer.{h,cpp}`,
+  `VectorTileRenderer.{h,cpp}`, `MainWindow.{h,cpp}`, `CMakeLists.txt`, `shaders/`,
+  `CLAUDE.md`, `ARCHITECTURE_AND_APIS.md`, `RENDERING_PIPELINE.md`, this tracker. Net about
+  −700 lines.
+- **Tests:** new `tst_camera2d` (8 cases): Mercator round trip across four zoom levels, the
+  centre landing in the middle of the viewport, a drag moving the centre by exactly the pixels
+  asked, the orthographic round trip and the far side of the globe not projecting, zoom halving
+  the resolution without moving the centre, and `projectionModeChanged` firing once. **The same
+  test was compiled and run against the pre-E9 `Camera` and passes identically**, which is the
+  evidence for rule 1 — the Mercator and orthographic paths behave the same before and after.
+  `ctest` 17/17 on Linux.
+- **Verified:** Linux CI ✓ · **Windows build ✓** (8 m 25 s, run 38669399317 attempt 2) — the
+  first real MSVC compile of the `EARTHVIEW_HAVE_3D` path in `MainWindow.cpp` and of `EarthView`
+  linking `earthview3d`; packaging succeeded. Visual check pending (Windows): the **Terrain**
+  toggle must still draw the DEM, now flat; Ctrl+3 must open the 3D view on the same place the
+  2D map is showing.
+- **Follow-ups:** I-044. I-039 (2D DTED) is unaffected and still open.
+
+### 2026-10-15 — CI: a vcpkg binary cache every branch shares (GitHub Packages)  (Merged)
+- **Branch / PR:** `claude/ci-shared-vcpkg-cache` / PR #22 / merge `c625b29`
+- **Author:** cloud agent
+- **Why:** the owner watched E9's Windows job spend 1 h 23 min in "Configure (installs osgEarth
+  via vcpkg)" — a cold build, where a cache hit takes about 90 seconds — and asked that the
+  result be shared with master instead of thrown away. Under D-019 it could not be: GitHub
+  scopes `actions/cache` to the branch that wrote it, so only master's own runs could save a
+  cache master could read, and every invalidation cost two full rebuilds (once on the PR,
+  once on master after the merge). The invalidation here was not a dependency change: PR #20's
+  Windows job took 10 minutes eight hours earlier, so the likely cause is a `windows-latest`
+  image refresh moving MSVC and with it vcpkg's ABI hash (I-009).
+- **Changes:** the Windows job registers the repository's GitHub Packages NuGet feed as a vcpkg
+  binary source and composes `VCPKG_BINARY_SOURCES` as `files` (branch cache) + `nuget`
+  (repository feed). `permissions: packages: write` added to that job;
+  `VCPKG_BINARY_SOURCES` moved out of the job-level `env:` so the step's `$GITHUB_ENV` value
+  is not shadowed. Fork pull requests get `read` instead of `readwrite`, since their token
+  cannot publish. The whole registration is wrapped so that an unreachable feed warns and
+  falls back to the branch cache rather than failing the job. D-019's "only master saves"
+  stays for the `actions/cache` layer (D-031 amends rather than replaces it).
+- **Existing files touched:** `.github/workflows/ci.yml`, this tracker. No source, CMake,
+  shader or data file.
+- **Tests:** none (CI configuration). The workflow was parsed with a YAML loader and the step
+  order, job permissions and env keys checked; the PowerShell was read for quoting, backtick
+  continuations and `$LASTEXITCODE` handling.
+- **Verified:** Linux ✓ · Windows ✓ (10 m 53 s, run 38677615557). The job log confirms the
+  registration took effect — `VCPKG_BINARY_SOURCES: clear;files,C:\ev-vcpkg-cache,readwrite;nuget,GitHubPackages,readwrite`
+  — so the feed resolves and the token is accepted; the fallback warning did not fire. A
+  *restore from* the feed is still unproven and shows up as a fast Configure on the first
+  Windows run after this merge (I-045).
+- **Follow-ups:** I-045.
+
+### 2026-10-14 — E8: host contract pinned by a test, wiring document brought up to date  (In review)
+- **Branch / PR:** `claude/e8-wiring-kit` / PR — merge —
+- **Author:** cloud agent
+- **Why:** `DOCTRINE_WIRING.md` §2 is a contract with an adapter that lives off GitHub, so
+  nothing in CI ever compiled against it. A renamed field, a changed unit or an extra argument
+  would have been found only when someone next opened the Conquer tree — and §2 had already
+  drifted (it still described the API "as of E1").
+- **Changes:**
+  - New `tests/tst_hostcontract.cpp`: a `DoctrineRenderEntity` shaped like Conquer's snapshot
+    record (radians, MSL, `char[8]` label, side) and the adapter of §2 in full, converting it
+    to `EntityState3D`. Then `static_assert` over the contract: every `EntityState3D` field
+    and its type, `Force`'s underlying type, and the signature of every `GlobeView3D` method
+    §2 names, plus `MapConfig`, `EarthFileCatalog`, `DtedMosaic` and `CameraMode`. Behaviour
+    the document promises is tested for real: `id == 0` ignored, a duplicate id keeping the
+    first entry, removals reported once, `entityColor()` falling back to `rgba`, and the
+    MSL → HAE crossing (D-021), which is a 47 m error near Islamabad if the adapter forgets it.
+  - It includes `GlobeView3D.h` but **does not link** `earthview3d`: the public headers are
+    osgEarth-free (D-011) and `decltype` never odr-uses anything, so the whole API check runs
+    on the Linux job too, where the osgEarth widget is not built. Verified by breaking a
+    signature on purpose — the build fails with the static assertion — and restoring it.
+  - `DOCTRINE_WIRING.md` §2/§3 caught up with the API: the test is called out at the top of
+    §2; `entityCount()`, `entityColor()`, `selectedId()`/`selectedLabel()`,
+    `selectNextEntity()`, `loadFailed()`, `goHome()`, `cameraModeName()`/`parseCameraMode()`
+    (and that `CameraMode`'s order is part of the contract), `haveGeoid()`,
+    `GroundOffsetStats`' fields, `viewpointDescription()`, `saveSnapshot()`,
+    `MapConfig::validate()`/`fromJsonFile()` and the full `MapConfig` field list are all
+    described now. §4 gains a DTED acceptance line and a closing rule: if the adapter needed a
+    change this document does not describe, update §2, the test and the adapter together.
+- **Existing files touched:** `DOCTRINE_WIRING.md`, `tests/CMakeLists.txt`, this tracker. No
+  library, 2D or rendering code: the API is unchanged, which is the point.
+- **Tests:** `tst_hostcontract` (6 cases plus ~50 static assertions); `ctest` 16/16 on Linux.
+- **Verified:** Linux CI ✓ · Windows build pending · Visual check n.a. (nothing renders).
+- **Follow-ups:** none. E9 and E10 are the remaining agent tasks; L1 is local.
 
 ### 2026-10-14 — F3: a DTED folder is indexed by the app, not by hand  (In review)
 - **Branch / PR:** `claude/dted-folder-scan` / [#19](https://github.com/volcano581/EarthView/pull/19) — merge —
@@ -658,10 +897,13 @@ Cloud agents can only syntax-check osgEarth code (E3 review).
 | D-028 | The Windows CI job uploads a runnable folder (`earthview-win64`) rather than only building and testing. It copies the demo's build output directory, which `earthview3d_deploy_runtime()` (D-026) has already filled with the vcpkg DLLs, `osgPlugins-<ver>/` and `share/gdal` + `share/proj`, and into which `demo/CMakeLists.txt` copies `shaders/`; that directory is the deployed layout, so the step no longer rediscovers the vcpkg tree. It then adds the two 2D executables, the Qt runtime (`windeployqt --compiler-runtime` — the build-tree form of the deploy function omits Qt) and `Data/`. Every expected input is fatal if missing, because each one fails silently at runtime rather than loudly. The single remaining launcher argument is the demo's `--data-root`, which still defaults to `EARTHVIEW3D_DEFAULT_DATA_ROOT` — an absolute path into the source tree of the machine that built it, which D-026 does not cover. `Data/EarthFiles` is deliberately absent from the repository, so no TMS layer-list file and no tile-server address is packaged. | 2026-10-14 | E7, E11 |
 | D-029 | Entity marker and selection-ring size is computed by `GlobeView3D` once per frame (`screenscale::`, `updateMarkerScales()`) from this view's camera — vertical field of view, viewport height, eye-to-entity distance — and capped at 50 km; `osg::AutoTransform`'s screen auto-scaling and `osg::LOD`'s `PIXEL_SIZE_ON_SCREEN` are not used for entities. Both derive their value during a cull traversal and keep it on the node, so any other camera's traversal, or one with the marker on the near plane, decides what the next frame draws (I-037). The arithmetic is GL-free and unit tested. | 2026-10-14 | F1 |
 | D-030 | The offline server's DTED folder is named once per machine, in the map source: `<elevation name="DTED" driver="dted"><url>…</url></elevation>` in a 2D layer-list file, or the `GDALElevation` block in `maps/earthview*.earth`. osgEarth opens a GDAL dataset, not a folder, so a folder path means `<folder>/dted_mosaic.vrt`, built once by `build_offline_data.py dted-vrt <folder>`; DTED is orthometric, so `vdatum` defaults to `egm96` (D-021). 2D reads and reports the path; its terrain still comes from the GeoTIFF DEM mirror (I-039). | 2026-10-14 | F1 |
+| D-031 | The vcpkg binary cache is published to **GitHub Packages** (NuGet feed, `nuget,GitHubPackages,readwrite`), with `actions/cache` kept as the faster local layer and the fallback. `actions/cache` is scoped to the branch that wrote it, so under D-019 a cold osgEarth build on a PR branch was thrown away and master built it again after the merge — about two hours each time the key changed (a vcpkg.json/baseline change, or a `windows-latest` image refresh that moves MSVC and so the ABI hash, I-009). GitHub Packages is scoped to the repository, so any branch's build serves every later run, master included. The repository is public, so the packages cost nothing and are only open-source dependency binaries. Pull requests from forks get a read-only token and therefore read the feed without writing; if the feed is unreachable the step falls back to the branch cache and the build still succeeds, from source. | 2026-10-15 | owner request |
+| D-032 | The 3D map catalog searches **every folder the 2D viewer searches** (`EarthFileCatalog::defaultSearchDirectories()` mirrors `MapSourceCatalog::earthSearchDirectories()`: the data root's own folders first, then the working directory and the executable's folder, each plain and with `Data/EarthFiles`). A map the 2D pane can draw must never be missing from the 3D dropdown, and the demo searching one folder while 2D searched six is what I-041 turned out to be. The demo also reports the map it loads and, when it falls back to the template, names every folder it looked in: a 3D view with no imagery has two very different causes — no layer list found, or a tile server that will not answer — and they are indistinguishable from the window alone. | 2026-10-15 | I-046 | The demo searched one folder for layer lists (`<DataRoot>/EarthFiles`) while the 2D viewer searched six, so a layer list beside the executable or in the working directory would have been invisible to the 3D view. Widened by D-032. **Not the cause of I-041, contrary to what this entry first said:** `--list-maps` on the owner's machine (2026-10-15) lists three maps, with the layer lists in `<DataRoot>/EarthFiles` — the one folder the old code already searched. The widened search is robustness, not a fix for the missing imagery. | F2 | Fixed (was not the I-041 cause) |
+| D-033 | A deployed binary discovers its data root at runtime, never from a compile-time path: `MapConfig::discoverDataRoot()` prefers `Data` beside the executable, then `../Data`, then the working directory's, and falls back to the build-time path only so a developer's error message names something they recognise. A build-time absolute path is the build machine's source tree and exists nowhere else, so it is a default that works only for its author (I-049). The same rule already governs the OSG/GDAL/PROJ runtime (`RuntimePaths::defaults()`, D-026); this extends it to data. Launcher scripts may still pass `--data-root`, but nothing may require them. | 2026-10-15 | I-049 | The packaged `earthview3d_demo.exe` could not run anywhere but the machine that built it: `--data-root` defaulted to `EARTHVIEW3D_DEFAULT_DATA_ROOT`, an absolute path into the build machine's source tree (`D:/a/EarthView/...` on CI), so `MapConfig::validate()` failed with "Data root ... does not exist" and `main()` returned 2 before a window appeared. Present since E2 and hidden by the `run-*.cmd` launchers. Fixed by `MapConfig::discoverDataRoot()` (D-033). **Confirmed on Windows (owner, 2026-10-15):** the bare `.exe` with no launcher and no arguments resolved `Data root: C:/Users/.../earthview-win64/Data`. | E7 | Closed |
 | D-019 | CI vcpkg binary cache: every run restores, only `master` saves (complete or partial); a weekly scheduled master run keeps it from the 7-day eviction. Dependency changes build once on their PR without saving and once on master after merge. | 2026-10-12 | CI cache scope |
 | D-011 | The integration target is **Conquer** (`D:\Source\Conquer`: Doctrine + cgf-engine + EarthView superbuild, already MSVC), not the standalone `D:\Source\cgf-engine`. 3D code lives in an isolated library so osgEarth includes never reach other TUs. | 2026-10-08 | Conquer test |
 | D-031 | `earthview3d` is meant to run on **Windows, Linux and macOS**. osgEarth and all its dependencies are cross-platform and come from the same pinned vcpkg manifest on every OS; the library code stays portable (Qt/STL types, no compiler- or OS-specific code). **MSVC** (D-008) is required only so the Windows host (Doctrine) and osgEarth share an ABI — not a portability limit. The osgEarth code is currently compiled and tested on the **Windows CI job only**; a Linux/macOS vcpkg build is supported but not yet a CI gate (I-017), so cloud agents (Linux) can only `g++ -fsyntax-only` the osgEarth code. CI gates for Linux/macOS are deliberately **not** added here (owner, 2026-10-15): this is documentation of intent, not a new job. | 2026-10-15 | cross-platform note |
-| D-032 | **3D work paused; focus is the 2D view** (owner, 2026-10-23, after comparing deck.gl, osgEarth and CesiumJS). E-tasks are not continued until the owner decides otherwise; `earthview3d` stays in the tree and builds as before. The 2D app gets Google-Maps-style on-map controls in QML (`EarthView/mapcontrols/`, a transparent `QQuickWidget` over `MapWidget`, opt-in per host), so the 2D toolbar and UI may change; rendering behaviour of the 2D renderers is still governed by rule 1. The side bar's 3D button is a disabled placeholder for a future real 3D view. Change log for offline machines: `MAP_CONTROLS_CHANGELOG.md`. | 2026-10-23 | map controls PR 1 |
+| D-034 | **3D work paused; focus is the 2D view** (owner, 2026-10-23, after comparing deck.gl, osgEarth and CesiumJS). E-tasks are not continued until the owner decides otherwise; `earthview3d` stays in the tree and builds as before. The 2D app gets Google-Maps-style on-map controls in QML (`EarthView/mapcontrols/`, a transparent `QQuickWidget` over `MapWidget`, opt-in per host), so the 2D toolbar and UI may change; rendering behaviour of the 2D renderers is still governed by rule 1. The side bar's 3D button is a disabled placeholder for a future real 3D view. Change log for offline machines: `MAP_CONTROLS_CHANGELOG.md`. | 2026-10-23 | map controls PR 1 |
 
 ---
 
@@ -709,9 +951,18 @@ Cloud agents can only syntax-check osgEarth code (E3 review).
 | I-038 | The 3D view opened on the template map (pale offline base imagery) while the 2D map beside it showed the tile server's maps. The demo now defaults to the first map built from `Data/EarthFiles` instead. That only helps a machine whose imagery really is TMS; if the 2D map's imagery is an `Data/OSM/*.mbtiles` file, uncomment the `<MBTilesImage>` block in the earth file (osgEarth reads MBTiles directly) or decide whether `EarthFileCatalog` should list MBTiles files as map sources too, the way 2D does. | F1 | Open (decide with E9/L1) |
 | I-039 | 2D terrain still comes from the GeoTIFF DEM mirror (`DEM90TIF`): the DTED folder path is read, validated and logged, but no `.dt1`/`.dt2` is parsed. A 2D DTED reader (header + grid, elevation texture like the GeoTIFF path) is deferred by owner's decision, to keep this change out of the 2D render path. | F1 | Open (deferred by owner) |
 | I-040 | The DTED mosaic is built by `gdalbuildvrt`, so the offline machine needs the GDAL command-line tools once, after copying the tiles. A uniform grid is assumed: DTED above 50° latitude has wider longitude spacing, and mixing bands in one folder would produce a mosaic that resamples. For the Pakistan theatre (30–35° N) every tile is 1", so this does not bite yet. | F1 | Open |
-| I-041 | The demo's 3D window shows no imagery from a generated `tms_*.earth` on the owner's offline machine, although `EarthView.exe` renders the same TMS layers and the generated file has the right URLs. The 2D half of the same report was a missing map source in `DemoWindow` and is fixed (F2); the 3D half is unexplained and needs the osgEarth console output from that machine (which layer fails to open and why). First suspect is I-034: osgEarth's TMS driver rejecting a `tilemapresource.xml` whose SRS it cannot resolve, where a `<profile>` has to be declared. | F2 | Open (needs the owner's log) |
+| I-041 | No tile-server imagery in the demo's 3D window on the owner's offline machine, while 2D shows it. The 2D half was a missing map source in `DemoWindow` (F2, fixed). For the 3D half, `--list-maps` (2026-10-15) rules out discovery: three maps are found, `CardG Maps` with 8 TMS layers and `Satellite Imagery` with 24, each written to `Data/maps/tms_*.earth`, and the demo defaults to the first of those, not the template. The earlier console log is consistent with a generated file being loaded and its TMS layers opening without warning, so the earlier reading of that log (no TMS layers present) was wrong — an opened layer logs nothing. Open suspects, in order: I-050 (the 2D zoom ladder flattened into a stack), then I-034 (TMS profile). Needs `OSGEARTH_NOTIFY_LEVEL=INFO` from that machine: which layers open, with which profile, and whether tile requests return. | F2 | Open (discovery ruled out; needs INFO log) |
 | I-042 | DTED folders are indexed by `DtedMosaic` from the cells' own headers, not by `gdalbuildvrt`, so the written `.vrt` has never been opened by GDAL in CI (no GDAL on the cloud runners, and the Windows job has no DTED data). The grid matches what GDAL's DTED driver reports, cell for cell, but confirm on Windows that osgEarth loads a generated mosaic and that terrain heights match the per-cell values (`earthview3d_demo --spot 33.5497,72.8253,537`). | F3 | Open (Windows check) |
 | I-043 | A map loaded directly by osgEarth (`maps/earthview.earth`, the Doctrine/L1 route) still has to name the `.vrt`: only `EarthFileCatalog` passes through code that could index a folder. Either give `MapConfig` a DTED folder and add the elevation layer at runtime, or resolve the earth file's own `<url>` before handing it to osgEarth. Decide with L1. | F3 | Open |
+| I-044 | The 2D DEM overlay is flat now (E9), so its colours carry all the relief: the hypsometric ramp and the slope shading in `terrain_height.frag` were tuned for a pitched surface and have not been looked at on a flat one. Check on Windows with the **Terrain** toggle over the Islamabad DTED, and tune the ramp (or add a proper hillshade) if it reads poorly. | E9 | Open (Windows check) |
+| I-045 | The GitHub Packages binary cache (D-031) is unproven: no cloud agent can run a Windows runner, so the NuGet registration, the token's `packages: write` scope and vcpkg's restore from the feed are all first exercised by this branch's own CI run. Watch two consecutive Windows runs: the first should publish (cold build), the second restore in minutes. If the feed is rejected, the step warns and the job still builds from source, so the failure mode is slow rather than broken. Packages accumulate per ABI hash and are never pruned — check the repository's Packages page occasionally and delete old versions. | CI | Open (first run proves it) |
+| I-046 | The demo searched one folder for layer lists (`<DataRoot>/EarthFiles`) while the 2D viewer searched six, so a layer list beside the executable or in the working directory fed the 2D map and was invisible to the 3D one; the demo then loaded the template map, which has no tile-server imagery and looks like an unreachable server. Fixed by D-032. Diagnosed from the owner's console log, **not reproduced** — confirm with `earthview3d_demo --list-maps` on that machine: more than one map listed means the layer lists are now found. | F2 | Fixed (confirm with --list-maps) |
+| I-047 | The deployed package has no `osgdb_stbdxt` plugin: the owner's log repeats "Now checking for plug-in osgPlugins-3.6.5/osgdb_stbdxt.dll" dozens of times, once per texture osgEarth tries to DXT-compress, each probe a failed file search. `earthview3d_deploy_runtime()` copies the whole `osgPlugins-*` folder (D-026), so vcpkg's osg port is not building that plugin rather than deployment dropping it. Harmless (textures stay uncompressed) but it wastes a file search per texture; check whether an osg feature adds it, or set a texture compression mode that does not need it. | E7 | Open |
+| I-048 | On the owner's machine the 2D DEM indexes resolve to nothing usable: `alldem90.vrt.index.bin` reports 479 and 23465 spatial records but "added 0 TIFF references" for both, and the viewer falls back to one sample tile (`DEM90TIF/N18.tif`, which is 55E 19N — Yemen, not the theatre). So 2D terrain has no real coverage there. Separate from the 3D elevation path; needs the index reader checked against those files. | 2D | Open |
+| I-049 | The packaged `earthview3d_demo.exe` could not run anywhere but the machine that built it: `--data-root` defaulted to `EARTHVIEW3D_DEFAULT_DATA_ROOT`, an absolute path into the build machine's source tree (`D:/a/EarthView/...` on CI), so `MapConfig::validate()` failed with "Data root ... does not exist" and `main()` returned 2 before a window appeared. Present since E2 and worked around by the `run-*.cmd` launchers, which hid it. Fixed by `MapConfig::discoverDataRoot()`. Unit-tested; **the packaged .exe running with no launcher and no arguments is still a Windows check**. | E7 | Fixed (Windows check) |
+| I-050 | A 2D layer list is a **zoom ladder**, not a stack: `TmsLoader::deriveDisplayZoomsFromTileResources()` reads each endpoint's `tilemapresource.xml`, sorts the layers by max tile zoom and gives each a disjoint display-zoom band, and `layerIndicesForZoom()` draws only the band containing the camera's zoom — which is how 24 CardG sheets of different scales behave as one map. `EarthFileCatalog::layersXml()` emits them as plain `<TMSImage>` layers with `min_level`/`max_level` only when the layer-list file states them, which it does not: those numbers come from `tilemapresource.xml` at runtime. osgEarth may recover the range from the TileMap it fetches itself, in which case this is harmless — unverified either way. If it does not, the generated map is 24 full-range layers stacked and the topmost wins wherever it has data. Decide with the INFO log before changing anything. | F2 | Open (suspect for I-041) |
+| I-051 | The maps the product ships in `Data/maps` were not offered as map sources: the catalog searched the `EarthFiles` folders, the data root and the executable's folder, but not `maps/`. On a machine with internet and no layer list of its own that left only the offline template, and the owner's `OSGEARTH_NOTIFY_LEVEL=INFO` log measures what that means: the one image layer that opens is `world_base.tif` at `resolution= 0.05x0.05`, **`max data level= 4`** — about 5.5 km per pixel, so beyond LOD 4 osgEarth has no imagery and upsamples level 4 forever. At the demo's opening range over Islamabad that is a few source pixels stretched across the window: featureless, and reported as "maps are not rendered". Elevation was fine on that machine (`dted_1arc.vrt`, max data level 12), so the terrain had shape and no detail. `maps/earthview_online.earth` — the same map plus an `<XYZImage>` OpenStreetMap layer — could only be reached by spelling out `--map maps/earthview_online.earth`. Fixed: `maps/` is searched, generated `tms_*.earth` files are skipped so no map is offered twice, the default map is chosen by having TMS layers rather than by position, and the warning names the online map. Confirming the OSM layer draws needs internet and a GPU. | F2 | Fixed (Windows check) |
+| I-052 | osgText cannot find its own shaders in the deployed layout: the log has `Error reading file shaders/osgText_Text.vert: file not found` (and `.frag`). `earthview3d_deploy_runtime()` copies EarthView's `shaders/` next to the executable, and osgDB resolves osgText's relative `shaders/...` request against the working directory, finding our folder and not its files. osgText falls back to its built-in shader source, so text still renders — but the folder name collides with OSG's own convention and will bite anything that expects OSG's shaders there. Either deploy OSG's `shaders/` alongside, or give EarthView's a distinct name. | E7 | Open (cosmetic) |
 
 ---
 

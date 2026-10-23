@@ -63,10 +63,11 @@ Software GL for 2D smoke runs: `QT_QPA_PLATFORM=offscreen EARTHVIEW_FORCE_SOFTWA
 1. **Do not change 2D behaviour.** `Camera`, `TileRenderer`, `VectorTileRenderer`,
    `BorderRenderer`, `GridRenderer`, `CityRenderer`, `TextRenderer` keep working identically,
    including after the MSVC move.
-2. **Do not extend the old pseudo-3D path** (`Camera::terrainMercatorToScreen`,
-   `stealthViewMercatorToScreen`, `shaders/terrain_height.vert`, `colored_terrain.vert`,
-   `terrain_line.vert`, the `isStealthViewEnabled()`/`isTerrain3DView()` branches). It is
-   removed in roadmap E9.
+2. **The old pseudo-3D path is gone** (roadmap E9): `Camera::terrainMercatorToScreen`,
+   `stealthViewMercatorToScreen`, the `isStealthViewEnabled()`/`isTerrain3DView()` branches
+   and the `terrain_height.vert`/`colored_terrain.vert`/`terrain_line.vert` shaders. Do not
+   bring any of it back: 3D is osgEarth's (`earthview3d`). 2D keeps its DEM overlay, drawn
+   flat in Mercator (`shaders/terrain_flat.vert` + `terrain_height.frag`).
 3. **osgEarth owns 3D rendering.** No custom terrain/imagery/sky/LOD code; configure
    osgEarth. 3D code lives in `EarthView/earthview3d/`, is host-independent, and its public
    headers include no osgEarth/OSG headers (pimpl). Follow `OSGEARTH_INTEGRATION.md` §3.3.

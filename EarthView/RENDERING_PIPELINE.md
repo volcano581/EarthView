@@ -756,7 +756,7 @@ across the orthographic globe.
 | `solid_2d.vert` / `solid_2d.frag`                    | Simple overlay and globe backdrop shapes.      |
 | `point_marker.vert` / `point_marker.frag`            | City markers.                                  |
 | `mercator_line.vert` / `solid_2d.frag`               | Legacy/direct border line path.                |
-| `terrain_height.vert` / `terrain_height.frag`        | DEM height texture sampling and terrain tint.  |
+| `terrain_flat.vert` / `terrain_height.frag`          | DEM overlay: height texture sampling and hypsometric tint, flat in Mercator (E9). |
 
 
 Benefits:
