@@ -46,6 +46,18 @@ HttpServer::HttpServer(QObject *parent)
     connect(&m_server, &QTcpServer::newConnection, this, &HttpServer::onNewConnection);
 }
 
+HttpServer::~HttpServer()
+{
+    // Sockets are children of m_server and are destroyed after the other members; their
+    // callbacks use m_buffers, so cut them loose first.
+    m_server.close();
+    for (QTcpSocket *socket : m_buffers.keys()) {
+        socket->disconnect(this);
+        socket->abort();
+    }
+    m_buffers.clear();
+}
+
 bool HttpServer::listen(quint16 port)
 {
     return m_server.listen(QHostAddress::LocalHost, port);

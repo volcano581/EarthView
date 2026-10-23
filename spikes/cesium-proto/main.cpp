@@ -14,9 +14,11 @@
 #include <QDirIterator>
 #include <QElapsedTimer>
 #include <QFile>
+#include <QHash>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QMap>
 #include <QPointer>
 #include <QTcpSocket>
 #include <QThread>
@@ -28,6 +30,15 @@
 #include <cmath>
 #include <memory>
 #include <utility>
+
+#ifdef Q_OS_WIN
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#include <psapi.h>
+#include <tlhelp32.h>
+#endif
 
 #ifndef CESIUM_PROTO_WEB_DIR
 #define CESIUM_PROTO_WEB_DIR "web"
@@ -55,6 +66,85 @@ protected:
                                  .arg(line);
     }
 };
+
+/// @brief CPU time and working set of this process and of its children (Qt WebEngine's
+///        renderer and helper processes; the GPU runs in-process), for the benchmark.
+struct ProcSample
+{
+    double wallMs = 0.0;
+    double appCpuMs = 0.0;
+    double appRssMb = 0.0;
+    QHash<quint32, double> childCpuMs; // by pid
+    double childRssMb = 0.0;
+};
+
+#ifdef Q_OS_WIN
+double fileTimeMs(const FILETIME &f)
+{
+    ULARGE_INTEGER v;
+    v.LowPart = f.dwLowDateTime;
+    v.HighPart = f.dwHighDateTime;
+    return double(v.QuadPart) / 1e4;
+}
+
+bool processUsage(HANDLE h, double *cpuMs, double *rssMb)
+{
+    FILETIME created, exited, kernel, user;
+    if (!GetProcessTimes(h, &created, &exited, &kernel, &user))
+        return false;
+    *cpuMs = fileTimeMs(kernel) + fileTimeMs(user);
+    PROCESS_MEMORY_COUNTERS counters{};
+    counters.cb = sizeof(counters);
+    *rssMb = GetProcessMemoryInfo(h, &counters, sizeof(counters)) ? double(counters.WorkingSetSize) / (1024.0 * 1024.0) : 0.0;
+    return true;
+}
+
+ProcSample sampleProcesses(const QElapsedTimer &wall)
+{
+    ProcSample s;
+    s.wallMs = wall.nsecsElapsed() / 1e6;
+    double rss = 0.0;
+    processUsage(GetCurrentProcess(), &s.appCpuMs, &s.appRssMb);
+    const DWORD self = GetCurrentProcessId();
+    HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+    if (snapshot == INVALID_HANDLE_VALUE)
+        return s;
+    PROCESSENTRY32W entry;
+    entry.dwSize = sizeof(entry);
+    for (BOOL ok = Process32FirstW(snapshot, &entry); ok; ok = Process32NextW(snapshot, &entry)) {
+        if (entry.th32ParentProcessID != self)
+            continue;
+        HANDLE child = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, entry.th32ProcessID);
+        if (!child)
+            continue;
+        double cpu = 0.0;
+        if (processUsage(child, &cpu, &rss)) {
+            s.childCpuMs.insert(entry.th32ProcessID, cpu);
+            s.childRssMb += rss;
+        }
+        CloseHandle(child);
+    }
+    CloseHandle(snapshot);
+    return s;
+}
+#else
+ProcSample sampleProcesses(const QElapsedTimer &wall)
+{
+    ProcSample s;
+    s.wallMs = wall.nsecsElapsed() / 1e6;
+    return s;
+}
+#endif
+
+/// @brief CPU of the children that exist in both samples, in ms.
+double childCpuDeltaMs(const ProcSample &a, const ProcSample &b)
+{
+    double sum = 0.0;
+    for (auto it = b.childCpuMs.cbegin(); it != b.childCpuMs.cend(); ++it)
+        if (a.childCpuMs.contains(it.key()))
+            sum += it.value() - a.childCpuMs.value(it.key());
+    return sum;
+}
 
 /// @brief Per-endpoint request counts and generation times, reported once a second.
 struct Stats
@@ -179,9 +269,17 @@ int main(int argc, char **argv)
     const QCommandLineOption grabOpt("grab", "Save a screenshot of the window to this PNG (repeats every --grab-every s).", "file");
     const QCommandLineOption grabEveryOpt("grab-every", "Seconds between --grab screenshots.", "s", "5");
     const QCommandLineOption scriptOpt("run-js", "JavaScript to run in the page after --grab-every seconds (testing).", "code");
+    const QCommandLineOption pageOpt("page", "Page to open, relative to the web folder.", "file", "index.html");
+    const QCommandLineOption queryOpt("query", "Query string appended to the page URL (key=value&...).", "q");
+    const QCommandLineOption sizeOpt("size", "Window size WxH.", "WxH", "1600x960");
+    const QCommandLineOption flatSimOpt("flat-sim", "Simulate on flat ground (no DTED lookups); cheaper at large --units.");
+    const QCommandLineOption benchOutOpt("bench-out", "Enable the /bench routes: the page posts its result, which is "
+                                         "written here with host CPU/memory, then the program exits.", "file");
     cli.addOptions({ dataOpt, dtedOpt, mbtilesOpt, unitsOpt, hzOpt, timeScaleOpt, centerOpt, radiusOpt, portOpt, webOpt,
-                     noWindowOpt, grabOpt, grabEveryOpt, scriptOpt });
+                     noWindowOpt, grabOpt, grabEveryOpt, scriptOpt, pageOpt, queryOpt, sizeOpt, flatSimOpt, benchOutOpt });
     cli.process(app);
+    QElapsedTimer wallClock;
+    wallClock.start();
 
     const QString dataDir = cli.value(dataOpt);
     const QStringList centre = cli.value(centerOpt).split(QLatin1Char(','));
@@ -208,7 +306,7 @@ int main(int argc, char **argv)
     const QRectF placeArea = dted.isEmpty() ? QRectF(centreLon - 5.0, centreLat - 5.0, 10.0, 10.0)
                                             : dted.bounds().adjusted(-3.0, -3.0, 3.0, 3.0);
     const QByteArray places = loadPlaces(dataDir + QStringLiteral("/Cities"), placeArea, dted);
-    Sim sim(&dted, centreLon, centreLat, cli.value(radiusOpt).toDouble(),
+    Sim sim(cli.isSet(flatSimOpt) ? nullptr : &dted, centreLon, centreLat, cli.value(radiusOpt).toDouble(),
             qMax(1, cli.value(unitsOpt).toInt()), qMax(0.1, cli.value(timeScaleOpt).toDouble()));
 
     QJsonObject meta{
@@ -266,11 +364,59 @@ int main(int argc, char **argv)
         });
     };
 
+    // Benchmark support (--bench-out): the page marks phases and posts one result.
+    const QString benchOut = cli.value(benchOutOpt);
+    QMap<QString, ProcSample> marks;
+    struct SimTimes
+    {
+        double sumMs = 0.0, maxMs = 0.0;
+        int steps = 0;
+    } simTimes, simAtStart;
+    int tileRequests = 0, tileRequestsAtStart = 0;
+
     server.setStaticRoot(cli.value(webOpt));
     server.setHandler([&](QTcpSocket *s, const QStringList &path, const QUrlQuery &query) -> bool {
         const QString head = path.value(0);
         int z = 0, x = 0, y = 0;
-        if (path.size() == 1 && head == QLatin1String("meta.json")) {
+        if (!benchOut.isEmpty() && head == QLatin1String("bench") && path.size() == 2) {
+            if (path[1] == QLatin1String("mark")) {
+                const QString phase = query.queryItemValue(QStringLiteral("phase"));
+                marks[phase] = sampleProcesses(wallClock);
+                if (phase == QLatin1String("measure_start")) {
+                    simAtStart = simTimes;
+                    tileRequestsAtStart = tileRequests;
+                    simTimes.maxMs = 0.0;
+                }
+                HttpServer::reply(s, 200, "text/plain", "ok");
+            } else if (path[1] == QLatin1String("result")) {
+                QJsonObject result = QJsonDocument::fromJson(
+                    query.queryItemValue(QStringLiteral("json"), QUrl::FullyDecoded).toUtf8()).object();
+                const ProcSample a = marks.value(QStringLiteral("measure_start"));
+                const ProcSample b = marks.value(QStringLiteral("measure_end"));
+                const double wall = b.wallMs - a.wallMs;
+                if (wall > 0.0) {
+                    const int steps = simTimes.steps - simAtStart.steps;
+                    result["host"] = QJsonObject{
+                        { "windowMs", wall },
+                        { "appCpuPct", (b.appCpuMs - a.appCpuMs) / wall * 100.0 },
+                        { "webCpuPct", childCpuDeltaMs(a, b) / wall * 100.0 },
+                        { "appRssMb", b.appRssMb },
+                        { "webRssMb", b.childRssMb },
+                        { "childProcesses", b.childCpuMs.size() },
+                        { "simStepMsAvg", steps ? (simTimes.sumMs - simAtStart.sumMs) / steps : 0.0 },
+                        { "simStepMsMax", simTimes.maxMs },
+                        { "tileRequests", tileRequests - tileRequestsAtStart },
+                    };
+                }
+                QFile out(benchOut);
+                if (out.open(QIODevice::WriteOnly | QIODevice::Truncate))
+                    out.write(QJsonDocument(result).toJson(QJsonDocument::Indented));
+                HttpServer::reply(s, 200, "text/plain", "ok");
+                QTimer::singleShot(300, qApp, &QCoreApplication::quit);
+            } else {
+                return false;
+            }
+        } else if (path.size() == 1 && head == QLatin1String("meta.json")) {
             HttpServer::reply(s, 200, "application/json", metaJson);
         } else if (path.size() == 1 && head == QLatin1String("places.json")) {
             HttpServer::reply(s, 200, "application/json", places);
@@ -283,6 +429,7 @@ int main(int argc, char **argv)
             replyGenerated(s, QStringLiteral("h/%1/%2/%3").arg(z).arg(x).arg(y), QStringLiteral("relief"), "image/png",
                            [&dted, z, x, y] { return dted.hillshadeTile(z, x, y); });
         } else if (head == QLatin1String("base") && borders.isOpen() && parseTile(path, &z, &x, &y, 1, 1)) {
+            ++tileRequests;
             replyGenerated(s, QStringLiteral("b/%1/%2/%3").arg(z).arg(x).arg(y), QStringLiteral("base"), "image/png",
                            [&borders, z, x, y] { return borders.tile(z, x, y); });
         } else if (head == QLatin1String("mbtiles") && mbtiles.isOpen() && parseTile(path, &z, &x, &y, 1, 1)) {
@@ -335,7 +482,9 @@ int main(int argc, char **argv)
     meta["frameUrl"] = frameServer.baseUrl().toString() + QStringLiteral("sim/frame");
     metaJson = QJsonDocument(meta).toJson(QJsonDocument::Compact);
 
-    const QUrl url = server.baseUrl().resolved(QUrl(QStringLiteral("index.html")));
+    QUrl url = server.baseUrl().resolved(QUrl(cli.value(pageOpt)));
+    if (cli.isSet(queryOpt))
+        url.setQuery(cli.value(queryOpt));
     qInfo().noquote() << "Serving" << url.toString();
     if (!QFile::exists(cli.value(webOpt) + QStringLiteral("/cesium/Cesium.js")))
         qWarning().noquote() << "web/cesium/Cesium.js is missing: vendor CesiumJS first (see README.md).";
@@ -345,11 +494,17 @@ int main(int argc, char **argv)
     QTimer tick;
     tick.setTimerType(Qt::PreciseTimer);
     QObject::connect(&tick, &QTimer::timeout, [&] {
+        QElapsedTimer stepTimer;
+        stepTimer.start();
         sim.step(clock.restart() / 1000.0);
         for (const Waiter &w : std::as_const(waiters))
             if (w.socket)
                 HttpServer::reply(w.socket, 200, "application/octet-stream", sim.frame(), false, cors);
         waiters.clear();
+        const double ms = stepTimer.nsecsElapsed() / 1e6;
+        simTimes.sumMs += ms;
+        simTimes.maxMs = qMax(simTimes.maxMs, ms);
+        ++simTimes.steps;
     });
     tick.start(1000 / hz);
 
@@ -361,7 +516,8 @@ int main(int argc, char **argv)
             qInfo() << "Page load finished, ok =" << ok;
         });
         view->setUrl(url);
-        view->resize(1600, 960);
+        const QStringList size = cli.value(sizeOpt).split(QLatin1Char('x'));
+        view->resize(qBound(320, size.value(0).toInt(), 4000), qBound(240, size.value(1).toInt(), 3000));
         view->setWindowTitle(QStringLiteral("Cesium tactical map prototype"));
         view->show();
     }

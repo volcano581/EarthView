@@ -27,6 +27,7 @@ public:
                                        const QUrlQuery &query)>;
 
     explicit HttpServer(QObject *parent = nullptr);
+    ~HttpServer() override;
 
     bool listen(quint16 port = 0);
     QUrl baseUrl() const;
