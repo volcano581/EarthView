@@ -162,7 +162,7 @@ void MainWindow::setupUI()
 
     QAction* secondaryWindowAction = new QAction("Secondary Window", this);
     secondaryWindowAction->setCheckable(true);
-    secondaryWindowAction->setChecked(true);
+    secondaryWindowAction->setChecked(false);  // Opened only when the user asks for it.
     secondaryWindowAction->setToolTip("Show or hide the independent secondary map window.");
     toolbar->addAction(secondaryWindowAction);
 
@@ -290,7 +290,6 @@ void MainWindow::setupUI()
         m_zoomLabel->setText(QString("Zoom: %1")
             .arg(m_mapWidget->camera()->getZoomLevel(), 0, 'f', 1));
         });
-    m_secondaryWindow->show();
 }
 
 void MainWindow::createStatusBar()

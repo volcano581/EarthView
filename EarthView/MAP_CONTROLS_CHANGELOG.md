@@ -33,7 +33,7 @@ Planned PRs:
   4. **Settings (gear)**: opens a panel to the left with **PROJECTION: Mercator | Orthographic**
      tiles. The selected tile is outlined blue. A click anywhere on the map closes the panel.
 - Tooltips on hover, on all four buttons (including the disabled ones).
-- The same side bar appears in the **Secondary Window**.
+- The same side bar appears in the **Secondary Window**, which now opens only when the user clicks **Secondary Window** (single window at startup).
 - The **Globe View** button is **removed from the toolbar** in both windows. In the main window
   it remains in **View ▸ Globe View** and stays in sync with the Settings panel. The secondary
   window has no menu, so its projection is switched from Settings only.
@@ -58,7 +58,7 @@ Planned PRs:
 | File | Change |
 |---|---|
 | `EarthView/CMakeLists.txt` | New option `EARTHVIEW_BUILD_MAP_CONTROLS` (default ON). It finds `Qt6 Qml Quick QuickWidgets Svg` (QUIET) and switches itself OFF with a status message if any is missing, so a 2D-only Qt still builds. Adds `add_subdirectory(mapcontrols)`. When ON, the `EarthView` app links `earthview::mapcontrols`, defines `EARTHVIEW_HAS_MAP_CONTROLS`, and passes `--qmldir mapcontrols/qml` to `windeployqt`. |
-| `EarthView/MainWindow.cpp` | Creates `MapControlsOverlay` on the main map (under `#ifdef EARTHVIEW_HAS_MAP_CONTROLS`). Globe View is no longer added to the toolbar; it stays in the View menu. |
+| `EarthView/MainWindow.cpp` | Secondary Window starts hidden (opens on click). Creates `MapControlsOverlay` on the main map (under `#ifdef EARTHVIEW_HAS_MAP_CONTROLS`). Globe View is no longer added to the toolbar; it stays in the View menu. |
 | `EarthView/MapViewWindow.cpp` | Creates `MapControlsOverlay` on the secondary map. Globe View action removed (toolbar was its only place); the status-bar message on projection change is kept. |
 | `EarthView/tests/CMakeLists.txt` | Adds `tst_mapcontrolsmodel` (links `earthview::core` + `Qt6::Test`; no Qt Quick needed). |
 | `EarthView/3D_PROGRESS.md` | Decision **D-034**: 3D paused, 2D on-map controls. |
@@ -144,6 +144,13 @@ before the `QQuickWidget` is created. This setting is **process-wide**. A host t
 Qt Quick elsewhere (e.g. Doctrine) must use OpenGL there too, or create the overlay before any other
 Qt Quick window. The offscreen smoke test cannot catch this, so always check on a real screen.
 Checked on screen afterwards: the side bar renders in the Secondary View (screenshot taken).
+
+### Change: single window at startup (2026-10-23, owner request)
+
+`MainWindow.cpp`: the Secondary Window no longer opens at startup. The **Secondary Window**
+toolbar/View action now starts unchecked, and the window opens only when the user clicks it.
+The `m_secondaryWindow->show()` call at the end of `setupUI()` was removed. The window is still
+created (hidden) and still receives map-source and border changes, so it is current when opened.
 
 ### Known limitations
 
