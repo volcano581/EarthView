@@ -21,6 +21,9 @@ private slots:
     void wheelZoomReachesTargetAnchored();
     void zoomTargetIsClamped();
     void fastDragGlidesAndStops();
+    void minimumZoomOffByDefault();
+    void minimumZoomFillsHeight();
+    void navigatorStopsAtFillHeight();
 };
 
 void TestSmoothNavigation::easeIsFrameRateIndependent()
@@ -114,6 +117,49 @@ void TestSmoothNavigation::fastDragGlidesAndStops()
     QTRY_VERIFY_WITH_TIMEOUT(!navigator.isAnimating(), 5000);
     // Dragging right moves the view west: the centre's x goes down.
     QVERIFY(camera.getCenterMercator().x() < start.x());
+}
+
+void TestSmoothNavigation::minimumZoomOffByDefault()
+{
+    Camera camera;
+    camera.setViewportSize(800, 1024);
+    QCOMPARE(camera.minimumZoomLevel(), GIS::MIN_ZOOM);
+    camera.setZoomLevel(0.0);
+    QCOMPARE(camera.getZoomLevel(), 0.0);
+}
+
+void TestSmoothNavigation::minimumZoomFillsHeight()
+{
+    Camera camera;
+    camera.setViewportSize(800, 1024);  // 1024 px = 256 * 2^2
+    camera.setFitHeightMinimumZoom(true);
+    QVERIFY(std::abs(camera.minimumZoomLevel() - 2.0) < 1e-12);
+
+    camera.setZoomLevel(0.5);
+    QVERIFY(std::abs(camera.getZoomLevel() - 2.0) < 1e-12);
+    camera.zoom(-1.0f);
+    QVERIFY(std::abs(camera.getZoomLevel() - 2.0) < 1e-12);
+
+    // A taller window raises the floor and pulls the zoom up with it.
+    camera.setViewportSize(800, 2048);
+    QVERIFY(std::abs(camera.getZoomLevel() - 3.0) < 1e-12);
+
+    // A tiny window never goes below the absolute minimum.
+    camera.setViewportSize(800, 100);
+    QCOMPARE(camera.minimumZoomLevel(), GIS::MIN_ZOOM);
+}
+
+void TestSmoothNavigation::navigatorStopsAtFillHeight()
+{
+    Camera camera;
+    camera.setViewportSize(800, 1024);
+    camera.setFitHeightMinimumZoom(true);
+    camera.setZoomLevel(3.0);
+    SmoothNavigator navigator(&camera);
+    navigator.zoomBy(-5.0);
+    QCOMPARE(navigator.zoomTarget(), 2.0);
+    QTRY_VERIFY_WITH_TIMEOUT(!navigator.isAnimating(), 3000);
+    QVERIFY(std::abs(camera.getZoomLevel() - 2.0) < 1e-6);
 }
 
 QTEST_GUILESS_MAIN(TestSmoothNavigation)

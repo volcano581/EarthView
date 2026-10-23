@@ -22,7 +22,11 @@
  * @code
  * <image name="Layer_1" driver="tms"><url>http://host:port/imagery/l1/tilemapresource.xml</url></image>
  * <elevation name="DTED" driver="dted"><url>D:/EarthViewData/DTED</url></elevation>
+ * <image name="OSM" driver="mbtiles"><url>\\imagery-server\maps\planet.mbtiles</url></image>
  * @endcode
+ * An `mbtiles` entry names an MBTiles file by path: a UNC path or mapped drive on the imagery
+ * server's share, or a path relative to the earth file. Only the tiles in view are read from
+ * it (see MbTilesReader), so the file can be very large.
  */
 namespace MapSourceCatalog {
 
@@ -41,6 +45,13 @@ struct Source
 /// Dropdown label for a file: "Satellite Imagery" / "CardG Maps" for the names the viewer
 /// special-cases, otherwise the base name with underscores as spaces.
 QString labelForFile(const QFileInfo& fileInfo);
+
+/// Layer for one MBTiles file (raster or vector, from its metadata). False, with
+/// @p errorMessage set, when the file cannot be opened or has no metadata.
+bool mbTilesLayer(const QString& filePath, TmsLoader::TileSourceLayer* layer, QString* errorMessage = nullptr);
+
+/// True when @p source draws from an MBTiles file (a Data/OSM file or an earth file entry).
+bool isMbTilesSource(const Source& source);
 
 /// Imagery layers of one layer-list earth file. @p dtedDirectory, when given, receives the
 /// folder of an `<elevation driver="dted">` entry. Empty list when the file cannot be read or

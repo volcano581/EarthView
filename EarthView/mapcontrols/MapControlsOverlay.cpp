@@ -46,6 +46,8 @@ MapControlsOverlay::MapControlsOverlay(MapWidget* mapWidget)
 {
     m_clock.start();
     m_model->bindCamera(mapWidget->camera());
+    // Web-map behaviour: never zoom out past a map that fills the window's height.
+    mapWidget->camera()->setFitHeightMinimumZoom(true);
     m_model->setMeasureAvailable(true);
     m_model->setHillshadeVisible(mapWidget->isTerrainVisible());
     m_model->setCitiesVisible(mapWidget->areCitiesVisible());

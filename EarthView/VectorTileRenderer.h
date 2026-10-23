@@ -17,6 +17,7 @@
 #include <QSet>
 #include <QString>
 #include <QVector>
+#include <memory>
 
 class Camera;
 
@@ -93,6 +94,11 @@ private:
     QMap<QString, CachedTile> m_tileCache;
     QSet<QString> m_visibleKeys;
     QSet<QString> m_pendingTileReads;
+    // Tiles of the previous view kept drawn (under the new ones) until the new ones are read,
+    // so zooming and panning never flash an empty map.
+    QSet<QString> m_retainedKeys;
+    std::shared_ptr<MbTilesRequestSet> m_wantedTiles;
+    int m_readPriority = 0;
     QVector<BackgroundInstance> m_backgroundInstances;
     QVector<LineBatchRenderer::LineVertex> m_backgroundFillVertices;
     QVector<FillBatch> m_fillBatches;

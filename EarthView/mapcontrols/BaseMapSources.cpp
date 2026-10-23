@@ -19,7 +19,8 @@ bool nameOrLabelContains(const MapSourceCatalog::Source& source, std::initialize
 
 bool BaseMapSources::isMbTiles(const MapSourceCatalog::Source& source)
 {
-    return source.filePath.endsWith(QLatin1String(".mbtiles"), Qt::CaseInsensitive);
+    // A Data/OSM file, or an earth file whose layer is an MBTiles file on the imagery server.
+    return MapSourceCatalog::isMbTilesSource(source);
 }
 
 bool BaseMapSources::isImagery(const MapSourceCatalog::Source& source)

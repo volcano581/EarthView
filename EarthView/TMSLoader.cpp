@@ -35,6 +35,8 @@ TmsLoader::TmsLoader(Camera* camera, QObject* parent)
     , m_textureManager(new TextureManager(GIS::TEXTURE_CACHE_SIZE_MB))
     , m_requestGeneration(0)
     , m_loadingEnabled(true)
+    , m_wantedMbTiles(std::make_shared<MbTilesRequestSet>())
+    , m_mbTilePriority(0)
 {
     TileSourceLayer defaultLayer;
     defaultLayer.name = "OpenStreetMap";
@@ -249,6 +251,7 @@ void TmsLoader::clearCache()
     abortRequestsExcept(QSet<QString>());
     m_activeTiles.clear();
     m_pendingRequests.clear();
+    m_wantedMbTiles->clear();
     m_textureManager->clearCache();
 }
 
@@ -306,6 +309,8 @@ void TmsLoader::fetchMbTile(int z, int x, int y, int layerIndex)
         return;
 
     m_pendingRequests.insert(key);
+    m_wantedMbTiles->insert(key);
+    const std::shared_ptr<MbTilesRequestSet> wanted = m_wantedMbTiles;
     const QString mbTilesPath = layer.mbTilesPath;
     const QString mbTilesFormat = layer.mbTilesFormat;
     const bool tmsYOrigin = layer.tmsYOrigin;
@@ -313,7 +318,11 @@ void TmsLoader::fetchMbTile(int z, int x, int y, int layerIndex)
     const quint64 generation = m_requestGeneration;
     QPointer<TmsLoader> loader(this);
 
-    QThreadPool::globalInstance()->start([loader, key, mbTilesPath, z, wrappedX, y, tmsYOrigin, mbTilesFormat, generation]() {
+    // Newest first: after a pan or zoom the tiles now in view are read before older ones, and
+    // jobs whose tile is no longer wanted return without touching the file.
+    MbTilesReader::threadPool()->start([loader, wanted, key, mbTilesPath, z, wrappedX, y, tmsYOrigin, mbTilesFormat, generation]() {
+        if (!wanted->contains(key))
+            return;
         QString errorMessage;
         const QImage image = MbTilesReader::readTileImage(
             mbTilesPath,
@@ -335,7 +344,7 @@ void TmsLoader::fetchMbTile(int z, int x, int y, int layerIndex)
                 loader->completeMbTileRead(key, image, errorMessage, z, wrappedX, y, generation);
             },
             Qt::QueuedConnection);
-    });
+    }, ++m_mbTilePriority);
 }
 
 void TmsLoader::completeMbTileRead(
@@ -351,6 +360,7 @@ void TmsLoader::completeMbTileRead(
         return;
 
     m_pendingRequests.remove(key);
+    m_wantedMbTiles->remove(key);
 
     if (!image.isNull()) {
         applyTileImage(key, image);
@@ -466,6 +476,17 @@ void TmsLoader::abortRequestsExcept(const QSet<QString>& keepKeys)
         QObject::disconnect(reply, nullptr, this, nullptr);
         reply->abort();
         reply->deleteLater();
+    }
+
+    // MBTiles reads have no reply to abort: forget them so their jobs skip the read.
+    QList<QString> staleReads;
+    for (const QString& key : std::as_const(m_pendingRequests)) {
+        if (!keepKeys.contains(key))
+            staleReads.append(key);
+    }
+    for (const QString& key : staleReads) {
+        m_pendingRequests.remove(key);
+        m_wantedMbTiles->remove(key);
     }
 }
 

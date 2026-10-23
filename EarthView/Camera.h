@@ -43,6 +43,12 @@ public:
     void setZoomLevel(double zoom);
     void setHorizontalWrapEnabled(bool enabled);
     void setProjectionMode(ProjectionMode mode);
+    /// When on, the camera never zooms out past the level where the map (or the globe, in
+    /// orthographic) fills the viewport's height, as web maps do. Off by default.
+    void setFitHeightMinimumZoom(bool enabled);
+    bool isFitHeightMinimumZoom() const { return m_fitHeightMinimumZoom; }
+    /// Lowest zoom level allowed now: GIS::MIN_ZOOM, or the fill-the-height level when on.
+    double minimumZoomLevel() const;
 
     // Getters
     QPointF getCenterMercator() const { return m_centerMercator; }
@@ -88,6 +94,7 @@ private:
     int m_viewportWidth;
     int m_viewportHeight;
     bool m_horizontalWrapEnabled;
+    bool m_fitHeightMinimumZoom;
     ProjectionMode m_projectionMode;
     mutable double m_cachedResolution;
     mutable bool m_cacheValid;

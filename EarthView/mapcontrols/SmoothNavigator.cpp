@@ -24,7 +24,7 @@ void SmoothNavigator::zoomBy(double levels, const QPointF& anchor)
         return;
     // A new zoom starts from where the camera is (it may have been moved by other code).
     const double base = m_zooming ? m_zoomTarget : m_camera->getZoomLevel();
-    m_zoomTarget = qBound(GIS::MIN_ZOOM, base + levels, GIS::MAX_ZOOM);
+    m_zoomTarget = qBound(m_camera->minimumZoomLevel(), base + levels, GIS::MAX_ZOOM);
     m_zoomAnchor = anchor;
     m_zooming = true;
     m_gliding = false;
@@ -92,6 +92,8 @@ void SmoothNavigator::tick()
     m_lastTickMs = now;
 
     if (m_zooming) {
+        // The floor can rise mid-zoom (window made taller): never chase a level below it.
+        m_zoomTarget = qMax(m_zoomTarget, m_camera->minimumZoomLevel());
         const double current = m_camera->getZoomLevel();
         double step = SmoothNavigation::easeStep(current, m_zoomTarget, dt, SmoothNavigation::kZoomTau);
         if (std::abs(m_zoomTarget - current) < 0.002) {

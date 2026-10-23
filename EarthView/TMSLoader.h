@@ -10,10 +10,12 @@
 #include <QMap>
 #include <QSet>
 #include <QImage>
+#include <memory>
 #include "Constants.h"
 #include "TextureManager.h"
 
 class Camera;
+class MbTilesRequestSet;
 class QNetworkReply;
 
 /**
@@ -116,6 +118,10 @@ private:
     QList<TileSourceLayer> m_tileLayers;
     quint64 m_requestGeneration;
     bool m_loadingEnabled;
+    // MBTiles reads still wanted (shared with the reader jobs) and their priority counter:
+    // newer requests run first.
+    std::shared_ptr<MbTilesRequestSet> m_wantedMbTiles;
+    int m_mbTilePriority;
 };
 
 #endif // TMSLOADER_H

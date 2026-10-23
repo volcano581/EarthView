@@ -184,6 +184,13 @@ QVector<QPointF> clipRingToVisibleHemisphere(
 }
 using CoordinateMode = LineBatchRenderer::CoordinateMode;
 
+// Vector tiles are made for 512 px display (OpenMapTiles), so reading one zoom level coarser
+// than the 256 px raster grid keeps the same detail with a quarter of the tiles to read and
+// decode. Styling still uses the displayed zoom (tile zoom + this offset).
+constexpr int kVectorTileZoomOffset = 1;
+// Cap on tiles kept from earlier views while new ones load.
+constexpr int kMaxRetainedTiles = 384;
+
 QString tagString(const MbTilesVectorFeature& feature, const QString& key)
 {
     return feature.tags.value(key).toString();
@@ -781,6 +788,9 @@ void VectorTileRenderer::clearCache()
     m_tileCache.clear();
     m_visibleKeys.clear();
     m_pendingTileReads.clear();
+    m_retainedKeys.clear();
+    if (m_wantedTiles)
+        m_wantedTiles->clear();
     m_backgroundInstances.clear();
     m_backgroundFillVertices.clear();
     m_fillBatches.clear();
@@ -852,7 +862,7 @@ void VectorTileRenderer::updateVisibleTiles()
         return;
     }
 
-    const int cameraZoomLevel = m_camera->getTileZoomLevel();
+    const int cameraZoomLevel = qMax(0, m_camera->getTileZoomLevel() - kVectorTileZoomOffset);
     const QList<int> layerIndices = vectorLayerIndicesForZoom(cameraZoomLevel);
     QSet<QString> newVisibleKeys;
 
@@ -884,13 +894,38 @@ void VectorTileRenderer::updateVisibleTiles()
     }
 
     if (newVisibleKeys != m_visibleKeys) {
+        // Keep what was on screen until the new view's tiles are in.
+        for (const QString& key : std::as_const(m_visibleKeys)) {
+            if (!newVisibleKeys.contains(key) && m_tileCache.contains(key))
+                m_retainedKeys.insert(key);
+        }
+        for (const QString& key : newVisibleKeys)
+            m_retainedKeys.remove(key);
+        if (m_retainedKeys.size() > kMaxRetainedTiles)
+            m_retainedKeys.clear();
         m_visibleKeys = newVisibleKeys;
+        m_batchesDirty = true;
+    }
+
+    // Reads for tiles no longer in view are dropped before they reach the file.
+    QList<QString> staleReads;
+    for (const QString& key : std::as_const(m_pendingTileReads)) {
+        if (!m_visibleKeys.contains(key))
+            staleReads.append(key);
+    }
+    for (const QString& key : staleReads) {
+        m_pendingTileReads.remove(key);
+        if (m_wantedTiles)
+            m_wantedTiles->remove(key);
+    }
+    if (m_pendingTileReads.isEmpty() && !m_retainedKeys.isEmpty()) {
+        m_retainedKeys.clear();
         m_batchesDirty = true;
     }
 
     QList<QString> keysToRemove;
     for (auto it = m_tileCache.cbegin(); it != m_tileCache.cend(); ++it) {
-        if (!m_visibleKeys.contains(it.key())) {
+        if (!m_visibleKeys.contains(it.key()) && !m_retainedKeys.contains(it.key())) {
             keysToRemove.append(it.key());
         }
     }
@@ -916,12 +951,19 @@ void VectorTileRenderer::fetchVectorTile(int layerIndex, int z, int x, int y)
         return;
 
     m_pendingTileReads.insert(key);
+    if (!m_wantedTiles)
+        m_wantedTiles = std::make_shared<MbTilesRequestSet>();
+    m_wantedTiles->insert(key);
+    const std::shared_ptr<MbTilesRequestSet> wanted = m_wantedTiles;
 
     const int wrappedX = MercatorProjection::wrapTileX(x, z);
     const quint64 generation = m_requestGeneration;
     QPointer<VectorTileRenderer> renderer(this);
 
-    QThreadPool::globalInstance()->start([renderer, key, layer, layerIndex, z, x, wrappedX, y, generation]() {
+    // Newest first; jobs for tiles that left the view return without reading.
+    MbTilesReader::threadPool()->start([renderer, wanted, key, layer, layerIndex, z, x, wrappedX, y, generation]() {
+        if (!wanted->contains(key))
+            return;
         QString errorMessage;
         const MbTilesVectorTile vectorTile = MbTilesReader::readVectorTile(
             layer.mbTilesPath,
@@ -942,7 +984,7 @@ void VectorTileRenderer::fetchVectorTile(int layerIndex, int z, int x, int y)
                 renderer->completeVectorTileRead(key, vectorTile, errorMessage, layerIndex, z, x, y, generation);
             },
             Qt::QueuedConnection);
-    });
+    }, ++m_readPriority);
 }
 
 void VectorTileRenderer::completeVectorTileRead(
@@ -959,6 +1001,15 @@ void VectorTileRenderer::completeVectorTileRead(
         return;
 
     m_pendingTileReads.remove(key);
+    if (m_wantedTiles)
+        m_wantedTiles->remove(key);
+    if (m_pendingTileReads.isEmpty() && !m_retainedKeys.isEmpty()) {
+        // The new view is complete: let go of the old one.
+        for (const QString& retainedKey : std::as_const(m_retainedKeys))
+            m_tileCache.remove(retainedKey);
+        m_retainedKeys.clear();
+        m_batchesDirty = true;
+    }
 
     if (!errorMessage.isEmpty() && !tile.isEmpty()) {
         qDebug() << errorMessage;
@@ -1020,8 +1071,12 @@ void VectorTileRenderer::rebuildBatches()
     m_fillViewportWidth = m_camera ? m_camera->getViewportWidth() : 0;
     m_fillViewportHeight = m_camera ? m_camera->getViewportHeight() : 0;
 
-    QList<QString> keys = m_visibleKeys.values();
+    // Retained tiles of the previous view first, so the new view's tiles draw over them.
+    QList<QString> keys = m_retainedKeys.values();
     std::sort(keys.begin(), keys.end());
+    QList<QString> visibleKeys = m_visibleKeys.values();
+    std::sort(visibleKeys.begin(), visibleKeys.end());
+    keys.append(visibleKeys);
 
     auto appendFillToBatch = [this](int drawOrder, const QColor& color, const QVector<QPointF>& mercatorPath) {
         qsizetype batchIndex = -1;
@@ -1053,7 +1108,7 @@ void VectorTileRenderer::rebuildBatches()
             continue;
 
         const CachedTile& cachedTile = tileIt.value();
-        const int zoomLevel = cachedTile.z;
+        const int zoomLevel = cachedTile.z + kVectorTileZoomOffset;
         if (m_coordinateMode == CoordinateMode::Mercator) {
             BackgroundInstance instance;
             instance.rect[0] = static_cast<float>(cachedTile.mercatorBounds.left());
