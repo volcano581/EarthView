@@ -1,9 +1,9 @@
 import QtQuick
 
 // On-map side bar: compass, 3D globe (disabled), measure, settings.
-// The QQuickWidget sizes itself to this root (SizeViewToRootObject) and is anchored to the
-// map's bottom-right corner by MapControlsOverlay, so the root grows left when the
-// Settings panel opens and the rest of the map keeps its mouse input.
+// The QQuickWidget sizes itself to this root (SizeViewToRootObject) and MapControlsOverlay
+// keeps it at the map's right edge, vertically centred, so the root grows left when a panel
+// opens and the rest of the map keeps its mouse input.
 Item {
     id: root
 
@@ -12,11 +12,14 @@ Item {
     readonly property color hoverColor: "#f1f3f4"
     readonly property color accentColor: "#1a73e8"
     readonly property color textColor: "#3c4043"
+    readonly property color mutedColor: "#5f6368"
     readonly property int buttonSize: 40
     readonly property int panelGap: 8
+    readonly property Item openPanel: settingsPanel.visible ? settingsPanel
+                                    : (measurePanel.visible ? measurePanel : null)
 
-    width: bar.width + (panel.visible ? panel.width + panelGap : 0)
-    height: Math.max(bar.height, panel.visible ? panel.height : 0)
+    width: bar.width + (openPanel ? openPanel.width + panelGap : 0)
+    height: Math.max(bar.height, openPanel ? openPanel.height : 0)
 
     component BarButton: Item {
         id: button
@@ -72,31 +75,61 @@ Item {
         color: root.borderColor
     }
 
+    // Pill-shaped choice (measure mode, unit).
+    component Chip: Rectangle {
+        id: chip
+        property string text
+        property bool selected: false
+        signal clicked()
+
+        width: Math.max(40, chipText.implicitWidth + 20)
+        height: 28
+        radius: 14
+        color: selected ? "#e8f0fe" : (chipMouse.containsMouse ? root.hoverColor : root.cardColor)
+        border.color: selected ? root.accentColor : root.borderColor
+        Text {
+            id: chipText
+            anchors.centerIn: parent
+            text: chip.text
+            font.pixelSize: 12
+            font.bold: chip.selected
+            color: chip.selected ? root.accentColor : root.textColor
+        }
+        MouseArea {
+            id: chipMouse
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: chip.clicked()
+        }
+    }
+
+    component PanelTitle: Text {
+        font.pixelSize: 11
+        font.bold: true
+        font.letterSpacing: 0.6
+        color: root.textColor
+    }
+
     // Settings panel, opens to the left of the bar.
     Rectangle {
-        id: panel
+        id: settingsPanel
         visible: mapControls.settingsOpen
         anchors.right: bar.left
         anchors.rightMargin: root.panelGap
-        anchors.bottom: parent.bottom
-        width: panelContent.width + 24
-        height: panelContent.height + 24
+        anchors.verticalCenter: parent.verticalCenter
+        width: settingsContent.width + 24
+        height: settingsContent.height + 24
         radius: 8
         color: root.cardColor
         border.color: root.borderColor
 
         Column {
-            id: panelContent
+            id: settingsContent
             anchors.centerIn: parent
             spacing: 10
 
-            Text {
-                text: "PROJECTION"
-                font.pixelSize: 11
-                font.bold: true
-                font.letterSpacing: 0.6
-                color: root.textColor
-            }
+            PanelTitle { text: "PROJECTION" }
             Row {
                 spacing: 4
                 LayerTile {
@@ -115,10 +148,120 @@ Item {
         }
     }
 
+    // Measure panel: mode, unit, result. Open = measuring (map clicks add points).
+    Rectangle {
+        id: measurePanel
+        visible: mapControls.measureOpen
+        anchors.right: bar.left
+        anchors.rightMargin: root.panelGap
+        anchors.verticalCenter: parent.verticalCenter
+        width: 236
+        height: measureContent.height + 24
+        radius: 8
+        color: root.cardColor
+        border.color: root.borderColor
+
+        Column {
+            id: measureContent
+            x: 12
+            y: 12
+            width: parent.width - 24
+            spacing: 10
+
+            Item {
+                width: parent.width
+                height: closeText.height
+                PanelTitle { text: "MEASURE DISTANCE" }
+                Text {
+                    id: closeText
+                    anchors.right: parent.right
+                    text: "✕"
+                    font.pixelSize: 13
+                    color: closeMouse.containsMouse ? root.textColor : root.mutedColor
+                    MouseArea {
+                        id: closeMouse
+                        anchors.fill: parent
+                        anchors.margins: -6
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: mapControls.measureOpen = false
+                    }
+                }
+            }
+
+            Row {
+                spacing: 6
+                Chip {
+                    text: "Line"
+                    selected: measure.mode === 0
+                    onClicked: measure.mode = 0
+                }
+                Chip {
+                    text: "Path"
+                    selected: measure.mode === 1
+                    onClicked: measure.mode = 1
+                }
+            }
+
+            Flow {
+                width: parent.width
+                spacing: 4
+                Repeater {
+                    model: ["km", "mi", "nmi", "m", "ft"]
+                    Chip {
+                        required property int index
+                        required property string modelData
+                        text: modelData
+                        selected: measure.unit === index
+                        onClicked: measure.unit = index
+                    }
+                }
+            }
+
+            Rectangle {
+                width: parent.width
+                height: 1
+                color: root.borderColor
+            }
+
+            Text {
+                width: parent.width
+                text: measure.totalText.length > 0 ? measure.totalText : "—"
+                font.pixelSize: 22
+                font.bold: true
+                color: measure.totalText.length > 0 ? "#202124" : root.mutedColor
+            }
+            Text {
+                width: parent.width
+                visible: measure.lastLegText.length > 0
+                text: "Last leg: " + measure.lastLegText
+                font.pixelSize: 12
+                color: root.mutedColor
+            }
+            Text {
+                width: parent.width
+                wrapMode: Text.WordWrap
+                font.pixelSize: 12
+                color: root.mutedColor
+                text: measure.pointCount === 0
+                      ? "Click on the map to set the start point."
+                      : (measure.mode === 0
+                         ? (measure.pointCount === 1 ? "Click the end point." : "Click again to start a new line.")
+                         : "Click to add points. Right-click removes the last one.")
+            }
+
+            Chip {
+                text: "Clear"
+                visible: measure.pointCount > 0
+                onClicked: measure.clear()
+            }
+        }
+    }
+
     Rectangle {
         id: bar
         anchors.right: parent.right
-        anchors.bottom: parent.bottom
+        anchors.verticalCenter: parent.verticalCenter
         width: root.buttonSize + 8
         height: barColumn.height + 8
         radius: 8
@@ -145,8 +288,10 @@ Item {
             Separator {}
             BarButton {
                 iconSource: "icons/ruler.svg"
-                toolTip: mapControls.measureAvailable ? "Measure distance" : "Measure distance (coming soon)"
+                toolTip: mapControls.measureAvailable ? "Measure distance" : "Measure distance (not available)"
                 available: mapControls.measureAvailable
+                checked: mapControls.measureOpen
+                onClicked: mapControls.toggleMeasure()
             }
             Separator {}
             BarButton {

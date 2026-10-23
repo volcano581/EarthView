@@ -14,8 +14,100 @@ Planned PRs:
 |---|---|---|---|
 | 1 | `2d/ui1-map-controls` | Overlay foundation, side bar (compass, 3D, measure, settings), projection switch, Globe View removed from toolbar | done |
 | 2 | `2d/ui2-layers-panel` | Mini-map layers button + panel: OSM / Imagery base maps, Hillshade toggle (row 1); Cities / Borders / Grid overlays | **done** |
-| 3 | `2d/ui3-measure` | Measure tool: Line / Path, km / mi / nmi / m / ft, geodesic distance | planned |
-| — | later | Inertial zoom / pan, parent-tile fallback | planned |
+| 3 | `2d/ui3-measure-smooth-zoom` | Right-side layout, base map tiles from discovery, measure tool, smooth zoom + inertial pan | **done** |
+| — | later | Parent-tile fallback while zooming; MBTiles from the imagery server | planned |
+
+---
+
+## PR 3 — Right-side layout, discovered base maps, measure tool, smooth zoom (2026-10-23, branch `2d/ui3-measure-smooth-zoom`, on top of PR 2)
+
+### What the user sees
+
+- **Layout:** the side bar sits at the **right edge, vertically centred**. The **scale bar** moves to the
+  **bottom-right**, and the **Layers mini-map** sits right above it. Panels open to the left.
+- **Base map tiles = the Map Source dropdown.** The tiles come from the same discovery
+  (`MapSourceCatalog::discoverMapSources()`) in the same order, so tile *i* is dropdown item *i*:
+  - every discovered **earth file** gets a tile with its dropdown name and an icon for its kind:
+    satellite/imagery → imagery picture, CardG/topo → topographic picture, anything else → generic map;
+  - **MBTiles** files get an **"OSM Map"** tile (with several MBTiles: "OSM Map <name>");
+  - no map sources at all: one **"OSM (online)"** tile, which is the dropdown's "OpenStreetMap fallback".
+  Hillshade stays in row 1 after a divider. With more than three sources the row wraps.
+- **Measure (ruler button, now enabled):** the panel opens left of the bar. It has **Line | Path**, units
+  **km / mi / nmi / m / ft**, the total in large type, the last leg (Path), a hint line and **Clear**.
+  While it is open:
+  - a click on the map adds a point. Dragging still pans, because a click is a press and release within 4 px;
+  - Line: the 2nd click finishes, and a 3rd click starts a new line. Path: every click adds a leg.
+    **Right-click removes the last point**;
+  - the line is drawn along the **great circle** (blue, with a white halo), with a dashed rubber band
+    to the cursor and the total next to the last point. The cursor is a crosshair;
+  - distances are **WGS-84 ellipsoidal** (Vincenty), with a spherical fallback for near-antipodal points;
+  - clicks off the globe (Orthographic) are ignored. A map click does **not** close the measure panel.
+    Closing it (ruler, ✕, Settings or Layers) clears the line.
+- **Smooth zoom:** the mouse wheel eases toward the target level (time constant 70 ms), anchored at the
+  cursor; consecutive notches add up. 0.5 level per notch, as before. The toolbar **Zoom In / Zoom Out**
+  buttons now zoom **one level**, eased.
+- **Inertial pan:** releasing a fast drag (> 150 px/s over the last 80 ms) lets the map glide on and slow
+  down (time constant 0.32 s). A drag that stopped before release does not glide. Any new press stops a glide.
+
+### Files added
+
+| File | Purpose |
+|---|---|
+| `EarthView/mapcontrols/GeoMeasure.h/.cpp` | WGS-84 distance (Vincenty), path length, units, formatting, great-circle points |
+| `EarthView/mapcontrols/MeasureModel.h/.cpp` | Measure points and result, exposed to QML as `measure` |
+| `EarthView/mapcontrols/SmoothNavigation.h/.cpp` | Pure easing / glide maths (constants at the top of the header) |
+| `EarthView/mapcontrols/SmoothNavigator.h/.cpp` | Drives the `Camera` each frame through its public `zoom()` / `pan()` |
+| `EarthView/mapcontrols/qml/icons/thumb_topo.svg`, `thumb_map.svg` | Tile pictures for CardG/topographic and other earth files |
+| `EarthView/tests/tst_geomeasure.cpp`, `tst_smoothnavigation.cpp` | 10 + 8 test functions |
+
+### Files changed
+
+| File | Change |
+|---|---|
+| `EarthView/MapWidget.h/.cpp` | **Two opt-in hooks; default output unchanged:** `setScaleBarCorner(Qt::Corner)` (default bottom-left; the overlay sets bottom-right) and `setOverlayPainter(std::function<void(QPainter&)>)`, a QPainter callback after the GL frame, empty by default. |
+| `EarthView/mapcontrols/BaseMapSources.h/.cpp` | Rewritten: `entries(sources)` returns one `{label, icon}` per discovered source (the OSM/Imagery rule from PR 2 is gone). |
+| `EarthView/mapcontrols/MapControlsModel.h/.cpp` | `baseMaps` (list) + `currentBaseMap` (index) replace `baseMap` / `osmAvailable` / `imageryAvailable`. New `measureOpen` (+ `toggleMeasure()`), exclusive with Settings/Layers, and not closed by `closePanels()`. |
+| `EarthView/mapcontrols/MapControlsOverlay.h/.cpp` | New positions. Takes over the map's **wheel** (eased zoom), feeds drags to the navigator (glide), handles measure clicks and right-click, draws the measure line through the overlay painter, sets the scale bar to the bottom-right. Exposes `measure()` and `navigator()`. |
+| `EarthView/mapcontrols/qml/MapSideBar.qml` | Measure panel. Panels are centred on the bar. |
+| `EarthView/mapcontrols/qml/LayersButton.qml` | Button at the right, panel opens left, one tile per `baseMaps` entry. |
+| `EarthView/mapcontrols/CMakeLists.txt` | New sources and icons. |
+| `EarthView/MainWindow.h/.cpp`, `EarthView/MapViewWindow.h/.cpp` | Keep their overlay. Toolbar Zoom In/Out go through the navigator. Tiles ↔ dropdown by index. |
+| `EarthView/tests/*` | Model tests updated (base map list, measure panel rules). `tst_basemapsources` rewritten. Two new tests. |
+
+### Not changed (on purpose)
+
+`Camera`, `MapSourceCatalog`, `TMSLoader`, `MbTilesReader` and all the renderers. Without
+`MapControlsOverlay` (e.g. a host that does not opt in), the map zooms, pans and draws exactly as before.
+
+### Build / deploy
+
+Same as PR 1. No new Qt modules, no new deploy files.
+
+### Verify
+
+1. `ctest --test-dir build-msvc -C Release --output-on-failure` (Qt `bin` on `PATH`): **21/21**.
+2. Visual check (Windows, by a person):
+   - The side bar is right-middle, the Layers mini-map is bottom-right above the scale bar, and the scale bar is bottom-right.
+   - Layers panel: one tile per dropdown entry, with matching names. Picking a tile changes the dropdown and the map, and vice versa.
+     With an `.mbtiles` in `Data/OSM` there is an "OSM Map" tile.
+   - Wheel: zoom glides and stays under the cursor. Fast scrolling adds up. Zoom In/Out buttons glide one level.
+   - Throw the map with a quick drag: it glides and slows down. A slow drag stops dead.
+   - Ruler → Line: click two points to get the total in the panel and on the map. A 3rd click starts over. Change units.
+   - Path: click several points; right-click removes the last one; Clear empties it. Dragging still pans while measuring.
+   - Orthographic: clicks off the globe add nothing, and lines follow the globe.
+
+### Verification status
+
+- MSVC build: **OK**. `ctest`: **21/21 passed** (including the new `tst_geomeasure` and `tst_smoothnavigation`).
+- On screen: the new layout renders as described (side bar right-middle, mini-map above the bottom-right
+  scale bar), and the app starts at zoom 2 as before.
+- Clicking through measure / glide / tiles: **pending (Windows, human)**. Automated input was blocked on the dev PC.
+
+### Known limitations
+
+- While zooming, tiles of the new level pop in as they load; showing the parent tile until then is planned.
+- The measure line is not kept after the panel closes, and the result cannot yet be copied or exported.
+- Keyboard zoom (+/−) still steps without easing.
 
 ---
 

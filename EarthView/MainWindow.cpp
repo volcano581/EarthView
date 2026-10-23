@@ -13,6 +13,7 @@
 #include "BaseMapSources.h"
 #include "MapControlsModel.h"
 #include "MapControlsOverlay.h"
+#include "SmoothNavigator.h"
 #endif
 #include <QAction>
 #include <QComboBox>
@@ -50,10 +51,23 @@ void MainWindow::setupUI()
 {
     // Create toolbar
     QToolBar* toolbar = addToolBar("Navigation");
+    // With the on-map controls the buttons zoom one level, eased like the wheel.
     toolbar->addAction("Zoom In", [this]() {
+#ifdef EARTHVIEW_HAS_MAP_CONTROLS
+        if (m_mapControlsOverlay) {
+            m_mapControlsOverlay->navigator()->zoomBy(1.0);
+            return;
+        }
+#endif
         m_mapWidget->camera()->zoom(0.5f);
         });
     toolbar->addAction("Zoom Out", [this]() {
+#ifdef EARTHVIEW_HAS_MAP_CONTROLS
+        if (m_mapControlsOverlay) {
+            m_mapControlsOverlay->navigator()->zoomBy(-1.0);
+            return;
+        }
+#endif
         m_mapWidget->camera()->zoom(-0.5f);
         });
     toolbar->addAction("Reset View", [this]() {
@@ -84,7 +98,8 @@ void MainWindow::setupUI()
     setCentralWidget(m_mapWidget);
     m_mapWidget->setFocus(Qt::OtherFocusReason);
 #ifdef EARTHVIEW_HAS_MAP_CONTROLS
-    MapControlsModel* mapControls = (new MapControlsOverlay(m_mapWidget))->model();
+    m_mapControlsOverlay = new MapControlsOverlay(m_mapWidget);
+    MapControlsModel* mapControls = m_mapControlsOverlay->model();
     // Base map choice is shared by both windows, as the Map Source dropdown is.
     QList<MapControlsModel*> baseMapModels{ mapControls };
     if (m_secondaryWindow->mapControls())
@@ -129,38 +144,31 @@ void MainWindow::setupUI()
     };
 
 #ifdef EARTHVIEW_HAS_MAP_CONTROLS
-    // Layers panel OSM / Imagery tiles <-> Map Source dropdown (BaseMapSources picks the files).
-    const BaseMapSources::Choice baseMaps = BaseMapSources::choose(mapSources);
-    auto syncBaseMapModels = [mapSources, baseMapModels](int sourceIndex) {
-        const int baseMap = BaseMapSources::baseMapForSource(mapSources, sourceIndex);
+    // Layers panel base map tiles <-> Map Source dropdown: same discovery, same order, so
+    // tile i is dropdown item i (BaseMapSources picks each tile's label and icon).
+    const QVariantList baseMapEntries = BaseMapSources::entries(mapSources);
+    auto syncBaseMapModels = [baseMapModels](int comboIndex) {
         for (MapControlsModel* model : baseMapModels)
-            model->setBaseMap(baseMap);
+            model->setCurrentBaseMap(comboIndex);
     };
-    for (MapControlsModel* model : baseMapModels) {
-        model->setOsmAvailable(baseMaps.osmAvailable());
-        model->setImageryAvailable(baseMaps.imageryAvailable());
-    }
-    syncBaseMapModels(sourceCombo->currentData().toInt());
+    for (MapControlsModel* model : baseMapModels)
+        model->setBaseMaps(baseMapEntries);
+    syncBaseMapModels(sourceCombo->currentIndex());
 
     for (MapControlsModel* model : baseMapModels) {
-        connect(model, &MapControlsModel::baseMapChanged, this,
-            [sourceCombo, mapSources, baseMaps, applySourceSelection, syncBaseMapModels](int baseMap) {
-                const int currentIndex = sourceCombo->currentData().toInt();
-                if (BaseMapSources::baseMapForSource(mapSources, currentIndex) == baseMap)
+        connect(model, &MapControlsModel::currentBaseMapChanged, this,
+            [sourceCombo, applySourceSelection, syncBaseMapModels](int index) {
+                if (index < 0 || index >= sourceCombo->count() || index == sourceCombo->currentIndex())
                     return;
-                const int sourceIndex = BaseMapSources::sourceForBaseMap(baseMaps, baseMap);
-                if (sourceIndex < 0 && !baseMaps.noSources)
-                    return;
-                sourceCombo->setCurrentIndex(sourceCombo->findData(sourceIndex));
-                applySourceSelection(sourceIndex);
-                syncBaseMapModels(sourceIndex);
+                sourceCombo->setCurrentIndex(index);
+                applySourceSelection(sourceCombo->itemData(index).toInt());
+                syncBaseMapModels(index);
             });
     }
     connect(sourceCombo, &QComboBox::activated, this,
         [sourceCombo, applySourceSelection, syncBaseMapModels](int index) {
-            const int sourceIndex = sourceCombo->itemData(index).toInt();
-            applySourceSelection(sourceIndex);
-            syncBaseMapModels(sourceIndex);
+            applySourceSelection(sourceCombo->itemData(index).toInt());
+            syncBaseMapModels(index);
         });
 #else
     connect(sourceCombo, &QComboBox::activated, this, [sourceCombo, applySourceSelection](int index) {

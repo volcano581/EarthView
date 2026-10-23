@@ -4,10 +4,18 @@
 add_library(earthview_mapcontrols STATIC
     BaseMapSources.cpp
     BaseMapSources.h
+    GeoMeasure.cpp
+    GeoMeasure.h
     MapControlsModel.cpp
     MapControlsModel.h
     MapControlsOverlay.cpp
     MapControlsOverlay.h
+    MeasureModel.cpp
+    MeasureModel.h
+    SmoothNavigation.cpp
+    SmoothNavigation.h
+    SmoothNavigator.cpp
+    SmoothNavigator.h
 )
 add_library(earthview::mapcontrols ALIAS earthview_mapcontrols)
 
@@ -43,6 +51,8 @@ qt_add_resources(earthview_mapcontrols "earthview_mapcontrols_qml"
         qml/icons/thumb_osm.svg
         qml/icons/thumb_imagery.svg
         qml/icons/thumb_hillshade.svg
+        qml/icons/thumb_topo.svg
+        qml/icons/thumb_map.svg
         qml/icons/overlay_cities.svg
         qml/icons/overlay_borders.svg
         qml/icons/overlay_grid.svg

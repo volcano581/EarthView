@@ -7,6 +7,7 @@
 
 class Camera;
 class MapControlsModel;
+class MapControlsOverlay;
 class QLabel;
 class MapWidget;
 class QCloseEvent;
@@ -21,7 +22,7 @@ public:
 
     MapWidget* mapWidget() const { return m_mapWidget; }
     /// On-map controls of this window's map; nullptr when built without them.
-    MapControlsModel* mapControls() const { return m_mapControls; }
+    MapControlsModel* mapControls() const;
 
 signals:
     void windowVisibilityChanged(bool visible);
@@ -37,7 +38,7 @@ private:
 
 private:
     MapWidget* m_mapWidget;
-    MapControlsModel* m_mapControls;
+    MapControlsOverlay* m_mapControlsOverlay;
     QLabel* m_coordLabel;
     QLabel* m_zoomLabel;
 };

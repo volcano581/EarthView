@@ -13,9 +13,8 @@ MapControlsModel::MapControlsModel(QObject* parent)
     , m_measureAvailable(false)
     , m_settingsOpen(false)
     , m_layersOpen(false)
-    , m_baseMap(OsmBaseMap)
-    , m_osmAvailable(true)
-    , m_imageryAvailable(false)
+    , m_measureOpen(false)
+    , m_currentBaseMap(-1)
     , m_hillshadeVisible(true)
     , m_citiesVisible(true)
     , m_bordersVisible(true)
@@ -96,8 +95,10 @@ void MapControlsModel::setMeasureAvailable(bool available)
 
 void MapControlsModel::setSettingsOpen(bool open)
 {
-    if (open)
+    if (open) {
         setLayersOpen(false);
+        setMeasureOpen(false);
+    }
     if (m_settingsOpen == open)
         return;
     m_settingsOpen = open;
@@ -106,8 +107,10 @@ void MapControlsModel::setSettingsOpen(bool open)
 
 void MapControlsModel::setLayersOpen(bool open)
 {
-    if (open)
+    if (open) {
         setSettingsOpen(false);
+        setMeasureOpen(false);
+    }
     if (m_layersOpen == open)
         return;
     m_layersOpen = open;
@@ -120,34 +123,38 @@ void MapControlsModel::closePanels()
     setLayersOpen(false);
 }
 
-void MapControlsModel::setBaseMap(int baseMap)
+void MapControlsModel::setMeasureOpen(bool open)
 {
-    if (baseMap == OsmBaseMap && !m_osmAvailable)
+    if (open && !m_measureAvailable)
         return;
-    if (baseMap == ImageryBaseMap && !m_imageryAvailable)
+    if (open) {
+        setSettingsOpen(false);
+        setLayersOpen(false);
+    }
+    if (m_measureOpen == open)
         return;
-    if (baseMap != OsmBaseMap && baseMap != ImageryBaseMap)
-        return;
-    if (m_baseMap == baseMap)
-        return;
-    m_baseMap = baseMap;
-    emit baseMapChanged(m_baseMap);
+    m_measureOpen = open;
+    emit measureOpenChanged(m_measureOpen);
 }
 
-void MapControlsModel::setOsmAvailable(bool available)
+void MapControlsModel::setBaseMaps(const QVariantList& baseMaps)
 {
-    if (m_osmAvailable == available)
-        return;
-    m_osmAvailable = available;
-    emit osmAvailableChanged(m_osmAvailable);
+    m_baseMaps = baseMaps;
+    emit baseMapsChanged();
+    if (m_currentBaseMap >= m_baseMaps.size()) {
+        m_currentBaseMap = m_baseMaps.isEmpty() ? -1 : 0;
+        emit currentBaseMapChanged(m_currentBaseMap);
+    }
 }
 
-void MapControlsModel::setImageryAvailable(bool available)
+void MapControlsModel::setCurrentBaseMap(int index)
 {
-    if (m_imageryAvailable == available)
+    if (index < 0 || index >= m_baseMaps.size())
         return;
-    m_imageryAvailable = available;
-    emit imageryAvailableChanged(m_imageryAvailable);
+    if (m_currentBaseMap == index)
+        return;
+    m_currentBaseMap = index;
+    emit currentBaseMapChanged(m_currentBaseMap);
 }
 
 void MapControlsModel::setHillshadeVisible(bool visible)
@@ -185,6 +192,7 @@ void MapControlsModel::setGridVisible(bool visible)
 void MapControlsModel::resetNorth()
 {
     closePanels();
+    setMeasureOpen(false);
     setBearingDegrees(0.0);
     emit northResetRequested();
 }
