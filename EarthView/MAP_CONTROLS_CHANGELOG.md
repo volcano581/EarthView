@@ -105,6 +105,14 @@ zoom the shared thread pool worked through all outdated tiles first.
    - Pan quickly back and forth: the map follows, with no growing backlog. Zoom out: no blank flashes; the old tiles stay until the new ones are in.
    - Zoom out fully: it stops where the map fills the window's height. Maximise or restore: the floor follows the height.
 
+### Fix: unreadable measure label
+
+The total next to the measure line came out as sheared, unreadable glyphs. The map's renderers
+upload textures with `GL_UNPACK_ALIGNMENT 1`, but QPainter's glyph cache expects the default 4.
+Two changes: `MapWidget::paintGL` restores alignment 4 before the overlay painter runs, and the
+label text is drawn as vector outlines (`QPainterPath::addText`), so it no longer depends on
+glyph textures at all. Files: `EarthView/MapWidget.cpp`, `EarthView/mapcontrols/MapControlsOverlay.cpp`.
+
 ### Verification status
 
 - MSVC build: **OK**. `ctest`: **22/22 passed** (MBTiles test against a real SQLite MBTiles file, including 32 parallel reads).

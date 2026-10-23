@@ -287,8 +287,15 @@ void MapControlsOverlay::paintMeasure(QPainter& painter)
         painter.setPen(QPen(QColor(218, 220, 224), 1));
         painter.setBrush(Qt::white);
         painter.drawRoundedRect(box, 6, 6);
-        painter.setPen(QColor(32, 33, 36));
-        painter.drawText(box, Qt::AlignCenter, total);
+        // Text as outlines, not glyph textures: the GL map leaves texture-upload state that can
+        // garble QPainter's cached glyphs on a QOpenGLWidget.
+        QPainterPath text;
+        text.addText(0, 0, font, total);
+        const QRectF textBounds = text.boundingRect();
+        text.translate(box.center() - textBounds.center());
+        painter.setPen(Qt::NoPen);
+        painter.setBrush(QColor(32, 33, 36));
+        painter.drawPath(text);
     }
 }
 
