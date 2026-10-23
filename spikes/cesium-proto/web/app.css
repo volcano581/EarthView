@@ -1,0 +1,110 @@
+/* Look of the map controls. Everything themable is a variable here. */
+:root {
+  --font: "Segoe UI", Roboto, Arial, sans-serif;
+  --ctl-bg: #ffffff;
+  --ctl-fg: #5f6368;
+  --ctl-fg-hover: #202124;
+  --ctl-divider: #e6e6e6;
+  --ctl-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+  --ctl-radius: 8px;
+  --accent: #1a73e8;
+  --card-bg: #ffffff;
+  --card-fg: #202124;
+  --muted: #5f6368;
+  --status-bg: rgba(255, 255, 255, 0.85);
+  --needle-north: #ea4335;
+  --needle-south: #9aa0a6;
+}
+body[data-theme="night"] {
+  --ctl-bg: #2b2f36;
+  --ctl-fg: #b6bcc6;
+  --ctl-fg-hover: #ffffff;
+  --ctl-divider: #3c424b;
+  --ctl-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
+  --accent: #8ab4f8;
+  --card-bg: #2b2f36;
+  --card-fg: #e8eaed;
+  --muted: #b6bcc6;
+  --status-bg: rgba(32, 34, 38, 0.85);
+}
+
+html, body { margin: 0; height: 100%; overflow: hidden; font-family: var(--font); background: #dcdcdc; }
+#globe { position: absolute; inset: 0; }
+#credits { display: none; }
+button { font-family: inherit; }
+
+/* Generic control surfaces */
+.surface { background: var(--ctl-bg); color: var(--ctl-fg); box-shadow: var(--ctl-shadow); border-radius: var(--ctl-radius); }
+.btn { display: grid; place-items: center; width: 40px; height: 40px; padding: 0; border: 0; cursor: pointer;
+       background: var(--ctl-bg); color: var(--ctl-fg); box-shadow: var(--ctl-shadow); border-radius: var(--ctl-radius);
+       transition: color 0.15s, background 0.15s, transform 0.15s; }
+.btn:hover { color: var(--ctl-fg-hover); }
+.btn:active { transform: scale(0.94); }
+.btn svg { width: 22px; height: 22px; fill: currentColor; }
+.btn.text { font-size: 15px; font-weight: 600; }
+.btn.on { color: var(--accent); }
+
+/* Bottom-right control stack */
+#controls { position: absolute; right: 12px; bottom: 34px; display: flex; flex-direction: column; align-items: center; gap: 10px; z-index: 5; }
+.compass-row { display: flex; align-items: center; gap: 2px; }
+.compass-row .mini { width: 22px; height: 30px; border-radius: 6px; box-shadow: none; background: transparent; color: var(--ctl-fg); }
+.compass-row .mini:hover { background: var(--ctl-bg); box-shadow: var(--ctl-shadow); }
+.compass-row .mini svg { width: 18px; height: 18px; }
+#compass { border-radius: 50%; }
+#compass svg { width: 26px; height: 26px; transition: transform 0.05s linear; }
+.zoom { display: flex; flex-direction: column; overflow: hidden; }
+.zoom .btn { box-shadow: none; border-radius: 0; font-size: 22px; font-weight: 400; }
+.zoom hr { width: 26px; margin: 0 auto; border: 0; border-top: 1px solid var(--ctl-divider); }
+#pegman { cursor: grab; touch-action: none; }
+#pegman svg { width: 26px; height: 26px; fill: #f9ab00; }
+#pegmanGhost { position: fixed; z-index: 50; width: 34px; height: 34px; pointer-events: none; transform: translate(-50%, -85%); }
+#pegmanGhost svg { width: 100%; height: 100%; fill: #f9ab00; filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.5)); }
+
+/* Bottom-left layer switcher: hover expands the overlay panel */
+#layers { position: absolute; left: 12px; bottom: 34px; display: flex; align-items: flex-end; gap: 8px; z-index: 5; }
+.tile { position: relative; width: 76px; height: 76px; padding: 0; border: 2px solid #fff; border-radius: var(--ctl-radius);
+        cursor: pointer; box-shadow: var(--ctl-shadow); background: #ccc center / cover; overflow: hidden; }
+.tile span { position: absolute; left: 0; right: 0; bottom: 0; padding: 3px 0; font-size: 12px; font-weight: 600; color: #fff;
+             background: linear-gradient(transparent, rgba(0, 0, 0, 0.65)); }
+.panel { display: none; padding: 10px 12px; font-size: 13px; }
+#layers:hover .panel, .panel:focus-within { display: block; }
+.panel h3 { margin: 0 0 6px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
+.panel label { display: flex; align-items: center; gap: 8px; padding: 3px 0; cursor: pointer; color: var(--card-fg); white-space: nowrap; }
+.panel input { accent-color: var(--accent); }
+
+/* Status bar: coordinates, attribution, scale */
+#statusbar { position: absolute; right: 0; bottom: 0; left: 0; height: 22px; display: flex; align-items: center; gap: 14px;
+             justify-content: flex-end; padding: 0 12px; font-size: 11px; color: var(--muted); background: var(--status-bg); z-index: 4; }
+#coords { margin-right: auto; font-variant-numeric: tabular-nums; }
+#scale { display: flex; align-items: center; gap: 6px; padding: 0; border: 0; background: none; color: inherit; font-size: 11px; cursor: pointer; }
+#scaleBar { display: inline-block; height: 5px; border: 1.5px solid var(--muted); border-top: 0; }
+
+/* HUD (top right) and the selected-unit card (top left) */
+#hud { position: absolute; top: 12px; right: 12px; padding: 6px 10px; font: 11px/1.5 Consolas, monospace; white-space: pre; cursor: pointer; z-index: 5; }
+#hud.collapsed { width: 14px; height: 14px; overflow: hidden; color: transparent; }
+.card { position: absolute; top: 12px; left: 12px; width: 300px; padding: 14px 16px; color: var(--card-fg); background: var(--card-bg);
+        border-radius: 12px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3); z-index: 6; }
+.card header { display: flex; align-items: center; gap: 12px; }
+.card header img { width: 44px; height: 32px; }
+.card h2 { margin: 0; font-size: 17px; font-weight: 600; }
+.card p { margin: 2px 0 0; font-size: 13px; color: var(--muted); }
+.card header button { margin-left: auto; align-self: flex-start; width: 28px; height: 28px; border: 0; border-radius: 50%; background: none;
+                      color: var(--muted); font-size: 20px; cursor: pointer; }
+.card header button:hover { background: rgba(127, 127, 127, 0.15); }
+.card dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; margin: 14px 0; font-size: 13px; }
+.card dt { color: var(--muted); }
+.card dd { margin: 0; font-variant-numeric: tabular-nums; }
+.card .actions { display: flex; gap: 8px; }
+.pill { padding: 7px 14px; border: 1px solid var(--ctl-divider); border-radius: 18px; background: none; color: var(--accent);
+        font-size: 13px; font-weight: 600; cursor: pointer; }
+.pill:hover { background: rgba(26, 115, 232, 0.08); }
+.pill.on { color: #fff; background: var(--accent); border-color: var(--accent); }
+
+/* Ground-view banner */
+.banner { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 14px;
+          padding: 8px 10px 8px 16px; font-size: 13px; color: #fff; background: rgba(32, 33, 36, 0.88); border-radius: 22px; z-index: 7; }
+.banner .pill { color: #fff; border-color: rgba(255, 255, 255, 0.4); }
+
+#error { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); max-width: 70%; padding: 16px 20px; color: #b3261e;
+         background: #fff; border-radius: 10px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3); white-space: pre-wrap; font-size: 13px; z-index: 99; }
+[hidden] { display: none !important; }

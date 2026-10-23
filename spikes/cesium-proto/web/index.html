@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tactical map prototype</title>
+<script>window.CESIUM_BASE_URL = 'cesium/';</script>
+<link rel="stylesheet" href="cesium/Widgets/widgets.css">
+<link rel="stylesheet" href="app.css">
+<script src="polyfills.js"></script>
+<script src="cesium/Cesium.js"></script>
+</head>
+<body>
+<div id="globe"></div>
+<div id="credits"></div>
+
+<div id="hud" class="surface" title="Click to collapse">starting…</div>
+
+<section id="card" class="card" hidden>
+  <header>
+    <img id="cardSymbol" alt="">
+    <div><h2 id="cardName"></h2><p id="cardKind"></p></div>
+    <button id="cardClose" aria-label="Close">&times;</button>
+  </header>
+  <dl id="cardFacts"></dl>
+  <div class="actions">
+    <button id="cardFollow" class="pill">Follow</button>
+    <button id="cardGround" class="pill">Ground view</button>
+  </div>
+</section>
+
+<div id="groundBanner" class="banner" hidden>
+  Ground view &middot; drag to look &middot; W A S D to walk &middot; Shift to run
+  <button id="groundExit" class="pill">Exit</button>
+</div>
+
+<div id="controls">
+  <div class="compass-row">
+    <button id="rotLeft" class="btn mini" title="Rotate left" aria-label="Rotate left">
+      <svg viewBox="0 0 24 24"><path d="M7.1 8.5A7 7 0 1 1 5 13H3a9 9 0 1 0 2.6-6.4L3 4v6h6z"/></svg>
+    </button>
+    <button id="compass" class="btn" title="Reset to north" aria-label="Reset to north">
+      <svg id="needle" viewBox="0 0 24 24">
+        <path d="M12 2 16 12H8z" fill="var(--needle-north)"/>
+        <path d="M12 22 8 12h8z" fill="var(--needle-south)"/>
+      </svg>
+    </button>
+    <button id="rotRight" class="btn mini" title="Rotate right" aria-label="Rotate right">
+      <svg viewBox="0 0 24 24"><path d="M16.9 8.5A7 7 0 1 0 19 13h2a9 9 0 1 1-2.6-6.4L21 4v6h-6z"/></svg>
+    </button>
+  </div>
+  <button id="mode3d" class="btn text" title="Tilt to 3D">3D</button>
+  <button id="locate" class="btn" title="Show units" aria-label="Show units">
+    <svg viewBox="0 0 24 24"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zm8.9 3A9 9 0 0 0 13 3.1V1h-2v2.1A9 9 0 0 0 3.1 11H1v2h2.1a9 9 0 0 0 7.9 7.9V23h2v-2.1a9 9 0 0 0 7.9-7.9H23v-2zM12 19a7 7 0 1 1 0-14 7 7 0 0 1 0 14z"/></svg>
+  </button>
+  <div class="zoom surface">
+    <button id="zoomIn" class="btn" title="Zoom in" aria-label="Zoom in">+</button>
+    <hr>
+    <button id="zoomOut" class="btn" title="Zoom out" aria-label="Zoom out">&minus;</button>
+  </div>
+  <button id="pegman" class="btn" title="Drag onto the map for a ground-level view" aria-label="Ground view">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="4.5" r="2.6"/><path d="M8.5 8.2h7l1.3 6.3h-2.1L14 21h-4l-.7-6.5H7.2z"/></svg>
+  </button>
+</div>
+
+<div id="layers">
+  <button id="basemapTile" class="tile" title="Switch map style"><span id="basemapLabel">Map</span></button>
+  <div class="panel surface">
+    <h3>Overlays</h3>
+    <label><input type="checkbox" data-overlay="units" checked>Units</label>
+    <label><input type="checkbox" data-overlay="unitLabels" checked>Unit labels</label>
+    <label><input type="checkbox" data-overlay="places" checked>Place names</label>
+    <label><input type="checkbox" data-overlay="terrain3d" checked>3D terrain</label>
+    <h3 style="margin-top:10px">Display</h3>
+    <label><input type="checkbox" data-overlay="night">Night controls</label>
+    <label><input type="checkbox" data-overlay="hud" checked>Performance HUD</label>
+  </div>
+</div>
+
+<div id="statusbar">
+  <span id="coords"></span>
+  <span>Borders &amp; places: EarthView data &middot; Terrain: SRTM DTED2 &middot; CesiumJS</span>
+  <button id="scale" title="Click to change units"><span id="scaleLabel"></span><span id="scaleBar"></span></button>
+</div>
+
+<div id="error" hidden></div>
+<script src="app.js"></script>
+</body>
+</html>

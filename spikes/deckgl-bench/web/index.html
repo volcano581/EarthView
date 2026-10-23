@@ -1,0 +1,370 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="maplibre-gl.css">
+<style>
+  html, body, #map { margin: 0; width: 100%; height: 100%; background: #0b0f14; overflow: hidden; }
+  .panel { position: fixed; z-index: 10; color: #d8e2ec; font: 12px/1.45 "Segoe UI", sans-serif;
+           background: rgba(14, 20, 28, 0.82); border: 1px solid rgba(255,255,255,0.08);
+           border-radius: 8px; padding: 8px 10px; backdrop-filter: blur(6px);
+           box-shadow: 0 4px 16px rgba(0,0,0,0.35); }
+  #hud { top: 10px; left: 10px; font-family: Consolas, monospace; color: #7dffa0; white-space: pre; }
+  #layersPanel { top: 92px; left: 10px; }
+  #layersPanel label { display: block; cursor: pointer; user-select: none; }
+  #layersPanel input { accent-color: #19c3ff; margin-right: 6px; vertical-align: -2px; }
+  #info { bottom: 30px; right: 10px; min-width: 180px; display: none; }
+  #info b { color: #19c3ff; }
+  #info button { margin-top: 6px; background: #19c3ff22; color: #d8e2ec; border: 1px solid #19c3ff66;
+                 border-radius: 4px; padding: 2px 8px; cursor: pointer; }
+  #info button.on { background: #19c3ff; color: #001018; }
+  #err { top: 40%; left: 50%; transform: translateX(-50%); color: #ff8080; display: none; }
+</style>
+<script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+<script src="deck.gl.min.js"></script>
+<script src="maplibre-gl.js"></script>
+</head>
+<body>
+<div id="map"></div>
+<div id="hud" class="panel">starting…</div>
+<div id="layersPanel" class="panel">
+  <label><input type="checkbox" data-layer="entities" checked>Entities</label>
+  <label><input type="checkbox" data-layer="trails" checked>Trails</label>
+  <label><input type="checkbox" data-layer="labels" checked>Labels</label>
+  <label><input type="checkbox" data-layer="declutter" checked>Declutter labels</label>
+</div>
+<div id="info" class="panel"></div>
+<div id="err" class="panel"></div>
+<script>
+const P = new URLSearchParams(location.search);
+const MODE = P.get('mode');
+const N = +P.get('n');
+const HZ = +P.get('hz');
+const BASEMAP = P.get('basemap') === '1';
+const ICONS = P.get('icons') !== '0';
+const L = Math.min(N, +P.get('labels') || 0);
+const T = Math.min(N, +P.get('trails') || 0);
+const K = Math.max(2, +P.get('trailLen') || 60);
+const TRAIL_EVERY = Math.max(1, Math.round(HZ / 2));
+const AUTOPICK = P.get('autopick') === '1';
+const COLLISION = typeof deck.CollisionFilterExtension === 'function';
+
+const show = { entities: true, trails: true, labels: true, declutter: true };
+const positions = new Float32Array(N * 3);
+const angles = new Float32Array(N);
+let entityData = { length: 0, attributes: {} };
+
+const trailRing = new Float32Array(T * K * 2);
+const trailStarts = new Uint32Array(T).map((_, i) => i * K);
+let trailData = { length: 0, startIndices: trailStarts, attributes: {} };
+let trailInit = false, trailHead = 0, samples = 0;
+
+const labelIndex = Array.from({ length: L }, (_, i) => i);
+const labelText = labelIndex.map(i => 'TRK' + i);
+
+let lat = [], pickMs = [], frames = 0, recv = 0, lastSeq = 0, dropped = 0, version = 0, pendingT = 0;
+let bridge = null, target = null, map = null, selected = -1, follow = false, tileLine = '';
+
+function fail(msg) {
+  const e = document.getElementById('err');
+  e.textContent = msg; e.style.display = 'block';
+  console.error(msg);
+}
+window.addEventListener('error', ev => fail(String(ev.message)));
+window.addEventListener('unhandledrejection', ev => fail(String(ev.reason)));
+
+// ---- frame ingest -------------------------------------------------------------------------
+function ingest(tMs, f32, seq) {
+  if (seq) {
+    if (seq === lastSeq) return;  // scheme mode re-reads an unchanged frame; not new data
+    if (lastSeq && seq > lastSeq + 1) dropped += seq - lastSeq - 1;
+    lastSeq = seq;
+  }
+  for (let i = 0; i < N; i++) {
+    positions[i * 3]     = f32[i * 4];
+    positions[i * 3 + 1] = f32[i * 4 + 1];
+    positions[i * 3 + 2] = f32[i * 4 + 2];
+    angles[i] = -f32[i * 4 + 3];  // heading is clockwise from north; IconLayer angle is CCW
+  }
+  version++; recv++;
+  pendingT = tMs;
+  // New data objects (same buffers) tell deck.gl to re-upload; unchanged frames skip it.
+  entityData = { length: N, attributes: {
+    getPosition: { value: positions, size: 3 },
+    getAngle: { value: angles, size: 1 } } };
+  if (T) sampleTrails();
+}
+
+function sampleTrails() {
+  if (!trailInit) {
+    for (let i = 0; i < T; i++)
+      for (let k = 0; k < K; k++) {
+        trailRing[(i * K + k) * 2] = positions[i * 3];
+        trailRing[(i * K + k) * 2 + 1] = positions[i * 3 + 1];
+      }
+    trailInit = true;
+  }
+  if (++samples % TRAIL_EVERY === 0) trailHead = (trailHead + 1) % K;
+  for (let i = 0; i < T; i++) {  // the newest point tracks the entity every frame
+    trailRing[(i * K + trailHead) * 2] = positions[i * 3];
+    trailRing[(i * K + trailHead) * 2 + 1] = positions[i * 3 + 1];
+  }
+  const flat = new Float32Array(T * K * 2);
+  for (let i = 0; i < T; i++)
+    for (let k = 0; k < K; k++) {
+      const src = (i * K + (trailHead + 1 + k) % K) * 2, dst = (i * K + k) * 2;
+      flat[dst] = trailRing[src];
+      flat[dst + 1] = trailRing[src + 1];
+    }
+  trailData = { length: T, startIndices: trailStarts, attributes: { getPath: { value: flat, size: 2 } } };
+}
+
+function parseBin(buf) {
+  const dv = new DataView(buf);
+  const count = dv.getUint32(8, true);
+  ingest(dv.getFloat64(0, true), new Float32Array(buf, 16, count * 4), dv.getUint32(12, true));
+}
+
+// XHR, not fetch(): Qt < 6.6 has no FetchApiAllowed flag for custom schemes.
+function xhr(url) {
+  return new Promise((res, rej) => {
+    const x = new XMLHttpRequest();
+    x.open('GET', url);
+    x.responseType = 'arraybuffer';
+    x.onload = () => (x.status === 0 || x.status === 200) ? res(x.response) : rej(new Error(`${url}: ${x.status}`));
+    x.onerror = () => rej(new Error(`${url} failed`));
+    x.send();
+  });
+}
+
+async function gunzipIfNeeded(buf) {
+  const u8 = new Uint8Array(buf);
+  if (u8.length < 2 || u8[0] !== 0x1f || u8[1] !== 0x8b) return buf;  // OpenMapTiles stores gzip
+  const stream = new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'));
+  return new Response(stream).arrayBuffer();
+}
+
+// ---- layers -------------------------------------------------------------------------------
+function arrowAtlas() {
+  const c = document.createElement('canvas');
+  c.width = c.height = 64;
+  const g = c.getContext('2d');
+  g.fillStyle = '#fff';
+  g.beginPath();
+  g.moveTo(32, 4); g.lineTo(54, 58); g.lineTo(32, 46); g.lineTo(10, 58);
+  g.closePath(); g.fill();
+  return c.toDataURL();
+}
+const ATLAS = arrowAtlas();
+const ICON_MAPPING = { arrow: { x: 0, y: 0, width: 64, height: 64, mask: true } };
+
+function buildLayers() {
+  const out = [];
+  if (T && show.trails) out.push(new deck.PathLayer({
+    id: 'trails', data: trailData, positionFormat: 'XY', _pathType: 'open',
+    getWidth: 1.5, widthUnits: 'pixels', getColor: [255, 170, 40, 130]
+  }));
+  if (show.entities) out.push(ICONS
+    ? new deck.IconLayer({
+        id: 'entities', data: entityData, pickable: true, autoHighlight: true,
+        highlightColor: [255, 255, 255, 255], iconAtlas: ATLAS, iconMapping: ICON_MAPPING,
+        getIcon: () => 'arrow', billboard: false, sizeUnits: 'pixels', getSize: 16,
+        getColor: [25, 195, 255, 255]
+      })
+    : new deck.ScatterplotLayer({
+        id: 'entities', data: entityData, pickable: true, autoHighlight: true,
+        getRadius: 3, radiusUnits: 'pixels', getFillColor: [25, 195, 255]
+      }));
+  if (L && show.labels) out.push(new deck.TextLayer({
+    id: 'labels', data: labelIndex,
+    getPosition: i => [positions[i * 3], positions[i * 3 + 1]],
+    getText: i => labelText[i],
+    getSize: 11, getPixelOffset: [0, -16], getColor: [225, 232, 240, 255],
+    fontFamily: 'Consolas, monospace', characterSet: 'TRK0123456789',
+    fontSettings: { sdf: true }, outlineWidth: 3, outlineColor: [0, 0, 0, 220],
+    updateTriggers: { getPosition: version },
+    ...(COLLISION && show.declutter
+      ? { extensions: [new deck.CollisionFilterExtension()], collisionTestProps: { sizeScale: 2 } } : {})
+  }));
+  if (selected >= 0) out.push(new deck.ScatterplotLayer({
+    id: 'selection', data: [selected],
+    getPosition: i => [positions[i * 3], positions[i * 3 + 1]],
+    stroked: true, filled: false, getRadius: 13, radiusUnits: 'pixels',
+    getLineColor: [255, 255, 255, 255], getLineWidth: 2, lineWidthUnits: 'pixels',
+    updateTriggers: { getPosition: version }
+  }));
+  return out;
+}
+
+function onFrame() {
+  frames++;
+  if (pendingT) { lat.push(Date.now() - pendingT); pendingT = 0; }
+}
+
+const tooltip = ({ index, layer }) => layer && layer.id === 'entities' && index >= 0 && {
+  text: `TRK${index}\n${positions[index * 3].toFixed(4)}, ${positions[index * 3 + 1].toFixed(4)}`,
+  style: { font: '12px Consolas, monospace', background: 'rgba(14,20,28,0.9)', color: '#d8e2ec',
+           borderRadius: '4px', padding: '4px 6px' }
+};
+
+function onClick({ index, layer }) {
+  selected = (layer && layer.id === 'entities' && index >= 0) ? index : -1;
+  if (selected < 0) follow = false;
+  document.getElementById('info').style.display = selected >= 0 ? 'block' : 'none';
+}
+
+function updateInfo() {
+  if (selected < 0) return;
+  const i = selected;
+  const box = document.getElementById('info');
+  box.innerHTML = `<b>TRK${i}</b><br>lon ${positions[i * 3].toFixed(5)}<br>lat ${positions[i * 3 + 1].toFixed(5)}` +
+    `<br>hdg ${((360 - angles[i]) % 360).toFixed(1)}°` +
+    (map ? `<br><button id="followBtn" class="${follow ? 'on' : ''}">Follow</button>` : '');
+  const btn = document.getElementById('followBtn');
+  if (btn) btn.onclick = () => { follow = !follow; };
+  if (follow && map) map.jumpTo({ center: [positions[i * 3], positions[i * 3 + 1]] });
+}
+
+function autopick() {
+  const w = window.innerWidth, h = window.innerHeight, a = performance.now() / 700;
+  const t0 = performance.now();
+  target.pickObject({ x: w / 2 + Math.cos(a) * w / 4, y: h / 2 + Math.sin(a) * h / 4,
+                      radius: 4, layerIds: ['entities'] });
+  pickMs.push(performance.now() - t0);
+}
+
+function loop() {
+  target.setProps({ layers: buildLayers() });
+  if (AUTOPICK) autopick();
+  requestAnimationFrame(loop);
+}
+
+// ---- views --------------------------------------------------------------------------------
+function rasterStyle(meta) {
+  return { version: 8,
+    sources: { base: { type: 'raster', tiles: ['tiles://local/{z}/{x}/{y}'], tileSize: 256,
+                       minzoom: meta.minzoom, maxzoom: meta.maxzoom } },
+    layers: [ { id: 'bg', type: 'background', paint: { 'background-color': '#0b0f14' } },
+              { id: 'base', type: 'raster', source: 'base' } ] };
+}
+
+// OpenMapTiles schema, fill/line only: symbol layers would need offline glyph PBFs.
+function vectorStyle(meta) {
+  const line = (id, layer, filter, color, width, minzoom = 0) =>
+    ({ id, type: 'line', source: 'omt', 'source-layer': layer, filter, minzoom,
+       layout: { 'line-cap': 'round', 'line-join': 'round' },
+       paint: { 'line-color': color, 'line-width': width } });
+  return { version: 8,
+    sources: { omt: { type: 'vector', tiles: ['tiles://local/{z}/{x}/{y}'],
+                      minzoom: meta.minzoom, maxzoom: meta.maxzoom } },
+    layers: [
+      { id: 'bg', type: 'background', paint: { 'background-color': '#10161d' } },
+      { id: 'landcover', type: 'fill', source: 'omt', 'source-layer': 'landcover',
+        paint: { 'fill-color': '#15201a', 'fill-opacity': 0.8 } },
+      { id: 'landuse', type: 'fill', source: 'omt', 'source-layer': 'landuse',
+        paint: { 'fill-color': '#1a1e24', 'fill-opacity': 0.7 } },
+      { id: 'park', type: 'fill', source: 'omt', 'source-layer': 'park',
+        paint: { 'fill-color': '#142218' } },
+      { id: 'water', type: 'fill', source: 'omt', 'source-layer': 'water',
+        paint: { 'fill-color': '#0a2236' } },
+      line('waterway', 'waterway', ['all'], '#0f3350', ['interpolate', ['linear'], ['zoom'], 8, 0.5, 14, 2]),
+      { id: 'building', type: 'fill', source: 'omt', 'source-layer': 'building', minzoom: 13,
+        paint: { 'fill-color': '#232a33', 'fill-outline-color': '#2e3743' } },
+      line('road-minor', 'transportation', ['!in', 'class', 'motorway', 'trunk', 'primary'],
+           '#2a323c', ['interpolate', ['linear'], ['zoom'], 10, 0.3, 16, 3], 10),
+      line('road-major', 'transportation', ['in', 'class', 'motorway', 'trunk', 'primary'],
+           '#4a5866', ['interpolate', ['linear'], ['zoom'], 5, 0.4, 16, 5]),
+      line('boundary', 'boundary', ['<=', 'admin_level', 4], '#6a5a8a',
+           ['interpolate', ['linear'], ['zoom'], 3, 0.6, 10, 1.6])
+    ] };
+}
+
+function startMap(meta) {
+  maplibregl.addProtocol('tiles', async params => {
+    try {
+      return { data: await gunzipIfNeeded(await xhr(params.url)) };
+    } catch (e) {
+      if (meta.format === 'pbf') return { data: new ArrayBuffer(0) };  // missing vector tile = empty
+      throw e;
+    }
+  });
+  const center = (meta.center || '').split(',').map(Number);
+  map = new maplibregl.Map({
+    container: 'map',
+    style: meta.format === 'pbf' ? vectorStyle(meta) : rasterStyle(meta),
+    center: center.length >= 2 && !center.some(isNaN) ? [center[0], center[1]] : [0, 20],
+    zoom: center.length >= 3 && !isNaN(center[2]) ? center[2] : 1.5,
+    maxZoom: 18, attributionControl: false, renderWorldCopies: false, fadeDuration: 0
+  });
+  map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-right');
+  map.addControl(new maplibregl.ScaleControl({ unit: 'metric' }), 'bottom-left');
+  target = new deck.MapboxOverlay({ interleaved: true, layers: [], getTooltip: tooltip, onClick });
+  map.addControl(target);
+  map.on('render', onFrame);
+  map.on('load', () => requestAnimationFrame(loop));
+}
+
+function startDeck() {
+  target = new deck.Deck({
+    parent: document.getElementById('map'),
+    views: new deck.MapView({ repeat: false }),
+    initialViewState: { longitude: 0, latitude: 20, zoom: 1.5 },
+    controller: true, getTooltip: tooltip, onClick, onAfterRender: onFrame
+  });
+  requestAnimationFrame(loop);
+}
+
+// ---- transports ---------------------------------------------------------------------------
+new QWebChannel(qt.webChannelTransport, ch => {
+  bridge = ch.objects.bridge;
+  if (MODE === 'json') {
+    bridge.frameJson.connect((t, arr) => ingest(t, Float32Array.from(arr), 0));
+  } else if (MODE === 'b64') {
+    bridge.frameB64.connect(s => {
+      const bin = atob(s), u8 = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+      parseBin(u8.buffer);
+    });
+  }
+});
+
+if (MODE === 'scheme') {
+  (async function poll() {
+    for (;;) {
+      parseBin(await xhr('sim://frame'));
+      await new Promise(requestAnimationFrame);
+    }
+  })();
+}
+
+document.querySelectorAll('#layersPanel input').forEach(cb => {
+  cb.onchange = () => { show[cb.dataset.layer] = cb.checked; };
+  if (cb.dataset.layer === 'declutter' && !COLLISION) cb.parentElement.style.display = 'none';
+});
+
+setInterval(updateInfo, 100);
+setInterval(() => {
+  const q = (a, p) => a.length ? a[Math.floor(p * (a.length - 1))] : 0;
+  lat.sort((a, b) => a - b);
+  pickMs.sort((a, b) => a - b);
+  const s = `${MODE} N=${N} fps=${frames} recv/s=${recv} ` +
+            `lat p50=${q(lat, .5)} p95=${q(lat, .95)} p99=${q(lat, .99)} ms dropped=${dropped}\n` +
+            `layers: ${ICONS ? 'icons' : 'dots'} labels=${L} trails=${T}x${K}` +
+            (AUTOPICK ? ` pick p50=${q(pickMs, .5).toFixed(2)} p95=${q(pickMs, .95).toFixed(2)} ms` : '') +
+            `\n${BASEMAP ? tileLine : 'no basemap'}`;
+  document.getElementById('hud').textContent = s;
+  if (bridge) {
+    bridge.report(s.replace(/\n/g, ' | '));
+    if (BASEMAP) bridge.tileStats(t => { tileLine = t; });
+  }
+  frames = 0; recv = 0; lat = []; pickMs = [];
+}, 1000);
+
+(async () => {
+  if (!BASEMAP) { startDeck(); return; }
+  const meta = JSON.parse(new TextDecoder().decode(await xhr('tiles://local/meta')));
+  startMap(meta);
+})();
+</script>
+</body>
+</html>
