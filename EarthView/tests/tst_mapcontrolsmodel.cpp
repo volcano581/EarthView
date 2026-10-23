@@ -20,6 +20,9 @@ private slots:
     void settingProjectionDrivesCamera();
     void cameraChangeUpdatesModel();
     void unboundModelKeepsItsOwnState();
+    void panelsAreExclusive();
+    void unavailableBaseMapIsIgnored();
+    void layerTogglesNotifyOnce();
 };
 
 void TestMapControlsModel::defaultsMatchFirstRelease()
@@ -117,6 +120,57 @@ void TestMapControlsModel::unboundModelKeepsItsOwnState()
     QVERIFY(model.camera() == nullptr);
     model.setOrthographic(true);
     QVERIFY(model.isOrthographic());
+}
+
+void TestMapControlsModel::panelsAreExclusive()
+{
+    MapControlsModel model;
+    model.setSettingsOpen(true);
+    model.setLayersOpen(true);
+    QVERIFY(model.isLayersOpen());
+    QVERIFY(!model.isSettingsOpen());
+
+    model.toggleSettings();
+    QVERIFY(model.isSettingsOpen());
+    QVERIFY(!model.isLayersOpen());
+
+    model.closePanels();
+    QVERIFY(!model.isSettingsOpen());
+    QVERIFY(!model.isLayersOpen());
+}
+
+void TestMapControlsModel::unavailableBaseMapIsIgnored()
+{
+    MapControlsModel model;
+    QCOMPARE(model.baseMap(), int(MapControlsModel::OsmBaseMap));
+    QSignalSpy spy(&model, &MapControlsModel::baseMapChanged);
+
+    model.setBaseMap(MapControlsModel::ImageryBaseMap);  // no imagery source yet
+    QCOMPARE(model.baseMap(), int(MapControlsModel::OsmBaseMap));
+    QCOMPARE(spy.count(), 0);
+
+    model.setImageryAvailable(true);
+    model.setBaseMap(MapControlsModel::ImageryBaseMap);
+    QCOMPARE(model.baseMap(), int(MapControlsModel::ImageryBaseMap));
+    QCOMPARE(spy.count(), 1);
+
+    model.setBaseMap(42);
+    QCOMPARE(model.baseMap(), int(MapControlsModel::ImageryBaseMap));
+}
+
+void TestMapControlsModel::layerTogglesNotifyOnce()
+{
+    MapControlsModel model;
+    QVERIFY(model.isHillshadeVisible());
+    QVERIFY(model.areCitiesVisible());
+    QVERIFY(model.areBordersVisible());
+    QVERIFY(model.isGridVisible());
+    QSignalSpy citiesSpy(&model, &MapControlsModel::citiesVisibleChanged);
+
+    model.setCitiesVisible(false);
+    model.setCitiesVisible(false);
+    QCOMPARE(citiesSpy.count(), 1);
+    QVERIFY(!model.areCitiesVisible());
 }
 
 QTEST_GUILESS_MAIN(TestMapControlsModel)

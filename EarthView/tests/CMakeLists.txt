@@ -50,6 +50,19 @@ target_include_directories(tst_mapcontrolsmodel PRIVATE
 target_link_libraries(tst_mapcontrolsmodel PRIVATE earthview::core Qt6::Test)
 add_test(NAME tst_mapcontrolsmodel COMMAND tst_mapcontrolsmodel)
 
+# Which map source backs the layers panel's OSM / Imagery tiles.
+add_executable(tst_basemapsources
+    tst_basemapsources.cpp
+    ../mapcontrols/BaseMapSources.cpp
+    ../mapcontrols/BaseMapSources.h
+    ../mapcontrols/MapControlsModel.cpp
+    ../mapcontrols/MapControlsModel.h
+)
+target_include_directories(tst_basemapsources PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/.." "${CMAKE_CURRENT_SOURCE_DIR}/../mapcontrols")
+target_link_libraries(tst_basemapsources PRIVATE earthview::core Qt6::Test)
+add_test(NAME tst_basemapsources COMMAND tst_basemapsources)
+
 foreach(test_name tst_geodesy tst_camera3d)
     add_executable(${test_name} ${test_name}.cpp)
     target_link_libraries(${test_name} PRIVATE earthview_scene3d Qt6::Core Qt6::Test)

@@ -230,7 +230,7 @@ If the adapter needed a change this document does not describe, the contract mov
 ## 5. Optional: 2D on-map controls (D-034)
 
 Independent of `earthview3d`. A host that embeds the 2D `MapWidget` can add the on-map side
-bar (compass, disabled 3D button, measure, settings with Mercator/Orthographic):
+bar (compass, disabled 3D button, measure, settings with Mercator/Orthographic) and the layers mini-map:
 
 ```cmake
 target_link_libraries(doctrine PRIVATE earthview::mapcontrols)   # needs Qt Qml, Quick, QuickWidgets, Svg
@@ -239,6 +239,23 @@ target_link_libraries(doctrine PRIVATE earthview::mapcontrols)   # needs Qt Qml,
 #include "MapControlsOverlay.h"
 auto* overlay = new MapControlsOverlay(mapWidget);   // owned by mapWidget
 overlay->model()->setGlobe3DAvailable(false);         // default; true once a 3D view exists
+```
+
+The overlay also adds the bottom-left **layers** mini-map. Hillshade, Cities, Borders and Grid
+are applied to the `MapWidget` by the overlay itself. The OSM / Imagery base map is the host's job,
+because the host owns the map sources:
+
+```cpp
+const auto sources = MapSourceCatalog::discoverMapSources();
+const auto choice = BaseMapSources::choose(sources);
+MapControlsModel* controls = overlay->model();
+controls->setOsmAvailable(choice.osmAvailable());
+controls->setImageryAvailable(choice.imageryAvailable());
+QObject::connect(controls, &MapControlsModel::baseMapChanged, [=](int baseMap) {
+    const int index = BaseMapSources::sourceForBaseMap(choice, baseMap);
+    if (index >= 0)
+        mapWidget->setTileSourceLayers(sources.at(index).layers);
+});
 ```
 
 `earthview_core` itself does not depend on Qt Quick. Deployment: run `windeployqt` with

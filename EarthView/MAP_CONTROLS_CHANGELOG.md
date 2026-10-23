@@ -12,10 +12,108 @@ Planned PRs:
 
 | PR | Branch | Content | Status |
 |---|---|---|---|
-| 1 | `2d/ui1-map-controls` | Overlay foundation, side bar (compass, 3D, measure, settings), projection switch, Globe View removed from toolbar | **done (this section)** |
-| 2 | `2d/ui2-layers-panel` | Mini-map layers button + panel: OSM / Imagery base maps, Hillshade toggle (row 1); Cities / Borders / Grid overlays | planned |
+| 1 | `2d/ui1-map-controls` | Overlay foundation, side bar (compass, 3D, measure, settings), projection switch, Globe View removed from toolbar | done |
+| 2 | `2d/ui2-layers-panel` | Mini-map layers button + panel: OSM / Imagery base maps, Hillshade toggle (row 1); Cities / Borders / Grid overlays | **done** |
 | 3 | `2d/ui3-measure` | Measure tool: Line / Path, km / mi / nmi / m / ft, geodesic distance | planned |
 | — | later | Inertial zoom / pan, parent-tile fallback | planned |
+
+---
+
+## PR 2 — Mini-map layers button and panel (2026-10-23, branch `2d/ui2-layers-panel`, on top of PR 1)
+
+### What the user sees
+
+- A **mini-map button** labelled "Layers" at the **bottom-left** of the map, above the scale bar.
+  It previews the current base map (OSM or Imagery), with a hillshade tint when Hillshade is on.
+- Clicking it opens a panel to the right:
+  - **MAP TYPE** (row 1): **OSM** | **Imagery**, one at a time, with a blue outline on the active
+    one. After a divider comes **Hillshade**, an on/off tile (blue check badge when on) that blends
+    the DEM terrain over whichever base map is active.
+  - separator
+  - **OVERLAYS**: **Cities**, **Borders**, **Grid**, each on/off with a check badge.
+- A base map tile with no map source behind it is greyed out, and hovering it explains why
+  ("No imagery map source found").
+- Opening the layers panel closes the Settings panel and vice versa. A click on the map closes both.
+- **Toolbar (both windows):** Textures, Borders, Grid, Cities and Terrain are **removed**; the panel replaces them.
+  The main window keeps all five in the **View** menu, and they stay in sync with the panel both ways.
+  The Map Source dropdown stays on the toolbar and stays in sync with the OSM / Imagery tiles.
+  The Secondary Window has no menu, so its **Textures** (hide all imagery) switch is no longer
+  reachable there.
+- The base map choice applies to **both windows**, as the Map Source dropdown always has.
+  Hillshade and the overlays are **per window**.
+
+### Which file is "OSM" and which is "Imagery"
+
+Rule in `BaseMapSources.cpp` (unit-tested):
+
+- **Imagery** = the first map source whose file name or label contains `satellite` or `imagery`
+  (e.g. `satellite_imagery.earth` → "Satellite Imagery").
+- **OSM** = the first other source, **MBTiles first** (`Data/OSM/*.mbtiles`), otherwise e.g.
+  `cardg_topographic.earth` ("CardG Maps").
+- No map sources at all: OSM = the online OpenStreetMap fallback, as before; Imagery greyed out.
+- Only imagery sources: OSM greyed out.
+
+To use different files, rename them so they match the rule, or change `BaseMapSources::isImagery()`.
+
+### Files added
+
+| File | Purpose |
+|---|---|
+| `EarthView/mapcontrols/BaseMapSources.h/.cpp` | The OSM / Imagery rule above; maps a source index to a base map and back |
+| `EarthView/mapcontrols/qml/LayersButton.qml` | Mini-map button and layers panel |
+| `EarthView/mapcontrols/qml/LayerTile.qml` | Shared square tile (picture, label, selected outline, check badge, greyed-out state); also used by the Settings panel now |
+| `EarthView/mapcontrols/qml/icons/thumb_osm.svg`, `thumb_imagery.svg`, `thumb_hillshade.svg`, `overlay_cities.svg`, `overlay_borders.svg`, `overlay_grid.svg` | Tile pictures (64×64 viewBox). Replace freely with the same names. |
+| `EarthView/tests/tst_basemapsources.cpp` | 6 test functions for the OSM / Imagery rule |
+
+### Files changed
+
+| File | Change |
+|---|---|
+| `EarthView/mapcontrols/MapControlsModel.h/.cpp` | New properties: `layersOpen`, `baseMap` (enum `OsmBaseMap` / `ImageryBaseMap`), `osmAvailable`, `imageryAvailable`, `hillshadeVisible`, `citiesVisible`, `bordersVisible`, `gridVisible`; `toggleLayers()`, `closePanels()`. The two panels are exclusive. Selecting an unavailable base map is ignored. |
+| `EarthView/mapcontrols/MapControlsOverlay.h/.cpp` | Creates a second `QQuickWidget` (the layers button) anchored bottom-left, 12 px from the left and 92 px from the bottom, clearing the scale bar. Starts the layer toggles from the map's current state and applies their changes to `MapWidget` (`setTerrainVisible`, `setCitiesVisible`, `setBordersVisible`, `setGridVisible`). `view()` is renamed `sideBarView()`, and `layersView()` is added. |
+| `EarthView/mapcontrols/qml/MapSideBar.qml` | The Settings panel uses the shared `LayerTile` (no visible change). |
+| `EarthView/mapcontrols/CMakeLists.txt` | Adds the new sources, QML files and icons. |
+| `EarthView/MainWindow.cpp` | The five layer actions are left off the toolbar when map controls are built (`#ifndef EARTHVIEW_HAS_MAP_CONTROLS`). View menu ↔ panel sync. OSM / Imagery tiles ↔ Map Source dropdown, applied to both windows. |
+| `EarthView/MapViewWindow.h/.cpp` | `mapControls()` accessor; the five layer actions are left off its toolbar. |
+| `EarthView/tests/tst_mapcontrolsmodel.cpp`, `EarthView/tests/CMakeLists.txt` | 3 more model test functions; adds `tst_basemapsources`. |
+| `EarthView/DOCTRINE_WIRING.md` | §5: base maps are the host's job, with an example. |
+
+### Not changed (on purpose)
+
+`MapWidget`, `MapSourceCatalog`, `Camera` and all the renderers are untouched. No new Qt modules or deploy files beyond PR 1.
+
+### Build / deploy
+
+Same as PR 1. No new requirements.
+
+### Verify
+
+1. `ctest --test-dir build-msvc -C Release --output-on-failure` (with Qt `bin` on `PATH`): all pass, including
+   `tst_mapcontrolsmodel` and `tst_basemapsources`.
+2. Visual check (Windows, by a person), on a machine **with** map sources in `Data/EarthFiles` / `Data/OSM`:
+   - The **Layers** mini-map shows bottom-left, above the scale bar.
+   - Click it to open the panel. The OSM / Imagery tiles, Hillshade and the three overlays are shown.
+   - Click **Imagery**: the map switches to the satellite source, the Map Source dropdown changes,
+     the mini-map preview changes, and the Secondary Window (if open) switches too.
+   - Choose a source in the dropdown: the tiles follow.
+   - Toggle **Hillshade** / **Cities** / **Borders** / **Grid**: the map changes, the check badge follows,
+     and the same View-menu item toggles. Toggling from the View menu updates the panel.
+   - Open Settings: the layers panel closes. Click the map: any open panel closes.
+   - The toolbar has no Textures / Borders / Grid / Cities / Terrain buttons.
+
+### Verification status
+
+- MSVC build: **OK**. `ctest`: **19/19 passed**.
+- On screen (this dev PC, no local map sources, so the online OSM fallback was active): the Layers
+  mini-map renders bottom-left above the scale bar, the side bar renders bottom-right, the toolbar is
+  trimmed, and the app logged no QML warnings.
+- Opening the panel and the tile clicks: **pending (Windows, human)**. Automated clicking was blocked on the dev PC.
+
+### Known limitations
+
+- Previews are drawn icons, not live renders of the map.
+- The base map choice is shared by both windows; the overlays are per window.
+- In the Secondary Window, Textures (hide all imagery) is no longer reachable.
 
 ---
 
