@@ -1,10 +1,13 @@
 #include "MbTilesReader.h"
 
+#include <QDir>
 #include <QFileInfo>
 #include <QHash>
 #include <QSqlDatabase>
 #include <QSqlError>
 #include <QSqlQuery>
+#include <QThread>
+#include <QThreadPool>
 #include <QUuid>
 #include <QVariant>
 #include <QtGlobal>
@@ -32,6 +35,48 @@ void setError(QString* errorMessage, const QString& message)
     if (errorMessage) {
         *errorMessage = message;
     }
+}
+
+/// Connection reused by every tile read of this thread from @p filePath. Opened read-only and
+/// immutable with a 64 MB page cache; falls back to a plain read-only open when the SQLite
+/// build rejects the URI. Invalid (not open) when the file cannot be opened.
+QSqlDatabase threadConnection(const QString& filePath, QString* errorMessage)
+{
+    const QString name = QStringLiteral("earthview_mbtiles_t%1_%2")
+        .arg(reinterpret_cast<quintptr>(QThread::currentThreadId()))
+        .arg(qHash(filePath));
+    if (QSqlDatabase::contains(name)) {
+        QSqlDatabase database = QSqlDatabase::database(name, false);
+        if (database.isOpen())
+            return database;
+        QSqlDatabase::removeDatabase(name);
+    }
+
+    if (!QSqlDatabase::isDriverAvailable(QStringLiteral("QSQLITE"))) {
+        setError(errorMessage, QStringLiteral("Qt SQLite driver is not available."));
+        return QSqlDatabase();
+    }
+
+    QSqlDatabase database = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), name);
+    database.setConnectOptions(QStringLiteral("QSQLITE_OPEN_READONLY;QSQLITE_OPEN_URI"));
+    database.setDatabaseName(MbTilesReader::immutableUri(filePath));
+    if (!database.open()) {
+        database.setConnectOptions(QStringLiteral("QSQLITE_OPEN_READONLY"));
+        database.setDatabaseName(filePath);
+        if (!database.open()) {
+            setError(
+                errorMessage,
+                QStringLiteral("Could not open MBTiles database %1: %2")
+                    .arg(filePath, database.lastError().text()));
+            return QSqlDatabase();
+        }
+    }
+
+    QSqlQuery pragma(database);
+    pragma.exec(QStringLiteral("PRAGMA query_only = 1"));
+    pragma.exec(QStringLiteral("PRAGMA cache_size = -65536"));
+    pragma.exec(QStringLiteral("PRAGMA temp_store = MEMORY"));
+    return database;
 }
 
 bool openDatabase(const QString& filePath, const QString& name, QSqlDatabase* database, QString* errorMessage)
@@ -94,37 +139,28 @@ QByteArray readTileData(
     bool tmsYOrigin,
     QString* errorMessage)
 {
-    const QString name = connectionName();
+    QSqlDatabase database = threadConnection(filePath, errorMessage);
+    if (!database.isOpen())
+        return QByteArray();
+
+    const int tileRow = tmsYOrigin ? ((1 << z) - 1 - y) : y;
+    QSqlQuery query(database);
+    query.setForwardOnly(true);
+    query.prepare(QStringLiteral(
+        "select tile_data from tiles "
+        "where zoom_level = ? and tile_column = ? and tile_row = ? "
+        "limit 1"));
+    query.addBindValue(z);
+    query.addBindValue(x);
+    query.addBindValue(tileRow);
+
     QByteArray tileData;
-
-    {
-        QSqlDatabase database;
-        if (!openDatabase(filePath, name, &database, errorMessage)) {
-            QSqlDatabase::removeDatabase(name);
-            return tileData;
-        }
-
-        const int tileRow = tmsYOrigin ? ((1 << z) - 1 - y) : y;
-        QSqlQuery query(database);
-        query.prepare(QStringLiteral(
-            "select tile_data from tiles "
-            "where zoom_level = ? and tile_column = ? and tile_row = ? "
-            "limit 1"));
-        query.addBindValue(z);
-        query.addBindValue(x);
-        query.addBindValue(tileRow);
-
-        if (!query.exec()) {
-            setError(errorMessage, QStringLiteral("Could not read MBTiles tile: %1").arg(query.lastError().text()));
-        }
-        else if (query.next()) {
-            tileData = query.value(0).toByteArray();
-        }
-
-        database.close();
+    if (!query.exec()) {
+        setError(errorMessage, QStringLiteral("Could not read MBTiles tile: %1").arg(query.lastError().text()));
     }
-
-    QSqlDatabase::removeDatabase(name);
+    else if (query.next()) {
+        tileData = query.value(0).toByteArray();
+    }
     return tileData;
 }
 
@@ -462,6 +498,38 @@ QVector<MvtLayer> parseTile(const QByteArray& data)
     return layers;
 }
 
+}
+
+QThreadPool* MbTilesReader::threadPool()
+{
+    static QThreadPool* pool = []() {
+        auto* p = new QThreadPool();
+        // Few readers: a network share serves a handful of parallel reads well, more only queue.
+        p->setMaxThreadCount(4);
+        // Threads never expire, so their open connections stay warm.
+        p->setExpiryTimeout(-1);
+        return p;
+    }();
+    return pool;
+}
+
+QString MbTilesReader::immutableUri(const QString& filePath)
+{
+    QString path = QDir::fromNativeSeparators(filePath);
+    path.replace(QLatin1Char('%'), QLatin1String("%25"));
+    path.replace(QLatin1Char('?'), QLatin1String("%3f"));
+    path.replace(QLatin1Char('#'), QLatin1String("%23"));
+    path.replace(QLatin1Char(' '), QLatin1String("%20"));
+    // "//server/share/..." (UNC) -> "file:////server/share/...": empty authority, UNC path.
+    // "D:/maps/..." -> "file:///D:/maps/...". "/data/..." -> "file:///data/...".
+    QString uri = QStringLiteral("file:");
+    if (path.startsWith(QLatin1String("//")))
+        uri += QLatin1String("//") + path;
+    else if (path.startsWith(QLatin1Char('/')))
+        uri += QLatin1String("//") + path;
+    else
+        uri += QLatin1String("///") + path;
+    return uri + QLatin1String("?mode=ro&immutable=1");
 }
 
 bool MbTilesReader::isVectorFormat(const QString& format)

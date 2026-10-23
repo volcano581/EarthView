@@ -21,6 +21,9 @@ add_executable(cesium_proto
 )
 target_link_libraries(cesium_proto PRIVATE
     Qt6::Widgets Qt6::Network Qt6::Sql Qt6::WebEngineWidgets)
+if(WIN32)
+    target_link_libraries(cesium_proto PRIVATE psapi) # process CPU / memory sampling (--bench-out)
+endif()
 
 # The page is served straight from the source tree, so web/ edits need only a reload.
 target_compile_definitions(cesium_proto PRIVATE

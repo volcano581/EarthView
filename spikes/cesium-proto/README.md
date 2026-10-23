@@ -41,6 +41,7 @@ QWebEngineView ──http://127.0.0.1:<port>/<token>/──► HttpServer (GUI t
 | `web/app.js` | Cesium setup, layers, units, controls, ground view |
 | `web/mvt-worker.js` | OpenMapTiles vector-tile decoder + renderer in web workers |
 | `web/polyfills.js` | ES2023 built-ins CesiumJS needs on older Qt WebEngine (see findings) |
+| `web/bench.html`, `web/bench.js`, `bench/run-bench.ps1` | deck.gl vs CesiumJS benchmark (needs `web/vendor/`: deck.gl and MapLibre, git-ignored) |
 | `package.ps1`, `package/` | builds the offline folder (`dist/`), with its run script and readme |
 
 ## Build and run
@@ -107,6 +108,59 @@ The packaged folder, run with `PATH` reduced to the Windows system folders, beha
    WebSocket or QWebChannel for the stream.
 5. Long-polling binary frames gives 2–4 ms latency in 2D (round 1's per-animation-frame pull:
    ~40 ms).
+
+## Engine benchmark: deck.gl vs CesiumJS
+
+`web/bench.html` + `web/bench.js` + `bench/run-bench.ps1` run the same workload through both
+engines in the same Qt WebEngine window, to compare them like for like.
+
+**Identical for both engines**
+
+- Host process, 20 Hz binary unit frames (double lon/lat, float heading) and the same
+  long-poll connection; `--flat-sim` so the host does no terrain lookups.
+- 1600x900 window; both engines draw 1539x900 canvases (CSS pixels; display scaling is forced
+  off for deck.gl `useDevicePixels:false`, MapLibre `pixelRatio:1`, Cesium default).
+- The same raster base map (`base/{z}/{x}/{y}.png` from the host), and the same scripted
+  camera: pan on a 4 km circle, zoom between 0.57x and 1.74x of 12 m/px, rotate +-30 degrees,
+  one 10 s cycle. In the tilted view the camera has the same pitch (55 degrees from vertical),
+  the same field of view and distance. `?verify=1` checks this: five fixed ground points land on
+  the same screen pixel in both engines (2D: 0.0 px difference; tilted: at most 1.2 px).
+- Layers: heading-rotated icons (16 px), optional 1000 text labels and 1000 trails of 60 points
+  sampled at 2 Hz. No dead reckoning in either: positions change when a frame arrives.
+- Metrics from the page: `requestAnimationFrame` rate and spread, JS time to apply an update
+  and to set the camera, sim-to-screen latency, picking cost (one pick per frame for 6 s);
+  from the host: CPU of the app (includes the in-process GPU thread) and of the Chromium
+  renderer, memory, sim step time.
+
+**Idiomatic, not identical, code**
+
+- deck.gl: `IconLayer`/`PathLayer` with binary attributes (`Float64Array` positions, no
+  copy), `TextLayer` with an accessor, MapLibre base map, `MapboxOverlay` not interleaved.
+- CesiumJS: `BillboardCollection` / `LabelCollection` / `PolylineCollection` (the fast
+  primitive APIs, not the `Entity` API), `CesiumWidget`, per-object property setters. Sky,
+  sun, fog and FXAA are off in both.
+
+**Gotchas found while building it**
+
+- deck.gl `IconLayer` ignores a constant `getIcon: 'arrow'` and draws nothing; it must be a
+  function. Cesium's `Billboard.rotation` is counter-clockwise, so a heading needs `-heading`.
+- `?verify=1` with `--grab` screenshots 8 units with headings 0..315 to check orientations.
+
+**Run it** (laptops: plug in AC power first)
+
+```
+powershell -File spikes/cesium-proto/bench/run-bench.ps1
+```
+
+Full matrix is 26 runs (about 25 minutes): N = 300, 5k, 20k, 50k x {2D icons, 2D icons + labels
++ trails, tilted icons}, plus Cesium-only tilted runs on real DTED terrain at 300 and 5k. It
+refuses to run on battery, uses `--force-high-performance-gpu`, retries a run that changes
+GPU, draws no frames, or loses AC power, and writes `bench/results/<time>/summary.md`.
+`-Quick` gives a 2-minute smoke run; `-Ns`, `-Scenarios`, `-OutDir` redo single cells.
+
+**Status of results:** the first full run (2026-10-22) is **invalid**: the laptop was on
+battery (10%), Windows moved Chromium from the NVIDIA to the Intel GPU part-way through, and one
+cell drew no frames. No numbers are recorded here until it is rerun on AC power.
 
 ## Not verified / limitations
 

@@ -577,6 +577,9 @@ void MapWidget::paintGL()
 
     if (m_overlayPainter) {
         FrameProfiler::Scope drawScope(QStringLiteral("draw.overlayPainter"));
+        // The renderers upload textures with GL_UNPACK_ALIGNMENT 1; QPainter's glyph cache
+        // expects the default 4 and otherwise uploads skewed (unreadable) text.
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
         QPainter painter(this);
         painter.setRenderHint(QPainter::Antialiasing);
         m_overlayPainter(painter);

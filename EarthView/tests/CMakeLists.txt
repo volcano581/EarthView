@@ -21,6 +21,17 @@ get_target_property(_earthview_2d_libs EarthView LINK_LIBRARIES)
 target_link_libraries(tst_mapsourcecatalog PRIVATE ${_earthview_2d_libs} Qt6::Test)
 add_test(NAME tst_mapsourcecatalog COMMAND tst_mapsourcecatalog)
 
+# MBTiles reading: persistent read-only connections from the reader pool, immutable URIs and
+# MBTiles entries in layer-list earth files (a share path in production; a temp file here).
+add_executable(tst_mbtilesreader
+    tst_mbtilesreader.cpp
+    ../MapSourceCatalog.cpp
+    ../MbTilesReader.cpp
+)
+target_include_directories(tst_mbtilesreader PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/..")
+target_link_libraries(tst_mbtilesreader PRIVATE ${_earthview_2d_libs} Qt6::Test)
+add_test(NAME tst_mbtilesreader COMMAND tst_mbtilesreader)
+
 # The 2D camera's projections (E9 removed its pseudo-3D ones; these must not move).
 add_executable(tst_camera2d
     tst_camera2d.cpp

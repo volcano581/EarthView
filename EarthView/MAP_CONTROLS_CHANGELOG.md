@@ -15,7 +15,108 @@ Planned PRs:
 | 1 | `2d/ui1-map-controls` | Overlay foundation, side bar (compass, 3D, measure, settings), projection switch, Globe View removed from toolbar | done |
 | 2 | `2d/ui2-layers-panel` | Mini-map layers button + panel: OSM / Imagery base maps, Hillshade toggle (row 1); Cities / Borders / Grid overlays | **done** |
 | 3 | `2d/ui3-measure-smooth-zoom` | Right-side layout, base map tiles from discovery, measure tool, smooth zoom + inertial pan | **done** |
-| — | later | Parent-tile fallback while zooming; MBTiles from the imagery server | planned |
+| 4 | `2d/ui4-mbtiles-share-minzoom` | MBTiles on the imagery server's share, fast large-file loading, fill-the-window minimum zoom | **done** |
+| — | later | Raster parent-tile fallback while zooming | planned |
+
+---
+
+## PR 4 — MBTiles on the imagery server, large-file loading, minimum zoom (2026-10-23, branch `2d/ui4-mbtiles-share-minzoom`, on top of PR 3)
+
+### What the user sees
+
+- **No zooming out past a full-height map**, as in Google Maps: the floor is the level where the
+  world (or the globe, in Orthographic) is exactly as tall as the map area, `log2(height / 256)`.
+  That is about 1.75 for a maximised 1080p window and 2.0 for a 1024 px tall map area. Making the
+  window taller raises the floor and zooms in with it. Wheel, buttons and the eased zoom all respect it.
+- **MBTiles from the imagery server:** an earth file in `Data/EarthFiles` (next to the imagery and
+  CardG files) can name the MBTiles file on the server's **network share**:
+  ```
+  <image name="OSM" driver="mbtiles"> <url> \\imagery-server\maps\planet.mbtiles </url></image>
+  ```
+  UNC path, mapped drive, or a path relative to the earth file. It appears in the dropdown and as the
+  **OSM Map** tile in the Layers panel. Sample: `Data/EarthFiles/osm_mbtiles.earth.sample`.
+- **The 73 GB file stays smooth:**
+  - only tiles **in view** at the **current zoom** are read; the file is never copied or scanned.
+    Zoomed out means low-zoom tiles: few and small;
+  - **vector** tiles are read one level coarser (they are made for 512 px), so there are 4× fewer
+    tiles to read and decode, with styling at the displayed zoom (no visual change in colours/widths);
+  - after a pan or zoom, reads for tiles that left the view are **dropped before they reach the
+    share**, and the newest requests are read first;
+  - while new vector tiles load, the previous view's tiles **stay drawn** underneath, so there are no blank flashes.
+
+### Why it was slow
+
+`MbTilesReader` opened and closed the SQLite database for **every tile**. On a 73 GB file over a
+share, each open re-reads the schema across the network and starts with an empty cache, and SMB
+file locking adds round trips. In addition, reads could not be cancelled, so after every pan or
+zoom the shared thread pool worked through all outdated tiles first.
+
+### How it works now
+
+- One **persistent read-only connection per reader thread and file**, opened as
+  `file:...?mode=ro&immutable=1` (no locking; falls back to a plain read-only open), with
+  `query_only`, a 64 MB page cache and in-memory temp storage. SQLite reads only the B-tree index pages and the tile's bytes.
+- A dedicated reader pool, `MbTilesReader::threadPool()`: 4 threads that never expire, so their
+  connections stay warm.
+- `MbTilesRequestSet`: the keys a loader still wants, shared with its jobs (thread-safe). Jobs check it first.
+
+### Files added
+
+| File | Purpose |
+|---|---|
+| `EarthView/tests/tst_mbtilesreader.cpp` | Builds a small MBTiles file and tests reads, 32 parallel pool reads, immutable URIs (UNC, drive, escaping), earth-file `mbtiles` entries, and the request set |
+| `EarthView/Data/EarthFiles/osm_mbtiles.earth.sample` | Template for the share entry |
+
+### Files changed
+
+| File | Change |
+|---|---|
+| `EarthView/MbTilesReader.h/.cpp` | Persistent per-thread connections, `immutableUri()`, `threadPool()`, `MbTilesRequestSet` |
+| `EarthView/TMSLoader.h/.cpp` | Raster MBTiles reads go to the reader pool, newest first. Stale reads are dropped (`abortRequestsExcept` now covers them). |
+| `EarthView/VectorTileRenderer.h/.cpp` | Same for vector reads. Tile zoom is one level coarser (`kVectorTileZoomOffset`). Previous tiles are kept until the new view is loaded (`m_retainedKeys`, max 384). |
+| `EarthView/MapSourceCatalog.h/.cpp` | `driver="mbtiles"` entries in layer-list earth files; `mbTilesLayer()` and `isMbTilesSource()` helpers (the `Data/OSM` discovery uses the same helper) |
+| `EarthView/Camera.h/.cpp` | Opt-in `setFitHeightMinimumZoom()` / `minimumZoomLevel()`, **off by default** |
+| `EarthView/mapcontrols/MapControlsOverlay.cpp` | Turns the minimum zoom on |
+| `EarthView/mapcontrols/SmoothNavigator.cpp` | Eased zoom stops at the floor (re-checked every frame) |
+| `EarthView/mapcontrols/BaseMapSources.cpp` | Earth files with an MBTiles layer get the OSM Map tile |
+| `EarthView/Data/EarthFiles/README.md` | The `mbtiles` entry |
+| `EarthView/tests/tst_smoothnavigation.cpp`, `EarthView/tests/CMakeLists.txt` | Minimum-zoom tests; new test target |
+
+### Behaviour changes to know (2D, D-034)
+
+- Vector MBTiles are drawn from one zoom level coarser tiles (the same look at 512 px design size).
+- Without `MapControlsOverlay`, the minimum zoom stays 0 as before. Every other change applies to all hosts:
+  they are loading fixes, not visual changes.
+- The 3D view ignores `mbtiles` entries.
+
+### Offline machine setup
+
+1. Copy `Data/EarthFiles/osm_mbtiles.earth.sample` to `osm_mbtiles.earth` and put the share path of
+   the file in `<url>`. The account running EarthView needs **read** access to the share.
+2. Remove the local copy from `Data/OSM` if you had one. Otherwise both appear: two OSM Map tiles, named.
+3. Start EarthView. Choose the **OSM Map** tile (or the dropdown entry). The first view reads a few
+   index pages; later reads hit the 64 MB per-thread cache.
+
+### Verify
+
+1. `ctest --test-dir build-msvc -C Release --output-on-failure` (Qt `bin` on `PATH`): **22/22**.
+2. On the offline machine, with the share entry:
+   - The OSM Map tile shows the planet file. Zoom in fast to a city: tiles appear within moments, with no freeze.
+   - Pan quickly back and forth: the map follows, with no growing backlog. Zoom out: no blank flashes; the old tiles stay until the new ones are in.
+   - Zoom out fully: it stops where the map fills the window's height. Maximise or restore: the floor follows the height.
+
+### Fix: unreadable measure label
+
+The total next to the measure line came out as sheared, unreadable glyphs. The map's renderers
+upload textures with `GL_UNPACK_ALIGNMENT 1`, but QPainter's glyph cache expects the default 4.
+Two changes: `MapWidget::paintGL` restores alignment 4 before the overlay painter runs, and the
+label text is drawn as vector outlines (`QPainterPath::addText`), so it no longer depends on
+glyph textures at all. Files: `EarthView/MapWidget.cpp`, `EarthView/mapcontrols/MapControlsOverlay.cpp`.
+
+### Verification status
+
+- MSVC build: **OK**. `ctest`: **22/22 passed** (MBTiles test against a real SQLite MBTiles file, including 32 parallel reads).
+- Against the 73 GB file on the real share: **pending (offline machine)**. Not available on the dev PC.
 
 ---
 

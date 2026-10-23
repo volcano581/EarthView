@@ -301,6 +301,35 @@ void applyTileMapResourceMetadata(
  * Only the path is read here (one place to edit per machine); the 2D DEM pipeline still uses
  * its GeoTIFF mirror. earthview3d turns the same entry into an osgEarth GDALElevation layer.
  */
+bool MapSourceCatalog::mbTilesLayer(const QString& filePath, TmsLoader::TileSourceLayer* layer, QString* errorMessage)
+{
+    const MbTilesMetadata metadata = MbTilesReader::readMetadata(filePath, errorMessage);
+    if (!metadata.valid || !layer)
+        return false;
+
+    layer->sourceType = MbTilesReader::isVectorFormat(metadata.format)
+        ? TmsLoader::TileSourceLayer::SourceType::VectorMbTiles
+        : TmsLoader::TileSourceLayer::SourceType::MbTiles;
+    if (layer->name.isEmpty())
+        layer->name = metadata.name.isEmpty() ? QFileInfo(filePath).completeBaseName() : metadata.name;
+    layer->mbTilesPath = filePath;
+    layer->mbTilesFormat = metadata.format;
+    layer->minTileZoom = metadata.minZoom;
+    layer->maxTileZoom = metadata.maxZoom;
+    layer->tmsYOrigin = metadata.scheme.compare("xyz", Qt::CaseInsensitive) != 0;
+    return true;
+}
+
+bool MapSourceCatalog::isMbTilesSource(const Source& source)
+{
+    for (const TmsLoader::TileSourceLayer& layer : source.layers) {
+        if (layer.sourceType == TmsLoader::TileSourceLayer::SourceType::MbTiles
+            || layer.sourceType == TmsLoader::TileSourceLayer::SourceType::VectorMbTiles)
+            return true;
+    }
+    return source.filePath.endsWith(".mbtiles", Qt::CaseInsensitive);
+}
+
 QList<TmsLoader::TileSourceLayer> MapSourceCatalog::readEarthLayers(const QString& filePath, QString* dtedDirectory)
 {
     QFile file(filePath);
@@ -315,6 +344,7 @@ QList<TmsLoader::TileSourceLayer> MapSourceCatalog::readEarthLayers(const QStrin
     bool insideImage = false;
     bool skipCurrentImage = false;
     bool insideDted = false;
+    bool currentIsMbTiles = false;
 
     while (!xml.atEnd()) {
         xml.readNext();
@@ -333,12 +363,32 @@ QList<TmsLoader::TileSourceLayer> MapSourceCatalog::readEarthLayers(const QStrin
                 const QXmlStreamAttributes attributes = xml.attributes();
                 const QString driver = attributes.value("driver").toString();
                 insideImage = true;
-                skipCurrentImage = !driver.isEmpty() && driver.compare("tms", Qt::CaseInsensitive) != 0;
+                currentIsMbTiles = driver.compare("mbtiles", Qt::CaseInsensitive) == 0;
+                skipCurrentImage = !driver.isEmpty() && !currentIsMbTiles
+                    && driver.compare("tms", Qt::CaseInsensitive) != 0;
                 currentLayer = TmsLoader::TileSourceLayer();
                 currentLayer.name = attributes.value("name").toString();
                 currentLayer.minZoom = readZoomValue(attributes, { "min_level", "minLevel", "min_zoom", "minZoom" });
                 currentLayer.maxZoom = readZoomValue(attributes, { "max_level", "maxLevel", "max_zoom", "maxZoom" });
                 currentLayer.tmsYOrigin = driver.compare("tms", Qt::CaseInsensitive) == 0;
+            }
+            else if (insideImage && currentIsMbTiles && elementName == "url") {
+                // An MBTiles file on the imagery server's share (UNC / mapped drive), or relative
+                // to this earth file. Its metadata is read once here; tiles are read on demand.
+                QString path = xml.readElementText(QXmlStreamReader::SkipChildElements).trimmed();
+                if (path.startsWith("file:", Qt::CaseInsensitive))
+                    path = QUrl(path).toLocalFile();
+                if (QFileInfo(path).isRelative())
+                    path = QFileInfo(filePath).absoluteDir().absoluteFilePath(path);
+                QString errorMessage;
+                if (!mbTilesLayer(path, &currentLayer, &errorMessage)) {
+                    qWarning() << "Skipping MBTiles layer" << path << "in" << filePath << errorMessage;
+                    skipCurrentImage = true;
+                }
+                else {
+                    // Marks the layer as complete for the end-of-image check below.
+                    currentLayer.urlTemplate = path;
+                }
             }
             else if (insideImage && elementName == "url") {
                 const QString rawUrl = xml.readElementText(QXmlStreamReader::SkipChildElements).trimmed();
@@ -371,6 +421,7 @@ QList<TmsLoader::TileSourceLayer> MapSourceCatalog::readEarthLayers(const QStrin
             }
             insideImage = false;
             skipCurrentImage = false;
+            currentIsMbTiles = false;
         }
     }
 
@@ -459,22 +510,11 @@ QList<MapSourceCatalog::Source> MapSourceCatalog::discoverMbTilesSources()
             seenFiles.insert(absolutePath);
 
             QString errorMessage;
-            const MbTilesMetadata metadata = MbTilesReader::readMetadata(absolutePath, &errorMessage);
-            if (!metadata.valid) {
+            TmsLoader::TileSourceLayer layer;
+            if (!mbTilesLayer(absolutePath, &layer, &errorMessage)) {
                 qWarning() << "Skipping MBTiles source" << absolutePath << errorMessage;
                 continue;
             }
-
-            TmsLoader::TileSourceLayer layer;
-            layer.sourceType = MbTilesReader::isVectorFormat(metadata.format)
-                ? TmsLoader::TileSourceLayer::SourceType::VectorMbTiles
-                : TmsLoader::TileSourceLayer::SourceType::MbTiles;
-            layer.name = metadata.name.isEmpty() ? file.completeBaseName() : metadata.name;
-            layer.mbTilesPath = absolutePath;
-            layer.mbTilesFormat = metadata.format;
-            layer.minTileZoom = metadata.minZoom;
-            layer.maxTileZoom = metadata.maxZoom;
-            layer.tmsYOrigin = metadata.scheme.compare("xyz", Qt::CaseInsensitive) != 0;
 
             Source source;
             source.label = QString("%1 - %2")

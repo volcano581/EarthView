@@ -12,6 +12,7 @@ Camera::Camera(QObject* parent)
     , m_viewportWidth(800)
     , m_viewportHeight(600)
     , m_horizontalWrapEnabled(false)
+    , m_fitHeightMinimumZoom(false)
     , m_projectionMode(ProjectionMode::Mercator)
     , m_cachedResolution(0.0)
     , m_cacheValid(false)
@@ -24,13 +25,39 @@ void Camera::setViewportSize(int width, int height)
     m_viewportWidth = width;
     m_viewportHeight = height;
     m_cacheValid = false;
+    if (m_fitHeightMinimumZoom && m_zoomLevel < minimumZoomLevel()) {
+        // A taller window raises the floor: keep the map filling it.
+        m_zoomLevel = minimumZoomLevel();
+        clampCenter();
+        updateMatrices();
+        emit cameraChanged();
+        return;
+    }
     updateMatrices();
+}
+
+void Camera::setFitHeightMinimumZoom(bool enabled)
+{
+    if (m_fitHeightMinimumZoom == enabled)
+        return;
+    m_fitHeightMinimumZoom = enabled;
+    if (m_zoomLevel < minimumZoomLevel())
+        setZoomLevel(m_zoomLevel);
+}
+
+double Camera::minimumZoomLevel() const
+{
+    if (!m_fitHeightMinimumZoom || m_viewportHeight <= 0)
+        return GIS::MIN_ZOOM;
+    // The world (Mercator) and the globe (orthographic) are TILE_SIZE * 2^zoom pixels tall.
+    const double fill = std::log2(double(m_viewportHeight) / GIS::TILE_SIZE);
+    return qBound(GIS::MIN_ZOOM, fill, GIS::MAX_ZOOM);
 }
 
 void Camera::zoom(float delta, const QPointF& screenCenter)
 {
     double newZoom = m_zoomLevel + delta;
-    newZoom = qBound(GIS::MIN_ZOOM, newZoom, GIS::MAX_ZOOM);
+    newZoom = qBound(minimumZoomLevel(), newZoom, GIS::MAX_ZOOM);
 
     if (!screenCenter.isNull() && !qFuzzyCompare(m_zoomLevel, newZoom)) {
         // Get Mercator point BEFORE zoom with OLD resolution
@@ -101,7 +128,7 @@ void Camera::setCenter(const QPointF& mercatorCenter)
 
 void Camera::setZoomLevel(double zoom)
 {
-    m_zoomLevel = qBound(GIS::MIN_ZOOM, zoom, GIS::MAX_ZOOM);
+    m_zoomLevel = qBound(minimumZoomLevel(), zoom, GIS::MAX_ZOOM);
     clampCenter();
     m_cacheValid = false;
     updateMatrices();

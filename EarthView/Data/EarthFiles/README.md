@@ -52,6 +52,23 @@ stderr, naming the folders it searched.
 A file in this folder that already has a `<map>` root is passed to osgEarth unchanged.
 2D behaviour is unchanged: it still reads these files itself.
 
+## MBTiles on the imagery server's share
+
+A layer list can also name an **MBTiles** file (raster or vector, e.g. a planet-wide OpenStreetMap
+file of tens of GB) on the imagery server's network share, by path — UNC, mapped drive, or relative
+to the earth file:
+
+```
+<image name="OSM" driver="mbtiles"> <url> \imagery-server\maps\planet.mbtiles </url></image>
+```
+
+The 2D viewer offers it like any other map source (dropdown and Layers panel, as **OSM Map**).
+It never copies or scans the file: each reader thread keeps one read-only connection open and
+SQLite reads only the index pages and the tiles in view, at the zoom being shown (vector tiles
+one level coarser, as they are made for 512 px). Requests for tiles that left the view are
+dropped before they reach the share. Copy `osm_mbtiles.earth.sample` to `osm_mbtiles.earth`
+and edit the path. The 3D view ignores `mbtiles` entries.
+
 ## DTED from the offline server
 
 A layer list may also name the folder of DTED tiles (`.dt1`/`.dt2`) that the offline machine
