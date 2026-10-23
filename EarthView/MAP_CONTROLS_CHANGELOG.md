@@ -132,7 +132,18 @@ the app from a console and look for `MapControlsOverlay:` or QML warnings.
 - Built with MSVC (VS 2026, Qt 6.11.0 `msvc2022_64`): **OK**.
 - `tst_mapcontrolsmodel`: **all 8 functions passed**. `tst_mercatorprojection`: passed.
 - App started offscreen for 8 s: no QML, SVG or overlay warnings.
-- Visual check on a real screen: **pending (Windows, human)**.
+- Visual check on a real screen: side bar renders (after the fix above). Click-through checklist: **pending (Windows, human)**.
+
+### Fix after first run (2026-10-23)
+
+On Windows the side bar did not appear. The console showed `QQuickWidget: Failed to get a QRhi`
+and `'OpenGL' is not compatible with this QQuickWidget`. Cause: Qt Quick uses Direct3D 11 by default,
+but a window that contains the OpenGL `MapWidget` composites with OpenGL. Fix in
+`MapControlsOverlay.cpp`: `QQuickWindow::setGraphicsApi(QSGRendererInterface::OpenGL)` is called
+before the `QQuickWidget` is created. This setting is **process-wide**. A host that also uses
+Qt Quick elsewhere (e.g. Doctrine) must use OpenGL there too, or create the overlay before any other
+Qt Quick window. The offscreen smoke test cannot catch this, so always check on a real screen.
+Checked on screen afterwards: the side bar renders in the Secondary View (screenshot taken).
 
 ### Known limitations
 

@@ -6,6 +6,8 @@
 #include <QQmlContext>
 #include <QQmlError>
 #include <QQuickWidget>
+#include <QQuickWindow>
+#include <QSGRendererInterface>
 #include <QToolTip>
 #include <QUrl>
 
@@ -14,11 +16,22 @@ constexpr int kRightMargin = 12;
 constexpr int kBottomMargin = 24;
 }
 
+namespace {
+// The map is a QOpenGLWidget, so its window composites with OpenGL; Qt Quick defaults to
+// Direct3D 11 on Windows and then renders nothing ("no QRhi"). Process-wide, and must run
+// before the first QQuickWidget exists.
+QQuickWidget* createOpenGLQuickWidget(QWidget* parent)
+{
+    QQuickWindow::setGraphicsApi(QSGRendererInterface::OpenGL);
+    return new QQuickWidget(parent);
+}
+}
+
 MapControlsOverlay::MapControlsOverlay(MapWidget* mapWidget)
     : QObject(mapWidget)
     , m_mapWidget(mapWidget)
     , m_model(new MapControlsModel(this))
-    , m_view(new QQuickWidget(mapWidget))
+    , m_view(createOpenGLQuickWidget(mapWidget))
 {
     m_model->bindCamera(mapWidget->camera());
 
