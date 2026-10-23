@@ -19,6 +19,7 @@ option(EARTHVIEW_BUILD_APP      "Build the EarthView standalone viewer app" ON)
 option(EARTHVIEW_DEPLOY_QT      "Run windeployqt after building EarthView" ON)
 option(EARTHVIEW_BUILD_SNAPSHOT "Build the earthview_snapshot offscreen render tool" ON)
 option(EARTHVIEW_BUILD_TESTS    "Build EarthView unit tests" ON)
+option(EARTHVIEW_BUILD_MAP_CONTROLS "Build the QML on-map controls (needs Qt Quick, Quick Widgets, Svg)" ON)
 
 # Qt kit: EARTHVIEW_QT_PREFIX wins; CONQUER_QT_PREFIX (set by the Conquer superbuild) is
 # checked next; otherwise a default kit matching the compiler is used as a fallback only,
@@ -42,6 +43,13 @@ endif()
 
 find_package(Qt6 REQUIRED COMPONENTS Core Widgets Network OpenGL OpenGLWidgets Sql)
 find_package(Qt6 QUIET COMPONENTS Test)
+if(EARTHVIEW_BUILD_MAP_CONTROLS)
+    find_package(Qt6 QUIET COMPONENTS Qml Quick QuickWidgets Svg)
+    if(NOT (TARGET Qt6::Quick AND TARGET Qt6::QuickWidgets AND TARGET Qt6::Svg))
+        message(STATUS "EarthView: Qt Quick / Quick Widgets / Svg not found - map controls disabled")
+        set(EARTHVIEW_BUILD_MAP_CONTROLS OFF)
+    endif()
+endif()
 find_package(Qt6ZlibPrivate QUIET)
 
 # ── Source lists ─────────────────────────────────────────────────────────────
@@ -149,6 +157,10 @@ endif()
 set(EARTHVIEW_SHADER_DIR "${CMAKE_CURRENT_SOURCE_DIR}/shaders" CACHE INTERNAL "EarthView shaders directory")
 set(EARTHVIEW_DATA_DIR   "${CMAKE_CURRENT_SOURCE_DIR}/Data"    CACHE INTERNAL "EarthView data directory")
 
+if(EARTHVIEW_BUILD_MAP_CONTROLS)
+    add_subdirectory(mapcontrols)
+endif()
+
 # ── EarthView: standalone viewer app ─────────────────────────────────────────
 if(EARTHVIEW_BUILD_APP)
     add_executable(EarthView
@@ -160,6 +172,10 @@ if(EARTHVIEW_BUILD_APP)
         ${SHADERS}
     )
     target_link_libraries(EarthView PRIVATE earthview::core)
+    if(EARTHVIEW_BUILD_MAP_CONTROLS)
+        target_link_libraries(EarthView PRIVATE earthview::mapcontrols)
+        target_compile_definitions(EarthView PRIVATE EARTHVIEW_HAS_MAP_CONTROLS)
+    endif()
 
     add_custom_command(TARGET EarthView POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory
@@ -178,10 +194,15 @@ if(EARTHVIEW_BUILD_APP)
 
         find_program(WINDEPLOYQT_EXECUTABLE windeployqt HINTS "${QT_BIN_DIR}")
         if(WINDEPLOYQT_EXECUTABLE)
+            set(_earthview_qmldir_args "")
+            if(EARTHVIEW_BUILD_MAP_CONTROLS)
+                set(_earthview_qmldir_args --qmldir "${EARTHVIEW_MAPCONTROLS_QML_DIR}")
+            endif()
             add_custom_command(TARGET EarthView POST_BUILD
                 COMMAND ${CMAKE_COMMAND} -E env
                     "PATH=${QT_BIN_DIR};$ENV{PATH}"
                     "${WINDEPLOYQT_EXECUTABLE}"
+                    ${_earthview_qmldir_args}
                     $<TARGET_FILE:EarthView>
             )
         endif()

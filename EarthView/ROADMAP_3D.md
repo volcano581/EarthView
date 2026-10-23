@@ -1,5 +1,8 @@
 # EarthView 3D — Roadmap for Agent Handoff
 
+> **Paused (2026-10-23, D-032).** The owner has chosen to focus on the 2D view with on-map
+> controls (`MAP_CONTROLS_CHANGELOG.md`). Do not start further E-tasks unless the owner reopens them.
+
 > Status, change log, decisions and issues: **[3D_PROGRESS.md](3D_PROGRESS.md)** ·
 > Design: **[OSGEARTH_INTEGRATION.md](OSGEARTH_INTEGRATION.md)** ·
 > Local Doctrine wiring: **[DOCTRINE_WIRING.md](DOCTRINE_WIRING.md)** ·

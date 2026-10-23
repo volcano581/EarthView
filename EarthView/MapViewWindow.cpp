@@ -2,6 +2,9 @@
 #include "Camera.h"
 #include "MapWidget.h"
 #include "MercatorProjection.h"
+#ifdef EARTHVIEW_HAS_MAP_CONTROLS
+#include "MapControlsOverlay.h"
+#endif
 
 #include <QAction>
 #include <QCloseEvent>
@@ -25,6 +28,9 @@ MapViewWindow::MapViewWindow(const QString& title, QWidget* parent)
     resize(800, 520);
 
     setCentralWidget(m_mapWidget);
+#ifdef EARTHVIEW_HAS_MAP_CONTROLS
+    new MapControlsOverlay(m_mapWidget);
+#endif
     setupToolbar();
     createStatusBar();
     setFocusProxy(m_mapWidget);
@@ -94,9 +100,6 @@ void MapViewWindow::setupToolbar()
     toolbar->addSeparator();
     toolbar->addAction(wrapLongitudeAction);
 
-    QAction* globeViewAction = new QAction("Globe View", this);
-    globeViewAction->setCheckable(true);
-    toolbar->addAction(globeViewAction);
 
     connect(loadBordersAction, &QAction::triggered, this, [this]() {
         QString filePath = QFileDialog::getOpenFileName(
@@ -127,13 +130,8 @@ void MapViewWindow::setupToolbar()
     connect(wrapLongitudeAction, &QAction::toggled, this, [this](bool enabled) {
         m_mapWidget->camera()->setHorizontalWrapEnabled(enabled);
     });
-    connect(globeViewAction, &QAction::toggled, this, [this](bool enabled) {
-        m_mapWidget->camera()->setProjectionMode(
-            enabled ? Camera::ProjectionMode::Orthographic : Camera::ProjectionMode::Mercator);
-    });
-    connect(m_mapWidget->camera(), &Camera::projectionModeChanged, this, [this, globeViewAction](Camera::ProjectionMode mode) {
-        QSignalBlocker blocker(globeViewAction);
-        globeViewAction->setChecked(mode == Camera::ProjectionMode::Orthographic);
+    // Projection is switched from the on-map Settings panel (MapControlsOverlay).
+    connect(m_mapWidget->camera(), &Camera::projectionModeChanged, this, [this](Camera::ProjectionMode mode) {
         statusBar()->showMessage(
             mode == Camera::ProjectionMode::Orthographic
                 ? "Orthographic globe view enabled"

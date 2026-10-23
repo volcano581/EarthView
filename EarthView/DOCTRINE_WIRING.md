@@ -186,3 +186,20 @@ Prerequisites: Conquer's `msvc` preset builds; osgEarth available (vcpkg tree or
 - [ ] Offline: network unplugged, map and entities still render.
 - [ ] Closing and reopening the 3D window works; app exit is clean.
 - [ ] Record the result in `3D_PROGRESS.md` (Verification log) — that file is on GitHub.
+
+## 5. Optional: 2D on-map controls (D-032)
+
+Independent of `earthview3d`. A host that embeds the 2D `MapWidget` can add the on-map side
+bar (compass, disabled 3D button, measure, settings with Mercator/Orthographic):
+
+```cmake
+target_link_libraries(doctrine PRIVATE earthview::mapcontrols)   # needs Qt Qml, Quick, QuickWidgets, Svg
+```
+```cpp
+#include "MapControlsOverlay.h"
+auto* overlay = new MapControlsOverlay(mapWidget);   // owned by mapWidget
+overlay->model()->setGlobe3DAvailable(false);         // default; true once a 3D view exists
+```
+
+`earthview_core` itself does not depend on Qt Quick. Deployment: run `windeployqt` with
+`--qmldir EarthView/mapcontrols/qml` so the QtQuick QML modules and the SVG image plugin ship.
