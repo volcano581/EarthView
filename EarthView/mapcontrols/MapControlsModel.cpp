@@ -12,6 +12,14 @@ MapControlsModel::MapControlsModel(QObject* parent)
     , m_globe3DAvailable(false)
     , m_measureAvailable(false)
     , m_settingsOpen(false)
+    , m_layersOpen(false)
+    , m_baseMap(OsmBaseMap)
+    , m_osmAvailable(true)
+    , m_imageryAvailable(false)
+    , m_hillshadeVisible(true)
+    , m_citiesVisible(true)
+    , m_bordersVisible(true)
+    , m_gridVisible(true)
 {
 }
 
@@ -88,15 +96,95 @@ void MapControlsModel::setMeasureAvailable(bool available)
 
 void MapControlsModel::setSettingsOpen(bool open)
 {
+    if (open)
+        setLayersOpen(false);
     if (m_settingsOpen == open)
         return;
     m_settingsOpen = open;
     emit settingsOpenChanged(m_settingsOpen);
 }
 
-void MapControlsModel::resetNorth()
+void MapControlsModel::setLayersOpen(bool open)
+{
+    if (open)
+        setSettingsOpen(false);
+    if (m_layersOpen == open)
+        return;
+    m_layersOpen = open;
+    emit layersOpenChanged(m_layersOpen);
+}
+
+void MapControlsModel::closePanels()
 {
     setSettingsOpen(false);
+    setLayersOpen(false);
+}
+
+void MapControlsModel::setBaseMap(int baseMap)
+{
+    if (baseMap == OsmBaseMap && !m_osmAvailable)
+        return;
+    if (baseMap == ImageryBaseMap && !m_imageryAvailable)
+        return;
+    if (baseMap != OsmBaseMap && baseMap != ImageryBaseMap)
+        return;
+    if (m_baseMap == baseMap)
+        return;
+    m_baseMap = baseMap;
+    emit baseMapChanged(m_baseMap);
+}
+
+void MapControlsModel::setOsmAvailable(bool available)
+{
+    if (m_osmAvailable == available)
+        return;
+    m_osmAvailable = available;
+    emit osmAvailableChanged(m_osmAvailable);
+}
+
+void MapControlsModel::setImageryAvailable(bool available)
+{
+    if (m_imageryAvailable == available)
+        return;
+    m_imageryAvailable = available;
+    emit imageryAvailableChanged(m_imageryAvailable);
+}
+
+void MapControlsModel::setHillshadeVisible(bool visible)
+{
+    if (m_hillshadeVisible == visible)
+        return;
+    m_hillshadeVisible = visible;
+    emit hillshadeVisibleChanged(m_hillshadeVisible);
+}
+
+void MapControlsModel::setCitiesVisible(bool visible)
+{
+    if (m_citiesVisible == visible)
+        return;
+    m_citiesVisible = visible;
+    emit citiesVisibleChanged(m_citiesVisible);
+}
+
+void MapControlsModel::setBordersVisible(bool visible)
+{
+    if (m_bordersVisible == visible)
+        return;
+    m_bordersVisible = visible;
+    emit bordersVisibleChanged(m_bordersVisible);
+}
+
+void MapControlsModel::setGridVisible(bool visible)
+{
+    if (m_gridVisible == visible)
+        return;
+    m_gridVisible = visible;
+    emit gridVisibleChanged(m_gridVisible);
+}
+
+void MapControlsModel::resetNorth()
+{
+    closePanels();
     setBearingDegrees(0.0);
     emit northResetRequested();
 }

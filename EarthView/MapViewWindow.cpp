@@ -20,6 +20,7 @@
 MapViewWindow::MapViewWindow(const QString& title, QWidget* parent)
     : QMainWindow(parent)
     , m_mapWidget(new MapWidget(this))
+    , m_mapControls(nullptr)
     , m_coordLabel(nullptr)
     , m_zoomLabel(nullptr)
 {
@@ -29,7 +30,7 @@ MapViewWindow::MapViewWindow(const QString& title, QWidget* parent)
 
     setCentralWidget(m_mapWidget);
 #ifdef EARTHVIEW_HAS_MAP_CONTROLS
-    new MapControlsOverlay(m_mapWidget);
+    m_mapControls = (new MapControlsOverlay(m_mapWidget))->model();
 #endif
     setupToolbar();
     createStatusBar();
@@ -73,27 +74,37 @@ void MapViewWindow::setupToolbar()
     QAction* texturesVisibleAction = new QAction("Textures", this);
     texturesVisibleAction->setCheckable(true);
     texturesVisibleAction->setChecked(true);
+#ifndef EARTHVIEW_HAS_MAP_CONTROLS  // In the layers panel instead.
     toolbar->addAction(texturesVisibleAction);
+#endif
 
     QAction* bordersVisibleAction = new QAction("Borders", this);
     bordersVisibleAction->setCheckable(true);
     bordersVisibleAction->setChecked(true);
+#ifndef EARTHVIEW_HAS_MAP_CONTROLS  // In the layers panel instead.
     toolbar->addAction(bordersVisibleAction);
+#endif
 
     QAction* gridVisibleAction = new QAction("Grid", this);
     gridVisibleAction->setCheckable(true);
     gridVisibleAction->setChecked(true);
+#ifndef EARTHVIEW_HAS_MAP_CONTROLS  // In the layers panel instead.
     toolbar->addAction(gridVisibleAction);
+#endif
 
     QAction* citiesVisibleAction = new QAction("Cities", this);
     citiesVisibleAction->setCheckable(true);
     citiesVisibleAction->setChecked(true);
+#ifndef EARTHVIEW_HAS_MAP_CONTROLS  // In the layers panel instead.
     toolbar->addAction(citiesVisibleAction);
+#endif
 
     QAction* terrainVisibleAction = new QAction("Terrain", this);
     terrainVisibleAction->setCheckable(true);
     terrainVisibleAction->setChecked(true);
+#ifndef EARTHVIEW_HAS_MAP_CONTROLS  // In the layers panel instead.
     toolbar->addAction(terrainVisibleAction);
+#endif
 
     QAction* wrapLongitudeAction = new QAction("Wrap Longitude", this);
     wrapLongitudeAction->setCheckable(true);

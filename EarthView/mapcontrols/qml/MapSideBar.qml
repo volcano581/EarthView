@@ -1,4 +1,4 @@
-﻿import QtQuick
+import QtQuick
 
 // On-map side bar: compass, 3D globe (disabled), measure, settings.
 // The QQuickWidget sizes itself to this root (SizeViewToRootObject) and is anchored to the
@@ -72,52 +72,6 @@ Item {
         color: root.borderColor
     }
 
-    component ProjectionTile: Item {
-        id: tile
-        property url iconSource
-        property string label
-        property bool selected: false
-        signal clicked()
-
-        width: 72
-        height: 86
-
-        Rectangle {
-            id: frame
-            width: 56
-            height: 56
-            anchors.horizontalCenter: parent.horizontalCenter
-            radius: 10
-            color: "#f8f9fa"
-            border.width: tile.selected ? 2 : 1
-            border.color: tile.selected ? root.accentColor
-                        : (tileMouse.containsMouse ? "#9aa0a6" : root.borderColor)
-            Image {
-                anchors.centerIn: parent
-                width: 40
-                height: 40
-                sourceSize: Qt.size(80, 80)
-                source: tile.iconSource
-                smooth: true
-            }
-        }
-        Text {
-            anchors.top: frame.bottom
-            anchors.topMargin: 6
-            anchors.horizontalCenter: parent.horizontalCenter
-            text: tile.label
-            font.pixelSize: 12
-            color: tile.selected ? root.accentColor : root.textColor
-        }
-        MouseArea {
-            id: tileMouse
-            anchors.fill: parent
-            hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
-            onClicked: tile.clicked()
-        }
-    }
-
     // Settings panel, opens to the left of the bar.
     Rectangle {
         id: panel
@@ -145,13 +99,13 @@ Item {
             }
             Row {
                 spacing: 4
-                ProjectionTile {
+                LayerTile {
                     iconSource: "icons/proj_mercator.svg"
                     label: "Mercator"
                     selected: !mapControls.orthographic
                     onClicked: mapControls.orthographic = false
                 }
-                ProjectionTile {
+                LayerTile {
                     iconSource: "icons/proj_orthographic.svg"
                     label: "Orthographic"
                     selected: mapControls.orthographic

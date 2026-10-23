@@ -24,8 +24,23 @@ class MapControlsModel : public QObject
     Q_PROPERTY(bool globe3DAvailable READ isGlobe3DAvailable WRITE setGlobe3DAvailable NOTIFY globe3DAvailableChanged)
     Q_PROPERTY(bool measureAvailable READ isMeasureAvailable WRITE setMeasureAvailable NOTIFY measureAvailableChanged)
     Q_PROPERTY(bool settingsOpen READ isSettingsOpen WRITE setSettingsOpen NOTIFY settingsOpenChanged)
+    Q_PROPERTY(bool layersOpen READ isLayersOpen WRITE setLayersOpen NOTIFY layersOpenChanged)
+    Q_PROPERTY(int baseMap READ baseMap WRITE setBaseMap NOTIFY baseMapChanged)
+    Q_PROPERTY(bool osmAvailable READ isOsmAvailable WRITE setOsmAvailable NOTIFY osmAvailableChanged)
+    Q_PROPERTY(bool imageryAvailable READ isImageryAvailable WRITE setImageryAvailable NOTIFY imageryAvailableChanged)
+    Q_PROPERTY(bool hillshadeVisible READ isHillshadeVisible WRITE setHillshadeVisible NOTIFY hillshadeVisibleChanged)
+    Q_PROPERTY(bool citiesVisible READ areCitiesVisible WRITE setCitiesVisible NOTIFY citiesVisibleChanged)
+    Q_PROPERTY(bool bordersVisible READ areBordersVisible WRITE setBordersVisible NOTIFY bordersVisibleChanged)
+    Q_PROPERTY(bool gridVisible READ isGridVisible WRITE setGridVisible NOTIFY gridVisibleChanged)
 
 public:
+    /// Base maps offered in the layers panel (one at a time). Values are used from QML.
+    enum BaseMap {
+        OsmBaseMap = 0,
+        ImageryBaseMap = 1
+    };
+    Q_ENUM(BaseMap)
+
     explicit MapControlsModel(QObject* parent = nullptr);
 
     /// Binds the projection to @p camera (nullptr unbinds). The model takes the camera's mode.
@@ -48,12 +63,36 @@ public:
     bool isMeasureAvailable() const { return m_measureAvailable; }
     void setMeasureAvailable(bool available);
 
+    /// Settings and layers panels: opening one closes the other.
     bool isSettingsOpen() const { return m_settingsOpen; }
     void setSettingsOpen(bool open);
+    bool isLayersOpen() const { return m_layersOpen; }
+    void setLayersOpen(bool open);
+    Q_INVOKABLE void closePanels();
+
+    /// Selected base map (BaseMap). Selecting one that is not available is ignored. The host
+    /// owns the map sources: it listens to baseMapChanged and loads the matching source.
+    int baseMap() const { return m_baseMap; }
+    void setBaseMap(int baseMap);
+    bool isOsmAvailable() const { return m_osmAvailable; }
+    void setOsmAvailable(bool available);
+    bool isImageryAvailable() const { return m_imageryAvailable; }
+    void setImageryAvailable(bool available);
+
+    /// Layer toggles; MapControlsOverlay applies them to its MapWidget.
+    bool isHillshadeVisible() const { return m_hillshadeVisible; }
+    void setHillshadeVisible(bool visible);
+    bool areCitiesVisible() const { return m_citiesVisible; }
+    void setCitiesVisible(bool visible);
+    bool areBordersVisible() const { return m_bordersVisible; }
+    void setBordersVisible(bool visible);
+    bool isGridVisible() const { return m_gridVisible; }
+    void setGridVisible(bool visible);
 
     /// Compass click: north up (bearing 0) and closes any open panel.
     Q_INVOKABLE void resetNorth();
     Q_INVOKABLE void toggleSettings() { setSettingsOpen(!m_settingsOpen); }
+    Q_INVOKABLE void toggleLayers() { setLayersOpen(!m_layersOpen); }
 
     /// QML items cannot show a tooltip outside the small overlay, so they ask the host widget.
     Q_INVOKABLE void showToolTip(const QString& text, double globalX, double globalY);
@@ -67,6 +106,14 @@ signals:
     void globe3DAvailableChanged(bool available);
     void measureAvailableChanged(bool available);
     void settingsOpenChanged(bool open);
+    void layersOpenChanged(bool open);
+    void baseMapChanged(int baseMap);
+    void osmAvailableChanged(bool available);
+    void imageryAvailableChanged(bool available);
+    void hillshadeVisibleChanged(bool visible);
+    void citiesVisibleChanged(bool visible);
+    void bordersVisibleChanged(bool visible);
+    void gridVisibleChanged(bool visible);
     void northResetRequested();
     void toolTipRequested(const QString& text, const QPointF& globalPos);
     void toolTipHideRequested();
@@ -80,6 +127,14 @@ private:
     bool m_globe3DAvailable;
     bool m_measureAvailable;
     bool m_settingsOpen;
+    bool m_layersOpen;
+    int m_baseMap;
+    bool m_osmAvailable;
+    bool m_imageryAvailable;
+    bool m_hillshadeVisible;
+    bool m_citiesVisible;
+    bool m_bordersVisible;
+    bool m_gridVisible;
 };
 
 #endif // MAPCONTROLSMODEL_H

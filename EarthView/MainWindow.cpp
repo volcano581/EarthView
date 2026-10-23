@@ -10,6 +10,8 @@
 #endif
 #include "MercatorProjection.h"
 #ifdef EARTHVIEW_HAS_MAP_CONTROLS
+#include "BaseMapSources.h"
+#include "MapControlsModel.h"
 #include "MapControlsOverlay.h"
 #endif
 #include <QAction>
@@ -82,7 +84,11 @@ void MainWindow::setupUI()
     setCentralWidget(m_mapWidget);
     m_mapWidget->setFocus(Qt::OtherFocusReason);
 #ifdef EARTHVIEW_HAS_MAP_CONTROLS
-    new MapControlsOverlay(m_mapWidget);
+    MapControlsModel* mapControls = (new MapControlsOverlay(m_mapWidget))->model();
+    // Base map choice is shared by both windows, as the Map Source dropdown is.
+    QList<MapControlsModel*> baseMapModels{ mapControls };
+    if (m_secondaryWindow->mapControls())
+        baseMapModels.append(m_secondaryWindow->mapControls());
 #endif
 
     toolbar->addSeparator();
@@ -122,9 +128,45 @@ void MainWindow::setupUI()
         statusBar()->showMessage("Map source set to OpenStreetMap fallback", 3000);
     };
 
+#ifdef EARTHVIEW_HAS_MAP_CONTROLS
+    // Layers panel OSM / Imagery tiles <-> Map Source dropdown (BaseMapSources picks the files).
+    const BaseMapSources::Choice baseMaps = BaseMapSources::choose(mapSources);
+    auto syncBaseMapModels = [mapSources, baseMapModels](int sourceIndex) {
+        const int baseMap = BaseMapSources::baseMapForSource(mapSources, sourceIndex);
+        for (MapControlsModel* model : baseMapModels)
+            model->setBaseMap(baseMap);
+    };
+    for (MapControlsModel* model : baseMapModels) {
+        model->setOsmAvailable(baseMaps.osmAvailable());
+        model->setImageryAvailable(baseMaps.imageryAvailable());
+    }
+    syncBaseMapModels(sourceCombo->currentData().toInt());
+
+    for (MapControlsModel* model : baseMapModels) {
+        connect(model, &MapControlsModel::baseMapChanged, this,
+            [sourceCombo, mapSources, baseMaps, applySourceSelection, syncBaseMapModels](int baseMap) {
+                const int currentIndex = sourceCombo->currentData().toInt();
+                if (BaseMapSources::baseMapForSource(mapSources, currentIndex) == baseMap)
+                    return;
+                const int sourceIndex = BaseMapSources::sourceForBaseMap(baseMaps, baseMap);
+                if (sourceIndex < 0 && !baseMaps.noSources)
+                    return;
+                sourceCombo->setCurrentIndex(sourceCombo->findData(sourceIndex));
+                applySourceSelection(sourceIndex);
+                syncBaseMapModels(sourceIndex);
+            });
+    }
+    connect(sourceCombo, &QComboBox::activated, this,
+        [sourceCombo, applySourceSelection, syncBaseMapModels](int index) {
+            const int sourceIndex = sourceCombo->itemData(index).toInt();
+            applySourceSelection(sourceIndex);
+            syncBaseMapModels(sourceIndex);
+        });
+#else
     connect(sourceCombo, &QComboBox::activated, this, [sourceCombo, applySourceSelection](int index) {
         applySourceSelection(sourceCombo->itemData(index).toInt());
         });
+#endif
 
     QAction* loadBordersAction = new QAction("Load Borders...", this);
     toolbar->addSeparator();
@@ -134,31 +176,41 @@ void MainWindow::setupUI()
     texturesVisibleAction->setCheckable(true);
     texturesVisibleAction->setChecked(true);
     texturesVisibleAction->setToolTip("Show or hide map imagery.");
+#ifndef EARTHVIEW_HAS_MAP_CONTROLS  // In the layers panel (and the View menu) instead.
     toolbar->addAction(texturesVisibleAction);
+#endif
 
     QAction* bordersVisibleAction = new QAction("Borders", this);
     bordersVisibleAction->setCheckable(true);
     bordersVisibleAction->setChecked(true);
     bordersVisibleAction->setToolTip("Show or hide shapefile borders.");
+#ifndef EARTHVIEW_HAS_MAP_CONTROLS
     toolbar->addAction(bordersVisibleAction);
+#endif
 
     QAction* gridVisibleAction = new QAction("Grid", this);
     gridVisibleAction->setCheckable(true);
     gridVisibleAction->setChecked(true);
     gridVisibleAction->setToolTip("Show or hide latitude and longitude grid.");
+#ifndef EARTHVIEW_HAS_MAP_CONTROLS
     toolbar->addAction(gridVisibleAction);
+#endif
 
     QAction* citiesVisibleAction = new QAction("Cities", this);
     citiesVisibleAction->setCheckable(true);
     citiesVisibleAction->setChecked(true);
     citiesVisibleAction->setToolTip("Show or hide city and settlement labels.");
+#ifndef EARTHVIEW_HAS_MAP_CONTROLS
     toolbar->addAction(citiesVisibleAction);
+#endif
 
     QAction* terrainVisibleAction = new QAction("Terrain", this);
     terrainVisibleAction->setCheckable(true);
     terrainVisibleAction->setChecked(true);
     terrainVisibleAction->setToolTip("Show or hide DEM terrain overlay.");
+#ifndef EARTHVIEW_HAS_MAP_CONTROLS
     toolbar->addAction(terrainVisibleAction);
+#endif
 
     QAction* secondaryWindowAction = new QAction("Secondary Window", this);
     secondaryWindowAction->setCheckable(true);
@@ -268,6 +320,24 @@ void MainWindow::setupUI()
             enabled ? Camera::ProjectionMode::Orthographic : Camera::ProjectionMode::Mercator);
         statusBar()->showMessage(enabled ? "Orthographic globe view enabled" : "Mercator map view enabled", 2000);
         });
+
+#ifdef EARTHVIEW_HAS_MAP_CONTROLS
+    // Layers panel <-> View menu. The action's own handler applies the change to the map.
+    auto bindLayerAction = [](QAction* action, MapControlsModel* model,
+                              void (MapControlsModel::*setter)(bool),
+                              void (MapControlsModel::*changed)(bool)) {
+        QObject::connect(action, &QAction::toggled, model, setter);
+        QObject::connect(model, changed, action, &QAction::setChecked);
+    };
+    bindLayerAction(terrainVisibleAction, mapControls,
+        &MapControlsModel::setHillshadeVisible, &MapControlsModel::hillshadeVisibleChanged);
+    bindLayerAction(citiesVisibleAction, mapControls,
+        &MapControlsModel::setCitiesVisible, &MapControlsModel::citiesVisibleChanged);
+    bindLayerAction(bordersVisibleAction, mapControls,
+        &MapControlsModel::setBordersVisible, &MapControlsModel::bordersVisibleChanged);
+    bindLayerAction(gridVisibleAction, mapControls,
+        &MapControlsModel::setGridVisible, &MapControlsModel::gridVisibleChanged);
+#endif
 
     auto syncGlobeAction = [this, globeViewAction]() {
         QSignalBlocker blocker(globeViewAction);

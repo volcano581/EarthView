@@ -2,6 +2,8 @@
 # and create a MapControlsOverlay per MapWidget. earthview_core is unchanged and does not
 # depend on Qt Quick.
 add_library(earthview_mapcontrols STATIC
+    BaseMapSources.cpp
+    BaseMapSources.h
     MapControlsModel.cpp
     MapControlsModel.h
     MapControlsOverlay.cpp
@@ -30,12 +32,20 @@ qt_add_resources(earthview_mapcontrols "earthview_mapcontrols_qml"
     BASE "qml"
     FILES
         qml/MapSideBar.qml
+        qml/LayersButton.qml
+        qml/LayerTile.qml
         qml/icons/compass.svg
         qml/icons/globe3d.svg
         qml/icons/ruler.svg
         qml/icons/settings.svg
         qml/icons/proj_mercator.svg
         qml/icons/proj_orthographic.svg
+        qml/icons/thumb_osm.svg
+        qml/icons/thumb_imagery.svg
+        qml/icons/thumb_hillshade.svg
+        qml/icons/overlay_cities.svg
+        qml/icons/overlay_borders.svg
+        qml/icons/overlay_grid.svg
 )
 
 # windeployqt scans this folder for QML imports (QtQuick).
