@@ -241,21 +241,22 @@ auto* overlay = new MapControlsOverlay(mapWidget);   // owned by mapWidget
 overlay->model()->setGlobe3DAvailable(false);         // default; true once a 3D view exists
 ```
 
-The overlay also adds the bottom-left **layers** mini-map. Hillshade, Cities, Borders and Grid
-are applied to the `MapWidget` by the overlay itself. The OSM / Imagery base map is the host's job,
-because the host owns the map sources:
+The overlay also adds the **layers** mini-map (bottom-right, above the scale bar, which it moves
+there), the **measure** tool, **eased wheel zoom** and **inertial pan**. Hillshade, Cities, Borders
+and Grid are applied to the `MapWidget` by the overlay itself. The base map tiles are the host's
+job, because the host owns the map sources. Give the tiles the same list as your source picker:
 
 ```cpp
 const auto sources = MapSourceCatalog::discoverMapSources();
-const auto choice = BaseMapSources::choose(sources);
 MapControlsModel* controls = overlay->model();
-controls->setOsmAvailable(choice.osmAvailable());
-controls->setImageryAvailable(choice.imageryAvailable());
-QObject::connect(controls, &MapControlsModel::baseMapChanged, [=](int baseMap) {
-    const int index = BaseMapSources::sourceForBaseMap(choice, baseMap);
-    if (index >= 0)
+controls->setBaseMaps(BaseMapSources::entries(sources));   // tile i == sources[i]
+controls->setCurrentBaseMap(0);
+QObject::connect(controls, &MapControlsModel::currentBaseMapChanged, [=](int index) {
+    if (index >= 0 && index < sources.size())
         mapWidget->setTileSourceLayers(sources.at(index).layers);
 });
+// Optional: route your own zoom buttons through the eased zoom.
+overlay->navigator()->zoomBy(+1.0);
 ```
 
 `earthview_core` itself does not depend on Qt Quick. Deployment: run `windeployqt` with

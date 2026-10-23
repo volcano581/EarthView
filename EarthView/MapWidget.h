@@ -11,6 +11,7 @@
 #include <QOpenGLShaderProgram>
 #include <QString>
 #include <QTimer>
+#include <functional>
 #include "LineBatchRenderer.h"
 #include "TMSLoader.h"
 #include "TextRenderer.h"
@@ -26,6 +27,7 @@ class LineBatchRenderer;
 class VectorTileRenderer;
 class DemLoader;
 class TerrainRenderer;
+class QPainter;
 
 /**
  * @brief MapWidget is the main OpenGL rendering widget
@@ -59,6 +61,12 @@ public:
     void setGridVisible(bool visible);
     void setCitiesVisible(bool visible);
     void setTerrainVisible(bool visible);
+    /// Corner of the scale bar: Qt::BottomLeftCorner (default) or Qt::BottomRightCorner.
+    void setScaleBarCorner(Qt::Corner corner);
+    Qt::Corner scaleBarCorner() const { return m_scaleBarCorner; }
+    /// Optional 2D overlay drawn with QPainter after the GL frame (e.g. measure lines).
+    /// Empty by default: nothing extra is drawn.
+    void setOverlayPainter(std::function<void(QPainter&)> painter);
 
     // Accessors
     Camera* camera() const { return m_camera; }
@@ -107,6 +115,8 @@ private:
     QVector<TextRenderer::Label> m_cachedMapLabels;
     LineBatchRenderer::CoordinateMode m_lineBatchMode;
     QString m_dtedDirectory;
+    Qt::Corner m_scaleBarCorner;
+    std::function<void(QPainter&)> m_overlayPainter;
 
     QPoint m_lastMousePos;
     bool m_isPanning;

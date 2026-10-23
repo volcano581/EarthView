@@ -1,4 +1,5 @@
 #include "MapWidget.h"
+#include <QPainter>
 #include "Camera.h"
 #include "TMSLoader.h"
 #include "TileRenderer.h"
@@ -78,7 +79,8 @@ QString scaleDistanceLabel(double meters)
     return QString("%1 m").arg(std::round(meters), 0, 'f', 0);
 }
 
-ScaleBarInfo scaleBarInfo(const Camera* camera, int viewportWidth, int viewportHeight)
+ScaleBarInfo scaleBarInfo(const Camera* camera, int viewportWidth, int viewportHeight,
+                          Qt::Corner corner = Qt::BottomLeftCorner)
 {
     ScaleBarInfo info;
     if (!camera || viewportWidth < 160 || viewportHeight < 120)
@@ -97,16 +99,27 @@ ScaleBarInfo scaleBarInfo(const Camera* camera, int viewportWidth, int viewportH
     if (pixelWidth <= 8.0)
         return info;
 
-    const double left = 18.0;
     const double bottom = viewportHeight - 18.0;
     const double lineY = bottom - 12.0;
     const double top = lineY - 32.0;
+    double left = 18.0;
+    if (corner == Qt::BottomRightCorner) {
+        // Mirror of the bottom-left layout: line ends 18 px from the right edge.
+        left = qMax(28.0, viewportWidth - 18.0 - pixelWidth);
+    }
     const double right = left + pixelWidth + 28.0;
 
     info.valid = true;
-    info.backgroundRect = QRectF(
-        QPointF(left - 10.0, top),
-        QPointF(qMin<double>(right, viewportWidth - 10.0), bottom));
+    if (corner == Qt::BottomRightCorner) {
+        info.backgroundRect = QRectF(
+            QPointF(qMax(10.0, left - 28.0), top),
+            QPointF(viewportWidth - 8.0, bottom));
+    }
+    else {
+        info.backgroundRect = QRectF(
+            QPointF(left - 10.0, top),
+            QPointF(qMin<double>(right, viewportWidth - 10.0), bottom));
+    }
     info.lineStart = QPointF(left, lineY);
     info.lineEnd = QPointF(left + pixelWidth, lineY);
     info.tickHeight = 8.0;
@@ -194,6 +207,7 @@ MapWidget::MapWidget(QWidget* parent)
     , m_lineBatchRenderer(nullptr)
     , m_textRenderer(nullptr)
     , m_lineBatchMode(LineBatchRenderer::CoordinateMode::Mercator)
+    , m_scaleBarCorner(Qt::BottomLeftCorner)
     , m_isPanning(false)
     , m_texturesVisible(true)
     , m_bordersVisible(true)
@@ -561,7 +575,27 @@ void MapWidget::paintGL()
 
     glEnable(GL_DEPTH_TEST);
 
+    if (m_overlayPainter) {
+        FrameProfiler::Scope drawScope(QStringLiteral("draw.overlayPainter"));
+        QPainter painter(this);
+        painter.setRenderHint(QPainter::Antialiasing);
+        m_overlayPainter(painter);
+    }
+
     FrameProfiler::endFrame();
+}
+
+void MapWidget::setScaleBarCorner(Qt::Corner corner)
+{
+    m_scaleBarCorner = corner == Qt::BottomRightCorner ? Qt::BottomRightCorner : Qt::BottomLeftCorner;
+    invalidateMapLabels();
+    update();
+}
+
+void MapWidget::setOverlayPainter(std::function<void(QPainter&)> painter)
+{
+    m_overlayPainter = std::move(painter);
+    update();
 }
 
 void MapWidget::mousePressEvent(QMouseEvent* event)
@@ -744,7 +778,7 @@ void MapWidget::appendFpsOverlay(QVector<TextRenderer::Label>& labels)
 
 void MapWidget::appendScaleBarOverlay(QVector<TextRenderer::Label>& labels)
 {
-    const ScaleBarInfo info = scaleBarInfo(m_camera, width(), height());
+    const ScaleBarInfo info = scaleBarInfo(m_camera, width(), height(), m_scaleBarCorner);
     if (!info.valid)
         return;
 
@@ -772,7 +806,7 @@ void MapWidget::appendScaleBarOverlay(QVector<TextRenderer::Label>& labels)
 
 void MapWidget::drawScaleBarOverlay()
 {
-    const ScaleBarInfo info = scaleBarInfo(m_camera, width(), height());
+    const ScaleBarInfo info = scaleBarInfo(m_camera, width(), height(), m_scaleBarCorner);
     if (!info.valid)
         return;
 

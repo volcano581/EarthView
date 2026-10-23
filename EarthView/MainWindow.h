@@ -7,6 +7,7 @@
 
 class MapWidget;
 class MapViewWindow;
+class MapControlsOverlay;
 class QLabel;
 
 /**
@@ -32,6 +33,7 @@ private:
     QPointer<QMainWindow> m_window3D;   // the 3D view's window, when one is open
     QLabel* m_coordLabel;
     QLabel* m_zoomLabel;
+    MapControlsOverlay* m_mapControlsOverlay = nullptr;  // null when built without map controls
 };
 
 #endif // MAINWINDOW_H

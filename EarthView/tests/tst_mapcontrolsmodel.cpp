@@ -21,7 +21,8 @@ private slots:
     void cameraChangeUpdatesModel();
     void unboundModelKeepsItsOwnState();
     void panelsAreExclusive();
-    void unavailableBaseMapIsIgnored();
+    void baseMapIndexFollowsList();
+    void measurePanelRules();
     void layerTogglesNotifyOnce();
 };
 
@@ -139,23 +140,50 @@ void TestMapControlsModel::panelsAreExclusive()
     QVERIFY(!model.isLayersOpen());
 }
 
-void TestMapControlsModel::unavailableBaseMapIsIgnored()
+void TestMapControlsModel::baseMapIndexFollowsList()
 {
     MapControlsModel model;
-    QCOMPARE(model.baseMap(), int(MapControlsModel::OsmBaseMap));
-    QSignalSpy spy(&model, &MapControlsModel::baseMapChanged);
+    QCOMPARE(model.currentBaseMap(), -1);
+    QSignalSpy spy(&model, &MapControlsModel::currentBaseMapChanged);
 
-    model.setBaseMap(MapControlsModel::ImageryBaseMap);  // no imagery source yet
-    QCOMPARE(model.baseMap(), int(MapControlsModel::OsmBaseMap));
-    QCOMPARE(spy.count(), 0);
+    model.setCurrentBaseMap(0);  // empty list: ignored
+    QCOMPARE(model.currentBaseMap(), -1);
 
-    model.setImageryAvailable(true);
-    model.setBaseMap(MapControlsModel::ImageryBaseMap);
-    QCOMPARE(model.baseMap(), int(MapControlsModel::ImageryBaseMap));
+    model.setBaseMaps({ QVariantMap{ { "label", "OSM Map" }, { "icon", "thumb_osm" } },
+                        QVariantMap{ { "label", "Satellite Imagery" }, { "icon", "thumb_imagery" } } });
+    model.setCurrentBaseMap(1);
+    QCOMPARE(model.currentBaseMap(), 1);
+    model.setCurrentBaseMap(5);
+    QCOMPARE(model.currentBaseMap(), 1);
     QCOMPARE(spy.count(), 1);
 
-    model.setBaseMap(42);
-    QCOMPARE(model.baseMap(), int(MapControlsModel::ImageryBaseMap));
+    // A shorter list resets an index that no longer exists.
+    model.setBaseMaps({ QVariantMap{ { "label", "OSM Map" }, { "icon", "thumb_osm" } } });
+    QCOMPARE(model.currentBaseMap(), 0);
+}
+
+void TestMapControlsModel::measurePanelRules()
+{
+    MapControlsModel model;
+    model.setMeasureOpen(true);  // ruler not available yet
+    QVERIFY(!model.isMeasureOpen());
+
+    model.setMeasureAvailable(true);
+    model.setSettingsOpen(true);
+    model.toggleMeasure();
+    QVERIFY(model.isMeasureOpen());
+    QVERIFY(!model.isSettingsOpen());
+
+    // A click on the map (closePanels) keeps measuring.
+    model.closePanels();
+    QVERIFY(model.isMeasureOpen());
+
+    model.setLayersOpen(true);
+    QVERIFY(!model.isMeasureOpen());
+
+    model.toggleMeasure();
+    model.resetNorth();
+    QVERIFY(!model.isMeasureOpen());
 }
 
 void TestMapControlsModel::layerTogglesNotifyOnce()

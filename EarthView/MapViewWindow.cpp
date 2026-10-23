@@ -3,7 +3,9 @@
 #include "MapWidget.h"
 #include "MercatorProjection.h"
 #ifdef EARTHVIEW_HAS_MAP_CONTROLS
+#include "MapControlsModel.h"
 #include "MapControlsOverlay.h"
+#include "SmoothNavigator.h"
 #endif
 
 #include <QAction>
@@ -20,7 +22,7 @@
 MapViewWindow::MapViewWindow(const QString& title, QWidget* parent)
     : QMainWindow(parent)
     , m_mapWidget(new MapWidget(this))
-    , m_mapControls(nullptr)
+    , m_mapControlsOverlay(nullptr)
     , m_coordLabel(nullptr)
     , m_zoomLabel(nullptr)
 {
@@ -30,7 +32,7 @@ MapViewWindow::MapViewWindow(const QString& title, QWidget* parent)
 
     setCentralWidget(m_mapWidget);
 #ifdef EARTHVIEW_HAS_MAP_CONTROLS
-    m_mapControls = (new MapControlsOverlay(m_mapWidget))->model();
+    m_mapControlsOverlay = new MapControlsOverlay(m_mapWidget);
 #endif
     setupToolbar();
     createStatusBar();
@@ -38,6 +40,15 @@ MapViewWindow::MapViewWindow(const QString& title, QWidget* parent)
     m_mapWidget->setFocus(Qt::OtherFocusReason);
 
     connect(m_mapWidget->camera(), &Camera::cameraChanged, this, &MapViewWindow::updateStatus);
+}
+
+MapControlsModel* MapViewWindow::mapControls() const
+{
+#ifdef EARTHVIEW_HAS_MAP_CONTROLS
+    return m_mapControlsOverlay ? m_mapControlsOverlay->model() : nullptr;
+#else
+    return nullptr;
+#endif
 }
 
 void MapViewWindow::closeEvent(QCloseEvent* event)
@@ -57,9 +68,21 @@ void MapViewWindow::setupToolbar()
 {
     QToolBar* toolbar = addToolBar("Navigation");
     toolbar->addAction("Zoom In", [this]() {
+#ifdef EARTHVIEW_HAS_MAP_CONTROLS
+        if (m_mapControlsOverlay) {
+            m_mapControlsOverlay->navigator()->zoomBy(1.0);
+            return;
+        }
+#endif
         m_mapWidget->camera()->zoom(0.5f);
     });
     toolbar->addAction("Zoom Out", [this]() {
+#ifdef EARTHVIEW_HAS_MAP_CONTROLS
+        if (m_mapControlsOverlay) {
+            m_mapControlsOverlay->navigator()->zoomBy(-1.0);
+            return;
+        }
+#endif
         m_mapWidget->camera()->zoom(-0.5f);
     });
     toolbar->addAction("Reset View", [this]() {

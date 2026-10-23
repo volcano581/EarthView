@@ -1,22 +1,19 @@
 #include <QtTest>
 
 #include "BaseMapSources.h"
-#include "MapControlsModel.h"
 
 /**
- * @brief Tests BaseMapSources: which 2D map source backs the OSM and Imagery tiles.
+ * @brief Tests BaseMapSources: one base map tile per discovered map source, in dropdown order.
  */
 class TestBaseMapSources : public QObject
 {
     Q_OBJECT
 
 private slots:
-    void noSourcesMeansOnlineOsm();
-    void satelliteFileIsImagery();
-    void mbTilesPreferredForOsm();
-    void topographicEarthFileIsOsmWithoutMbTiles();
-    void imageryOnlyLeavesOsmUnavailable();
-    void baseMapForSource();
+    void noSourcesGiveOnlineOsmTile();
+    void oneTilePerSourceInOrder();
+    void iconsFollowTheKindOfFile();
+    void severalMbTilesAreNamed();
 
 private:
     static MapSourceCatalog::Source source(const QString& filePath, const QString& label);
@@ -30,65 +27,49 @@ MapSourceCatalog::Source TestBaseMapSources::source(const QString& filePath, con
     return s;
 }
 
-void TestBaseMapSources::noSourcesMeansOnlineOsm()
+void TestBaseMapSources::noSourcesGiveOnlineOsmTile()
 {
-    const BaseMapSources::Choice choice = BaseMapSources::choose({});
-    QVERIFY(choice.noSources);
-    QVERIFY(choice.osmAvailable());
-    QVERIFY(!choice.imageryAvailable());
-    QCOMPARE(BaseMapSources::sourceForBaseMap(choice, MapControlsModel::OsmBaseMap), -1);
+    const QVariantList entries = BaseMapSources::entries({});
+    QCOMPARE(entries.size(), 1);
+    QCOMPARE(entries.first().toMap().value("label").toString(), QString("OSM (online)"));
+    QCOMPARE(entries.first().toMap().value("icon").toString(), QString("thumb_osm"));
 }
 
-void TestBaseMapSources::satelliteFileIsImagery()
+void TestBaseMapSources::oneTilePerSourceInOrder()
 {
-    QVERIFY(BaseMapSources::isImagery(source("D:/maps/satellite_imagery.earth", "Satellite Imagery")));
-    QVERIFY(BaseMapSources::isImagery(source("D:/maps/world.earth", "Imagery 2024")));
-    QVERIFY(!BaseMapSources::isImagery(source("D:/maps/cardg_topographic.earth", "CardG Maps")));
-    QVERIFY(!BaseMapSources::isImagery(source("D:/OSM/pakistan.mbtiles", "pakistan")));
-}
-
-void TestBaseMapSources::mbTilesPreferredForOsm()
-{
+    // discoverMapSources() order: MBTiles first, then earth files.
     const QList<MapSourceCatalog::Source> sources{
-        source("D:/maps/cardg_topographic.earth", "CardG Maps"),
-        source("D:/maps/satellite_imagery.earth", "Satellite Imagery"),
-        source("D:/OSM/pakistan.mbtiles", "pakistan"),
+        source("D:/Data/OSM/pakistan.mbtiles", "pakistan"),
+        source("D:/Data/EarthFiles/satellite_imagery.earth", "Satellite Imagery"),
+        source("D:/Data/EarthFiles/cardg_topographic.earth", "CardG Maps"),
+        source("D:/Data/EarthFiles/roads_2024.earth", "roads 2024"),
     };
-    const BaseMapSources::Choice choice = BaseMapSources::choose(sources);
-    QCOMPARE(choice.osmIndex, 2);
-    QCOMPARE(choice.imageryIndex, 1);
-    QCOMPARE(BaseMapSources::sourceForBaseMap(choice, MapControlsModel::ImageryBaseMap), 1);
+    const QVariantList entries = BaseMapSources::entries(sources);
+    QCOMPARE(entries.size(), 4);
+    QCOMPARE(entries.at(0).toMap().value("label").toString(), QString("OSM Map"));
+    QCOMPARE(entries.at(1).toMap().value("label").toString(), QString("Satellite Imagery"));
+    QCOMPARE(entries.at(2).toMap().value("label").toString(), QString("CardG Maps"));
+    QCOMPARE(entries.at(3).toMap().value("label").toString(), QString("roads 2024"));
 }
 
-void TestBaseMapSources::topographicEarthFileIsOsmWithoutMbTiles()
+void TestBaseMapSources::iconsFollowTheKindOfFile()
 {
-    const QList<MapSourceCatalog::Source> sources{
-        source("D:/maps/satellite_imagery.earth", "Satellite Imagery"),
-        source("D:/maps/cardg_topographic.earth", "CardG Maps"),
-    };
-    const BaseMapSources::Choice choice = BaseMapSources::choose(sources);
-    QCOMPARE(choice.osmIndex, 1);
-    QCOMPARE(choice.imageryIndex, 0);
+    QCOMPARE(BaseMapSources::iconFor(source("D:/OSM/a.mbtiles", "a")), QString("thumb_osm"));
+    QCOMPARE(BaseMapSources::iconFor(source("D:/E/satellite_imagery.earth", "Satellite Imagery")), QString("thumb_imagery"));
+    QCOMPARE(BaseMapSources::iconFor(source("D:/E/world.earth", "Imagery 2024")), QString("thumb_imagery"));
+    QCOMPARE(BaseMapSources::iconFor(source("D:/E/cardg_topographic.earth", "CardG Maps")), QString("thumb_topo"));
+    QCOMPARE(BaseMapSources::iconFor(source("D:/E/roads.earth", "roads")), QString("thumb_map"));
 }
 
-void TestBaseMapSources::imageryOnlyLeavesOsmUnavailable()
-{
-    const BaseMapSources::Choice choice = BaseMapSources::choose(
-        { source("D:/maps/satellite_imagery.earth", "Satellite Imagery") });
-    QVERIFY(!choice.noSources);
-    QVERIFY(!choice.osmAvailable());
-    QVERIFY(choice.imageryAvailable());
-}
-
-void TestBaseMapSources::baseMapForSource()
+void TestBaseMapSources::severalMbTilesAreNamed()
 {
     const QList<MapSourceCatalog::Source> sources{
         source("D:/OSM/pakistan.mbtiles", "pakistan"),
-        source("D:/maps/satellite_imagery.earth", "Satellite Imagery"),
+        source("D:/OSM/world.mbtiles", "world"),
     };
-    QCOMPARE(BaseMapSources::baseMapForSource(sources, 0), int(MapControlsModel::OsmBaseMap));
-    QCOMPARE(BaseMapSources::baseMapForSource(sources, 1), int(MapControlsModel::ImageryBaseMap));
-    QCOMPARE(BaseMapSources::baseMapForSource(sources, -1), int(MapControlsModel::OsmBaseMap));
+    const QVariantList entries = BaseMapSources::entries(sources);
+    QCOMPARE(entries.at(0).toMap().value("label").toString(), QString("OSM Map pakistan"));
+    QCOMPARE(entries.at(1).toMap().value("label").toString(), QString("OSM Map world"));
 }
 
 QTEST_GUILESS_MAIN(TestBaseMapSources)

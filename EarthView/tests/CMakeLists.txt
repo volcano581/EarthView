@@ -50,18 +50,41 @@ target_include_directories(tst_mapcontrolsmodel PRIVATE
 target_link_libraries(tst_mapcontrolsmodel PRIVATE earthview::core Qt6::Test)
 add_test(NAME tst_mapcontrolsmodel COMMAND tst_mapcontrolsmodel)
 
-# Which map source backs the layers panel's OSM / Imagery tiles.
+# Base map tiles from the discovered map sources (same list as the Map Source dropdown).
 add_executable(tst_basemapsources
     tst_basemapsources.cpp
     ../mapcontrols/BaseMapSources.cpp
     ../mapcontrols/BaseMapSources.h
-    ../mapcontrols/MapControlsModel.cpp
-    ../mapcontrols/MapControlsModel.h
 )
 target_include_directories(tst_basemapsources PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/.." "${CMAKE_CURRENT_SOURCE_DIR}/../mapcontrols")
 target_link_libraries(tst_basemapsources PRIVATE earthview::core Qt6::Test)
 add_test(NAME tst_basemapsources COMMAND tst_basemapsources)
+
+# Measure tool maths and state (WGS-84 distance, units, Line / Path modes).
+add_executable(tst_geomeasure
+    tst_geomeasure.cpp
+    ../mapcontrols/GeoMeasure.cpp
+    ../mapcontrols/GeoMeasure.h
+    ../mapcontrols/MeasureModel.cpp
+    ../mapcontrols/MeasureModel.h
+)
+target_include_directories(tst_geomeasure PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../mapcontrols")
+target_link_libraries(tst_geomeasure PRIVATE Qt6::Core Qt6::Test)
+add_test(NAME tst_geomeasure COMMAND tst_geomeasure)
+
+# Smooth zoom / inertial pan: easing maths and the navigator driving a real 2D Camera.
+add_executable(tst_smoothnavigation
+    tst_smoothnavigation.cpp
+    ../mapcontrols/SmoothNavigation.cpp
+    ../mapcontrols/SmoothNavigation.h
+    ../mapcontrols/SmoothNavigator.cpp
+    ../mapcontrols/SmoothNavigator.h
+)
+target_include_directories(tst_smoothnavigation PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/.." "${CMAKE_CURRENT_SOURCE_DIR}/../mapcontrols")
+target_link_libraries(tst_smoothnavigation PRIVATE earthview::core Qt6::Test)
+add_test(NAME tst_smoothnavigation COMMAND tst_smoothnavigation)
 
 foreach(test_name tst_geodesy tst_camera3d)
     add_executable(${test_name} ${test_name}.cpp)
