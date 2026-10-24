@@ -31,6 +31,15 @@ public:
     std::atomic<qint64> bytesServed{ 0 };
     std::atomic<int> requests{ 0 };
 
+    ~RangeHttpServer() override
+    {
+        // Clients may still hold keep-alive connections. The sockets are deleted with m_server,
+        // after m_buffers is gone, and a socket closing then emits disconnected(): its handler
+        // must not run on the half-destroyed server (it crashed on Linux).
+        for (QTcpSocket* socket : m_server.findChildren<QTcpSocket*>())
+            socket->disconnect(this);
+    }
+
     Q_INVOKABLE quint16 start()
     {
         connect(&m_server, &QTcpServer::newConnection, this, [this]() {

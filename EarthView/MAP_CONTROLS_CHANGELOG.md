@@ -106,9 +106,8 @@ costs a few small requests; the planet file is never downloaded. Layouts: `tiles
 static files); a server that ignores them is refused unless the file is ≤ 64 MB. Opening is
 limited to 5 s, so an unreachable server does not hold the start-up. Each thread keeps one HTTP
 manager for its keep-alive connections. It is deleted with its thread, and the reader threads end
-when the application object is destroyed (waiting at most 3 s for a read still running): a
-manager left alive kept its own network thread running into the process exit, which crashed on
-Linux.
+when the application object is destroyed (waiting at most 3 s for a read still running), so no
+manager's own network thread is left running into the process exit.
 
 ### How the OSM map is drawn
 
