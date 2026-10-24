@@ -26,7 +26,9 @@
  * @endcode
  * An `mbtiles` entry names an MBTiles file by path: a UNC path or mapped drive on the imagery
  * server's share, or a path relative to the earth file. Only the tiles in view are read from
- * it (see MbTilesReader), so the file can be very large.
+ * it (see MbTilesReader), so the file can be very large. It can also name it by URL, like the
+ * TMS entries: the file on the imagery server's web server, or a tile service in front of it
+ * (see urlMbTilesLayer()).
  */
 namespace MapSourceCatalog {
 
@@ -47,8 +49,17 @@ struct Source
 QString labelForFile(const QFileInfo& fileInfo);
 
 /// Layer for one MBTiles file (raster or vector, from its metadata). False, with
-/// @p errorMessage set, when the file cannot be opened or has no metadata.
+/// @p errorMessage set, when the file cannot be opened or has no metadata. @p filePath may be
+/// an http(s) URL of the file (read with range requests, see RemoteMbTiles).
 bool mbTilesLayer(const QString& filePath, TmsLoader::TileSourceLayer* layer, QString* errorMessage = nullptr);
+
+/// Layer for an `mbtiles` entry given by http(s) URL, as the TMS entries are:
+/// - the `.mbtiles` file on the web server (any URL whose content is an SQLite file);
+/// - a tile server in front of it: a `{z}/{x}/{y}` template (`{-y}` for TMS rows), a TMS
+///   `tilemapresource.xml`, or a TileJSON document (`.json`).
+/// Vector tiles (pbf/mvt) become a VectorMbTiles layer read by URL; raster ones an ordinary
+/// URL template layer.
+bool urlMbTilesLayer(const QString& url, TmsLoader::TileSourceLayer* layer, QString* errorMessage = nullptr);
 
 /// True when @p source draws from an MBTiles file (a Data/OSM file or an earth file entry).
 bool isMbTilesSource(const Source& source);
@@ -70,6 +81,11 @@ QList<Source> discoverMbTilesSources();
 
 /// Every source the 2D viewer offers: MBTiles first, then the layer-list earth files.
 QList<Source> discoverMapSources();
+
+/// The vector (OSM) MBTiles layers of the first source that has any: the details (roads,
+/// places, ...) MapWidget::setFeatureLayers() draws over the other base maps. Empty when no
+/// source is vector.
+QList<TmsLoader::TileSourceLayer> featureLayers(const QList<Source>& sources);
 
 } // namespace MapSourceCatalog
 

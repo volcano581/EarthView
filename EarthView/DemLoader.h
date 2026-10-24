@@ -79,6 +79,14 @@ private:
     void onCatalogDownloaded(QNetworkReply* reply, const QUrl& catalogUrl, bool isIndexCatalog, int generation);
     void onMetadataDownloaded(QNetworkReply* reply, const QString& key);
     void onImageDownloaded(QNetworkReply* reply, const QString& key);
+    /// Parses a DEM file (GeoTIFF, or any image Qt reads) on the global pool, then
+    /// completeImageDecode() on this thread. @p localFile: read that file there first.
+    void decodeImageAsync(const QString& key, const QByteArray& bytes, const QString& localFile);
+    void completeImageDecode(const QString& key, const QVector<float>& samples, int width, int height,
+                             float minElevation, float maxElevation, const QImage& image,
+                             const QString& source, int generation);
+    void completeLocalMetadata(const QString& key, const QRectF& geographicBounds, bool valid,
+                               const QString& source, int generation);
     QUrl sourceUrlForTile(const DemTile& tile) const;
     bool visibleIntersects(const QRectF& mercatorBounds) const;
 

@@ -26,6 +26,8 @@ public:
     GLuint createTexture(const QImage& image, const QString& cacheKey);
     GLuint getTexture(const QString& cacheKey) const;
     bool hasTexture(const QString& cacheKey) const;
+    /// Marks a texture as just used, so eviction takes the least recently drawn first.
+    void touch(const QString& cacheKey);
 
     // Cache management
     void deleteTexture(const QString& cacheKey);
