@@ -15,6 +15,7 @@
 #include "LineBatchRenderer.h"
 #include "TMSLoader.h"
 #include "TextRenderer.h"
+#include "VectorTileRenderer.h"
 #include "fpsCounter.h"
 
 class Camera;
@@ -24,7 +25,6 @@ class GridRenderer;
 class CityRenderer;
 class TextRenderer;
 class LineBatchRenderer;
-class VectorTileRenderer;
 class DemLoader;
 class TerrainRenderer;
 class QPainter;
@@ -61,6 +61,25 @@ public:
     void setGridVisible(bool visible);
     void setCitiesVisible(bool visible);
     void setTerrainVisible(bool visible);
+    /// Vector (OSM) MBTiles layers whose details are drawn over the base map when the base map
+    /// is not a vector map itself, e.g. roads and names over satellite imagery. Empty (the
+    /// default): no detail overlay.
+    void setFeatureLayers(const QList<TmsLoader::TileSourceLayer>& layers);
+    /// Vector layers (ids: "water", "transportation", "place", ...) not drawn, on a vector
+    /// base map and in the overlay. None by default.
+    void setHiddenFeatureLayers(const QStringList& layers);
+    QStringList hiddenFeatureLayers() const { return m_hiddenFeatureLayers; }
+    /// Look of the vector map (MapTheme id): "standard" (default), "positron", "dark".
+    void setMapTheme(const QString& themeId);
+    QString mapTheme() const { return m_mapTheme; }
+    /// True when there are vector details to switch: the base map is vector, or feature
+    /// layers were given.
+    bool hasFeatureSource() const;
+    /// The layers of the vector source in use (from its metadata, else as met in its tiles),
+    /// in Layers-panel order.
+    QStringList featureLayerNames() const;
+    /// The vector feature drawn under @p screenPos (base map or overlay), if any.
+    VectorTileRenderer::PickedFeature pickFeature(const QPointF& screenPos) const;
     /// Corner of the scale bar: Qt::BottomLeftCorner (default) or Qt::BottomRightCorner.
     void setScaleBarCorner(Qt::Corner corner);
     Qt::Corner scaleBarCorner() const { return m_scaleBarCorner; }
@@ -75,6 +94,10 @@ public:
     bool isGridVisible() const { return m_gridVisible; }
     bool areCitiesVisible() const { return m_citiesVisible; }
     bool isTerrainVisible() const { return m_terrainVisible; }
+
+signals:
+    /// hasFeatureSource() or featureLayerNames() may have changed.
+    void featureSourceChanged();
 
 protected:
     void initializeGL() override;
@@ -100,6 +123,10 @@ private slots:
     void onCameraChanged();
 
 private:
+    bool baseHasVectorLayers() const;
+    void updateFeatureOverlay();
+
+private:
     Camera* m_camera;
     TmsLoader* m_tileLoader;
     TileRenderer* m_tileRenderer;
@@ -107,6 +134,7 @@ private:
     GridRenderer* m_gridRenderer;
     CityRenderer* m_cityRenderer;
     VectorTileRenderer* m_vectorTileRenderer;
+    VectorTileRenderer* m_featureRenderer;
     DemLoader* m_demLoader;
     TerrainRenderer* m_terrainRenderer;
     LineBatchRenderer* m_lineBatchRenderer;
@@ -126,7 +154,11 @@ private:
     bool m_citiesVisible;
     bool m_terrainVisible;
     QList<TmsLoader::TileSourceLayer> m_tileSourceLayers;
+    QList<TmsLoader::TileSourceLayer> m_featureLayers;
+    QStringList m_hiddenFeatureLayers;
+    QString m_mapTheme;
     QString m_pendingBorderFilePath;
+    bool m_bordersLoaded;
     QString m_pendingCitiesDirectoryPath;
     QTimer* m_updateTimer;
     FpsCounter m_fpsCounter;

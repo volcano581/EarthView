@@ -2,7 +2,14 @@
 #include "Camera.h"
 #include "Constants.h"
 
+#include <QOpenGLWidget>
 #include <QtMath>
+
+namespace {
+constexpr int kTimerIntervalMs = 8;
+// Frame-driven: the timer steps only when no frame came for this long.
+constexpr qint64 kFrameFallbackMs = 40;
+}
 
 SmoothNavigator::SmoothNavigator(Camera* camera, QObject* parent)
     : QObject(parent)
@@ -13,9 +20,28 @@ SmoothNavigator::SmoothNavigator(Camera* camera, QObject* parent)
     , m_gliding(false)
 {
     m_timer.setTimerType(Qt::PreciseTimer);
-    m_timer.setInterval(8);
-    connect(&m_timer, &QTimer::timeout, this, &SmoothNavigator::tick);
+    m_timer.setInterval(kTimerIntervalMs);
+    connect(&m_timer, &QTimer::timeout, this, &SmoothNavigator::onTimer);
     m_clock.start();
+}
+
+void SmoothNavigator::setFrameSource(QOpenGLWidget* widget)
+{
+    QObject::disconnect(m_frameConnection);
+    m_frameSource = widget;
+    if (!widget)
+        return;
+    m_frameConnection = connect(widget, &QOpenGLWidget::frameSwapped, this, [this]() {
+        if (m_timer.isActive())
+            tick();
+    });
+}
+
+void SmoothNavigator::onTimer()
+{
+    if (m_frameSource && m_frameSource->isVisible() && m_clock.elapsed() - m_lastTickMs < kFrameFallbackMs)
+        return;
+    tick();
 }
 
 void SmoothNavigator::zoomBy(double levels, const QPointF& anchor)

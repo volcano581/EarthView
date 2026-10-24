@@ -15,6 +15,7 @@ add_executable(tst_mapsourcecatalog
     tst_mapsourcecatalog.cpp
     ../MapSourceCatalog.cpp
     ../MbTilesReader.cpp
+    ../RemoteMbTiles.cpp
 )
 target_include_directories(tst_mapsourcecatalog PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/..")
 get_target_property(_earthview_2d_libs EarthView LINK_LIBRARIES)
@@ -23,10 +24,13 @@ add_test(NAME tst_mapsourcecatalog COMMAND tst_mapsourcecatalog)
 
 # MBTiles reading: persistent read-only connections from the reader pool, immutable URIs and
 # MBTiles entries in layer-list earth files (a share path in production; a temp file here).
+# Also the same files served by URL: a local HTTP server with range requests stands in for
+# the imagery server's web server.
 add_executable(tst_mbtilesreader
     tst_mbtilesreader.cpp
     ../MapSourceCatalog.cpp
     ../MbTilesReader.cpp
+    ../RemoteMbTiles.cpp
 )
 target_include_directories(tst_mbtilesreader PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/..")
 target_link_libraries(tst_mbtilesreader PRIVATE ${_earthview_2d_libs} Qt6::Test)
@@ -71,6 +75,23 @@ target_include_directories(tst_basemapsources PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/.." "${CMAKE_CURRENT_SOURCE_DIR}/../mapcontrols")
 target_link_libraries(tst_basemapsources PRIVATE earthview::core Qt6::Test)
 add_test(NAME tst_basemapsources COMMAND tst_basemapsources)
+
+# The vector map's themes: road casings and widths, areas, boundaries, labels.
+add_executable(tst_maptheme tst_maptheme.cpp ../MapTheme.cpp ../MapTheme.h)
+target_include_directories(tst_maptheme PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/..")
+target_link_libraries(tst_maptheme PRIVATE Qt6::Gui Qt6::Test)
+add_test(NAME tst_maptheme COMMAND tst_maptheme)
+
+# The vector-layer catalog and the details card of a clicked feature (Qt Core only).
+add_executable(tst_featuredetails
+    tst_featuredetails.cpp
+    ../mapcontrols/FeatureDetails.cpp
+    ../mapcontrols/FeatureDetails.h
+)
+target_include_directories(tst_featuredetails PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/.." "${CMAKE_CURRENT_SOURCE_DIR}/../mapcontrols")
+target_link_libraries(tst_featuredetails PRIVATE Qt6::Core Qt6::Test)
+add_test(NAME tst_featuredetails COMMAND tst_featuredetails)
 
 # Measure tool maths and state (WGS-84 distance, units, Line / Path modes).
 add_executable(tst_geomeasure

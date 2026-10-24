@@ -104,6 +104,13 @@ bool TextureManager::hasTexture(const QString& cacheKey) const
     return m_textureCache.contains(cacheKey);
 }
 
+void TextureManager::touch(const QString& cacheKey)
+{
+    auto it = m_textureUsageOrder.find(cacheKey);
+    if (it != m_textureUsageOrder.end())
+        it.value() = m_nextUsageIndex++;
+}
+
 void TextureManager::deleteTexture(const QString& cacheKey)
 {
     if (!m_textureCache.contains(cacheKey))

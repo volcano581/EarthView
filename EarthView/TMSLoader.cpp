@@ -17,6 +17,9 @@
 #include <utility>
 
 namespace {
+// Cap on tiles of earlier views kept drawn while the current view loads.
+constexpr int kMaxRetainedTiles = 256;
+
 QString renderTileKey(int z, int x, int y, int layerIndex)
 {
     return QString("%1_%2_%3_%4").arg(layerIndex).arg(z).arg(x).arg(y);
@@ -230,7 +233,12 @@ void TmsLoader::updateVisibleTiles()
         }
     }
 
-    // Remove invisible tiles
+    // Remove invisible tiles. While the new view is still loading, the ones already on screen
+    // (e.g. the zoom level just left) stay drawn underneath instead of leaving a hole.
+    bool viewLoading = false;
+    for (auto it = m_activeTiles.cbegin(); it != m_activeTiles.cend() && !viewLoading; ++it) {
+        viewLoading = visibleKeys.contains(it.key()) && (it->isLoading || it->textureId == 0);
+    }
     QList<QString> toRemove;
     for (auto it = m_activeTiles.begin(); it != m_activeTiles.end(); ++it) {
         if (!visibleKeys.contains(it.key())) {
@@ -239,10 +247,26 @@ void TmsLoader::updateVisibleTiles()
     }
 
     for (const QString& key : toRemove) {
-        m_activeTiles.remove(key);
+        const TileInfo tile = m_activeTiles.take(key);
+        if (viewLoading && tile.textureId != 0 && m_retainedTiles.size() < kMaxRetainedTiles)
+            m_retainedTiles.insert(key, tile);
     }
+    for (const QString& key : visibleKeys)
+        m_retainedTiles.remove(key);
 
     abortRequestsExcept(visibleTextureKeys);
+    releaseRetainedTilesWhenLoaded();
+}
+
+void TmsLoader::releaseRetainedTilesWhenLoaded()
+{
+    if (m_retainedTiles.isEmpty())
+        return;
+    for (const TileInfo& tile : std::as_const(m_activeTiles)) {
+        if (tile.isLoading || tile.textureId == 0)
+            return;
+    }
+    m_retainedTiles.clear();
 }
 
 void TmsLoader::clearCache()
@@ -250,6 +274,7 @@ void TmsLoader::clearCache()
     ++m_requestGeneration;
     abortRequestsExcept(QSet<QString>());
     m_activeTiles.clear();
+    m_retainedTiles.clear();
     m_pendingRequests.clear();
     m_wantedMbTiles->clear();
     m_textureManager->clearCache();
@@ -324,7 +349,7 @@ void TmsLoader::fetchMbTile(int z, int x, int y, int layerIndex)
         if (!wanted->contains(key))
             return;
         QString errorMessage;
-        const QImage image = MbTilesReader::readTileImage(
+        QImage image = MbTilesReader::readTileImage(
             mbTilesPath,
             z,
             wrappedX,
@@ -332,6 +357,9 @@ void TmsLoader::fetchMbTile(int z, int x, int y, int layerIndex)
             tmsYOrigin,
             mbTilesFormat,
             &errorMessage);
+        // The texture's format: no conversion left for the UI thread.
+        if (!image.isNull())
+            image = image.convertToFormat(QImage::Format_RGBA8888);
 
         if (!loader)
             return;
@@ -383,25 +411,40 @@ void TmsLoader::onTileDownloaded(QNetworkReply* reply, int z, int x, int y, int 
     }
 
     QString key = textureTileKey(z, x, y, layerIndex);
-    m_pendingRequests.remove(key);
     m_pendingReplies.remove(key);
-    bool loaded = false;
-
-    if (reply->error() == QNetworkReply::NoError) {
-        QImage image;
-        if (image.loadFromData(reply->readAll())) {
-            loaded = true;
-            applyTileImage(key, image);
-            emit tileLoaded(key);
-        }
-    }
-
-    if (!loaded) {
+    if (reply->error() != QNetworkReply::NoError) {
+        m_pendingRequests.remove(key);
         handleTileFailure(key, z, x, y);
         emit tileFailed(key);
+        reply->deleteLater();
+        return;
     }
 
+    // PNG/JPEG decoding takes milliseconds per tile: done on the global pool, so a burst of
+    // tiles after a zoom does not stall the map. The key stays pending until the image is back
+    // (a tile that leaves the view meanwhile is dropped by abortRequestsExcept).
+    const QByteArray bytes = reply->readAll();
     reply->deleteLater();
+    const quint64 generation = m_requestGeneration;
+    QPointer<TmsLoader> loader(this);
+    QThreadPool::globalInstance()->start([loader, key, bytes, z, x, y, generation]() {
+        QImage image;
+        QString errorMessage;
+        if (image.loadFromData(bytes))
+            image = image.convertToFormat(QImage::Format_RGBA8888);
+        else
+            errorMessage = QStringLiteral("Could not decode tile %1").arg(key);
+        if (!loader)
+            return;
+        QMetaObject::invokeMethod(
+            loader.data(),
+            [loader, key, image, errorMessage, z, x, y, generation]() {
+                if (!loader)
+                    return;
+                loader->completeMbTileRead(key, image, errorMessage, z, x, y, generation);
+            },
+            Qt::QueuedConnection);
+    });
 }
 
 void TmsLoader::applyTileImage(const QString& key, const QImage& image)
@@ -456,6 +499,7 @@ void TmsLoader::handleTileFailure(const QString& key, int z, int x, int y)
     for (const int retryLayerIndex : retryLayerIndices) {
         fetchTile(z, x, y, retryLayerIndex);
     }
+    releaseRetainedTilesWhenLoaded();
 }
 
 void TmsLoader::abortRequestsExcept(const QSet<QString>& keepKeys)

@@ -5,7 +5,9 @@
 #include <QObject>
 #include <QPointF>
 #include <QString>
+#include <QStringList>
 #include <QVariantList>
+#include <QVariantMap>
 
 class Camera;
 
@@ -33,6 +35,15 @@ class MapControlsModel : public QObject
     Q_PROPERTY(bool citiesVisible READ areCitiesVisible WRITE setCitiesVisible NOTIFY citiesVisibleChanged)
     Q_PROPERTY(bool bordersVisible READ areBordersVisible WRITE setBordersVisible NOTIFY bordersVisibleChanged)
     Q_PROPERTY(bool gridVisible READ isGridVisible WRITE setGridVisible NOTIFY gridVisibleChanged)
+    Q_PROPERTY(QVariantList featureLayers READ featureLayers NOTIFY featureLayersChanged)
+    Q_PROPERTY(bool featureLayersAvailable READ areFeatureLayersAvailable NOTIFY featureLayersChanged)
+    Q_PROPERTY(QStringList hiddenFeatureLayers READ hiddenFeatureLayers WRITE setHiddenFeatureLayers NOTIFY hiddenFeatureLayersChanged)
+    Q_PROPERTY(QVariantList themes READ themes CONSTANT)
+    Q_PROPERTY(QString currentTheme READ currentTheme WRITE setCurrentTheme NOTIFY currentThemeChanged)
+    Q_PROPERTY(int thumbnailRevision READ thumbnailRevision NOTIFY thumbnailRevisionChanged)
+    Q_PROPERTY(int panelMaxHeight READ panelMaxHeight WRITE setPanelMaxHeight NOTIFY panelMaxHeightChanged)
+    Q_PROPERTY(QVariantMap selectedFeature READ selectedFeature NOTIFY selectedFeatureChanged)
+    Q_PROPERTY(bool featureSelected READ isFeatureSelected NOTIFY selectedFeatureChanged)
 
 public:
     explicit MapControlsModel(QObject* parent = nullptr);
@@ -87,6 +98,37 @@ public:
     bool isGridVisible() const { return m_gridVisible; }
     void setGridVisible(bool visible);
 
+    /// The layers of the vector (OSM) MBTiles source, one {id, label} each (water, roads,
+    /// places, ...), in Layers-panel order. Empty when there is no vector source.
+    QVariantList featureLayers() const { return m_featureLayers; }
+    /// Sets the layers from their ids (labels from MapFeatures).
+    void setFeatureLayerIds(const QStringList& ids);
+    bool areFeatureLayersAvailable() const { return !m_featureLayers.isEmpty(); }
+    /// Layers switched off; none by default.
+    QStringList hiddenFeatureLayers() const { return m_hiddenFeatureLayers; }
+    void setHiddenFeatureLayers(const QStringList& layers);
+    Q_INVOKABLE void toggleFeatureLayer(const QString& id);
+    Q_INVOKABLE bool isFeatureLayerVisible(const QString& id) const { return !m_hiddenFeatureLayers.contains(id); }
+
+    /// Looks of the OSM map, one {id, label} each (MapTheme): Standard, Positron, Dark.
+    static QVariantList themes();
+    QString currentTheme() const { return m_currentTheme; }
+    void setCurrentTheme(const QString& id);
+
+    /// Bumped when live thumbnails (image://maplayers/...) changed: QML reloads them.
+    int thumbnailRevision() const { return m_thumbnailRevision; }
+    void bumpThumbnailRevision();
+    /// Tallest the layers panel may be (the map's height less the margins); it scrolls beyond.
+    int panelMaxHeight() const { return m_panelMaxHeight; }
+    void setPanelMaxHeight(int height);
+
+    /// The map feature the user clicked, for the details card: "title", "subtitle", "icon" and
+    /// "rows" (a list of {name, value}). Empty when nothing is selected.
+    QVariantMap selectedFeature() const { return m_selectedFeature; }
+    bool isFeatureSelected() const { return !m_selectedFeature.isEmpty(); }
+    void setSelectedFeature(const QVariantMap& feature);
+    Q_INVOKABLE void clearSelectedFeature() { setSelectedFeature(QVariantMap()); }
+
     /// Compass click: north up (bearing 0) and closes any open panel.
     Q_INVOKABLE void resetNorth();
     Q_INVOKABLE void toggleSettings() { setSettingsOpen(!m_settingsOpen); }
@@ -113,6 +155,12 @@ signals:
     void citiesVisibleChanged(bool visible);
     void bordersVisibleChanged(bool visible);
     void gridVisibleChanged(bool visible);
+    void featureLayersChanged();
+    void hiddenFeatureLayersChanged(const QStringList& layers);
+    void currentThemeChanged(const QString& id);
+    void thumbnailRevisionChanged();
+    void panelMaxHeightChanged();
+    void selectedFeatureChanged();
     void northResetRequested();
     void toolTipRequested(const QString& text, const QPointF& globalPos);
     void toolTipHideRequested();
@@ -134,6 +182,12 @@ private:
     bool m_citiesVisible;
     bool m_bordersVisible;
     bool m_gridVisible;
+    QVariantList m_featureLayers;
+    QStringList m_hiddenFeatureLayers;
+    QString m_currentTheme;
+    int m_thumbnailRevision;
+    int m_panelMaxHeight;
+    QVariantMap m_selectedFeature;
 };
 
 #endif // MAPCONTROLSMODEL_H

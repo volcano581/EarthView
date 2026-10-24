@@ -52,22 +52,44 @@ stderr, naming the folders it searched.
 A file in this folder that already has a `<map>` root is passed to osgEarth unchanged.
 2D behaviour is unchanged: it still reads these files itself.
 
-## MBTiles on the imagery server's share
+## MBTiles on the imagery server (by URL or on its share)
 
 A layer list can also name an **MBTiles** file (raster or vector, e.g. a planet-wide OpenStreetMap
-file of tens of GB) on the imagery server's network share, by path — UNC, mapped drive, or relative
-to the earth file:
+file of tens of GB) on the imagery server — by **URL**, like the TMS layers, when the file sits on
+its web server:
 
 ```
-<image name="OSM" driver="mbtiles"> <url> \imagery-server\maps\planet.mbtiles </url></image>
+<image name="OSM" driver="mbtiles"> <url> http://host:port/path/to/osm/planet.mbtiles </url></image>
+```
+
+or by path on its network share — UNC, mapped drive, or relative to the earth file:
+
+```
+<image name="OSM" driver="mbtiles"> <url> \\imagery-server\maps\planet.mbtiles </url></image>
 ```
 
 The 2D viewer offers it like any other map source (dropdown and Layers panel, as **OSM Map**).
-It never copies or scans the file: each reader thread keeps one read-only connection open and
-SQLite reads only the index pages and the tiles in view, at the zoom being shown (vector tiles
-one level coarser, as they are made for 512 px). Requests for tiles that left the view are
-dropped before they reach the share. Copy `osm_mbtiles.earth.sample` to `osm_mbtiles.earth`
-and edit the path. The 3D view ignores `mbtiles` entries.
+A vector OSM file also supplies the **map details** (places, roads, water, buildings,
+boundaries, POIs) that the Layers panel draws over every other base map, and that can be
+clicked for their attributes. It never copies or scans the file: only the tiles in view are
+read, at the zoom being shown (vector tiles one level coarser, as they are made for 512 px), and
+requests for tiles that left the view are dropped before they reach the server. Copy
+`osm_mbtiles.earth.sample` to `osm_mbtiles.earth` and edit the URL (or put a share path there).
+The 3D view ignores `mbtiles` entries.
+
+**By URL:** the file is read in place with HTTP range requests (64 KB blocks, a 64 MB cache);
+SQLite is not involved, so any `.mbtiles` layout works (a `tiles` table, or the `map` + `images`
+tables of OpenMapTiles / tippecanoe, or planetiler's). The web server must answer range requests
+— IIS, nginx and Apache do for static files. **IIS** serves only known file types: add a MIME
+type for `.mbtiles` (`application/octet-stream`) on the site, or it answers 404. A URL whose
+name does not end in `.mbtiles` (e.g. `.mbtile`) works too: the file is recognised by its
+content. The same entry also accepts a tile service in front of the file: a
+`{z}/{x}/{y}.pbf` template, a TMS `tilemapresource.xml`, or a TileJSON (`.json`) document. If
+nothing shows, start EarthView from a console: a skipped entry is reported as
+`Skipping MBTiles layer <url> ... <reason>` (HTTP status, no range support, not an MBTiles file).
+
+**On the share:** each reader thread keeps one read-only SQLite connection open and SQLite reads
+only the index pages and the tiles asked for.
 
 ## DTED from the offline server
 

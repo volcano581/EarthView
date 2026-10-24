@@ -6,7 +6,8 @@ and how to verify. Apply the changes in order; each section can be checked off o
 
 Background: decision **D-034** in `3D_PROGRESS.md`. 3D work is paused, and the 2D view gets
 Google-Maps-style on-map controls in QML over the existing OpenGL map (`QQuickWidget` overlay,
-"option A"). `MapWidget` and the 2D renderers are unchanged.
+"option A"). PRs 1–2 left `MapWidget` and the 2D renderers unchanged; later PRs change them where
+their file lists say so.
 
 Planned PRs:
 
@@ -16,7 +17,217 @@ Planned PRs:
 | 2 | `2d/ui2-layers-panel` | Mini-map layers button + panel: OSM / Imagery base maps, Hillshade toggle (row 1); Cities / Borders / Grid overlays | **done** |
 | 3 | `2d/ui3-measure-smooth-zoom` | Right-side layout, base map tiles from discovery, measure tool, smooth zoom + inertial pan | **done** |
 | 4 | `2d/ui4-mbtiles-share-minzoom` | MBTiles on the imagery server's share, fast large-file loading, fill-the-window minimum zoom | **done** |
-| — | later | Raster parent-tile fallback while zooming | planned |
+| 5 | `2d/ui5-osm-details-url-mbtiles` | OSM map details (one switch per layer) and styles (Standard / Positron / Dark), Google-Maps-style layers panel with live pictures, click a feature for its details, MBTiles by URL, smooth zoom, the globe drawn on the GPU | **done** |
+
+---
+
+## PR 5 — OSM map details and styles, Google-Maps-style layers panel, MBTiles by URL, smooth zoom (2026-10-24, branch `2d/ui5-osm-details-url-mbtiles`, on top of PR 4)
+
+### What the user sees
+
+- **Layers panel, Google Maps style.** The button (bottom-right, above the scale bar) is a live
+  picture of the current map at this place. Its panel has four sections:
+  - **Map type:** one tile per map source, in the Map Source dropdown's order, each a live
+    picture of that source at the view's centre (a drawn picture until it has loaded).
+  - **Map style** (when there is an OSM vector MBTiles source): **Standard**, **Positron**,
+    **Dark**, each a picture of the OSM map here in that style.
+  - **Map details** (same condition): one on/off tile per layer of the OSM file, all on by
+    default: Places, Roads, Road names, Water, Rivers, Water names, Buildings, House numbers,
+    Boundaries, Parks, Land cover, Land use, Airports, Airport names, Peaks, Points of interest —
+    the ones the file has. Mapbox Streets layer names are understood too; any other layer is
+    listed under its own name.
+  - **Overlays:** Terrain (the hillshade) and Grid.
+
+  The panel scrolls when the map is too short for it; ✕ closes it.
+- **Cities and Borders are gone from the panel.** Place names and boundaries come from the OSM
+  map. With the on-map controls the world cities layer (`Data/Cities`) starts off (**View ▸
+  Cities** can still switch it on), the border shapefile is not loaded, and **Load Borders…**
+  (toolbar and File menu) and **View ▸ Borders** are not shown.
+- **Map styles:**
+  - **Standard:** the colours of the OpenStreetMap website (OSM Carto): pink motorways, orange
+    primaries, yellow secondaries, white streets with grey casings, green parks, blue water,
+    purple dashed boundaries, black names with a white halo, POI markers coloured by kind.
+  - **Positron:** CARTO's pale grey map, which lets data on top stand out.
+  - **Dark:** CARTO Dark Matter.
+
+  In every style road widths grow smoothly with the zoom, minor roads appear from their own
+  zoom, paths are dashed, bridges are drawn above the roads under them, road names follow the
+  road, smaller places wait for closer zooms, and maritime boundaries are hidden.
+- **Details over any map type.** Over Satellite Imagery, CardG Maps, … the switched-on details
+  are drawn on top in a "hybrid" look, whatever the style: light roads without casings, shores
+  and building outlines, no area fills, white names with a dark halo. On the **OSM Map** itself
+  the tiles switch the map's own layers, the ground (land cover, water areas, …) included.
+- **Click a feature** (a name, a road, a river, a building, a lake, a POI): it is outlined in blue
+  over all its tiles and a **details card** opens at the top-left — name, kind and layer (e.g.
+  "Motorway · Roads"), English name when the name is in another script, its OSM attributes
+  (class, ref, …), geometry and the clicked location, with a picture of its layer. ✕ or a click
+  on an empty spot closes it. A click that only closes an open panel does not select, and while
+  measuring, clicks still measure. Switching off the feature's layer closes its card.
+- **MBTiles by URL**, like the TMS entries — the `.mbtiles` file on the imagery server's web server:
+  ```
+  <image name="OSM" driver="mbtiles"> <url> http://host:port/path/to/osm/planet.mbtiles </url></image>
+  ```
+  (any file name, e.g. `.mbtile`; a tile service — `{z}/{x}/{y}.pbf`, `tilemapresource.xml`,
+  TileJSON — is accepted too). The share path still works.
+- **Smooth zoom:** the wheel zoom moves the same amount every frame, the previous zoom level stays
+  drawn until the new one has loaded (no blank flashes, no pop-in), and tiles arriving no longer
+  stall the map.
+- **The globe (Orthographic):** the OSM map, the raster tiles and the hillshade are projected on
+  the GPU, so turning the globe re-projects nothing on the CPU. OSM areas that cross the horizon
+  fill correctly, and the hillshade, which was drawn flat over the globe, now lies on it.
+- **Fix:** a vector `mbtiles` entry in an earth file without `min_level`/`max_level` was never drawn
+  at any zoom (its display range came out as −1..−1). It now shows at every zoom.
+
+### Why the zoom was jerky
+
+Every wheel step changes the camera every frame, and several things then ran on the UI thread:
+
+| Cause | Fix |
+|---|---|
+| The eased zoom stepped on an 8 ms timer that beats against the 60 Hz display: one frame got two steps, the next one — visible judder | `SmoothNavigator::setFrameSource()`: one step per presented frame (`frameSwapped`); the timer only as a fallback when no frames come |
+| The label atlas was repainted (all labels, QPainter) whenever the set of labels changed — nearly every frame while zooming | `TextRenderer`: each label is painted once into a persistent atlas; a new label costs one small upload |
+| Each arriving vector tile rebuilt the geometry of the whole view on the UI thread | `VectorTileRenderer`: a tile's styled meshes and label candidates are built on the reader thread and uploaded once into the tile's own buffers; lines are drawn as instanced quads in the shader |
+| Raster tiles were decoded (PNG/JPEG) on the UI thread, a burst of them uploaded in one frame, and the old zoom level dropped at once (blank, then pop-in) | `TMSLoader`: decoding on the global pool; `TileRenderer`: at most 4 ms of texture uploads per frame; the previous view's tiles stay drawn under the new ones until those are in |
+| DEM (hillshade) files were read and parsed on the UI thread | `DemLoader`: on the global pool |
+| Label layout walked every feature of every tile each frame | Candidates per tile are prepared once; collisions use a grid |
+| The visible extent (hundreds of points sampled on the globe) was computed again by every loader, every frame | `Camera`: computed once per change of view |
+
+Also: the texture cache now evicts the least recently **drawn** tile (it evicted by creation
+order, and a stale texture id could end up drawing another tile's image).
+
+### How MBTiles by URL works
+
+SQLite cannot open a URL, so `RemoteMbTiles` reads the SQLite file format itself (read-only): it
+fetches only the B-tree pages a lookup walks, with HTTP range requests in 64 KB blocks, kept in a
+64 MB cache shared by the reader threads (a block several threads want is fetched once). A tile
+costs a few small requests; the planet file is never downloaded. Layouts: `tiles` table + index,
+`map` + `images` behind a `tiles` view (OpenMapTiles, tippecanoe, mbutil), planetiler's
+`tiles_shallow` + `tiles_data`. The server must answer range requests (IIS, nginx, Apache do for
+static files); a server that ignores them is refused unless the file is ≤ 64 MB. Opening is
+limited to 5 s, so an unreachable server does not hold the start-up.
+
+### How the OSM map is drawn
+
+- `MapTheme` (pure, unit-tested) gives each feature its look from its layer, its OSM attributes
+  and the zoom: fill, outline, casing, line, dashes, draw order, and the label's colour, halo,
+  size, weight, marker and whether it follows the line. Widths are screen pixels with a growth
+  factor per zoom level, so they change smoothly between levels.
+- `VectorTileRenderer` builds each tile's meshes and label candidates on the reader threads in the
+  current style and uploads them once. Lines are instanced quads (`vector_line.vert`) with round
+  joins and dashes. A change of style restyles the loaded tiles on the reader threads; until a
+  tile is done it keeps its previous look.
+- On the globe the same buffers are drawn into an offscreen texture in an azimuthal equidistant
+  projection around the view's centre, which is then mapped onto the sphere (`globe_composite.frag`).
+- `TextRenderer` paints halos (the text's outline stroked under its fill), rotated road names and
+  POI markers into its atlas.
+- The panel's pictures come from `LayerImages`. `MapThumbnailer` reads a 2 × 2 block of tiles per
+  source at the view's centre on the reader threads — the same reader as the map: share, web
+  server or tile server — when the panel opens and when the view has settled somewhere new, and
+  draws them. QML reloads them together, 150 ms after a refresh has delivered. Map details show
+  drawn illustrations.
+
+### Files added
+
+| File | Purpose |
+|---|---|
+| `EarthView/RemoteMbTiles.h/.cpp` | Read-only SQLite (MBTiles) reader over HTTP range requests; blocking GET helper for tile URLs |
+| `EarthView/MapFeatures.h` | The vector-layer catalog: display name and panel order of the OpenMapTiles and Mapbox Streets layers, and which are areas |
+| `EarthView/MapTheme.h/.cpp` | The styles (Standard, Positron, Dark) and the hybrid look over imagery |
+| `EarthView/mapcontrols/FeatureDetails.h/.cpp` | Turns a clicked feature's attributes into the card's title, subtitle and rows |
+| `EarthView/mapcontrols/LayerImages.h/.cpp` | The panel's pictures: live thumbnails (`MapThumbnailer`), drawn layer illustrations, the `image://maplayers` provider |
+| `EarthView/mapcontrols/qml/FeatureCard.qml` | The details card |
+| `EarthView/shaders/vector_geometry.vert`, `vector_line.vert`, `vector_line.frag` | Vector map areas and thick lines (round joins, dashes) |
+| `EarthView/shaders/globe_composite.vert`, `globe_composite.frag` | The vector map's offscreen texture mapped onto the globe |
+| `EarthView/shaders/textured_globe.vert`, `textured_globe.frag` | Raster tiles projected onto the globe |
+| `EarthView/tests/tst_featuredetails.cpp` | Layer catalog (names, panel order, areas) and card text |
+| `EarthView/tests/tst_maptheme.cpp` | Styles: casings and widths, road classes by zoom, tunnels and bridges, areas, the overlay look, boundaries, labels, markers |
+
+### Files changed
+
+| File | Change |
+|---|---|
+| `EarthView/CMakeLists.txt` | New core sources and shaders |
+| `EarthView/MbTilesReader.h/.cpp` | http(s) locations go to `RemoteMbTiles`; `readVectorTileFromUrl()`, `decodeVectorTile()`; MVT feature ids are read (to gather a feature's pieces across tiles); `vectorLayerIds()`: the file's layers from its metadata |
+| `EarthView/MapSourceCatalog.h/.cpp` | `mbtiles` entries by URL (`urlMbTilesLayer()`); `featureLayers()`; layer ids from MBTiles metadata and TileJSON; the −1 display range fix |
+| `EarthView/TMSLoader.h/.cpp` | Off-thread decoding; `TileSourceLayer::vectorLayers` |
+| `EarthView/VectorTileRenderer.h/.cpp` | Rewritten: styled per-tile meshes built off the UI thread, lines as instanced quads in the shader, the globe through an offscreen texture, Overlay mode, per-layer hiding (`setHiddenLayers()`), `setTheme()`, `pick()`, `seenLayers()`. Now a `QObject` with `contentChanged()` and `layersDiscovered()` |
+| `EarthView/TileRenderer.h/.cpp`, `EarthView/TextureManager.h/.cpp` | Upload budget, previous tiles retained, LRU by use; globe tiles projected in `textured_globe.vert` |
+| `EarthView/TextRenderer.h/.cpp` | Persistent label atlas; halos, rotated labels, markers; `paintLabel()` |
+| `EarthView/TerrainRenderer.cpp`, `EarthView/shaders/terrain_flat.vert`, `terrain_height.frag` | Hillshade projected onto the globe; the far side is discarded |
+| `EarthView/DemLoader.h/.cpp` | Off-thread file reads and parsing |
+| `EarthView/Camera.h/.cpp` | The visible extent is cached until the view changes |
+| `EarthView/MapWidget.h/.cpp` | Details overlay renderer; `setFeatureLayers()`, `setHiddenFeatureLayers()`, `setMapTheme()`, `featureLayerNames()`, `hasFeatureSource()`, `pickFeature()`, `featureSourceChanged()`; labels refresh when vector tiles arrive; the border shapefile is read only once borders are shown |
+| `EarthView/mapcontrols/MapControlsModel.h/.cpp` | `featureLayers`, `hiddenFeatureLayers` (+ `toggleFeatureLayer()`), `themes` / `currentTheme`, `thumbnailRevision`, `panelMaxHeight`, `selectedFeature` / `featureSelected` (+ `clearSelectedFeature()`) |
+| `EarthView/mapcontrols/MapControlsOverlay.h/.cpp` | Cities and borders off; details and style wired to the map; live thumbnails (`setMapSources()`); click → `selectFeatureAt()`, outline and card; views deleted before the model (no QML errors at exit) |
+| `EarthView/mapcontrols/BaseMapSources.cpp` | Each map type has a live thumbnail |
+| `EarthView/mapcontrols/SmoothNavigator.h/.cpp` | Frame-driven steps |
+| `EarthView/mapcontrols/qml/LayersButton.qml`, `LayerTile.qml` | The new panel: Map type / Map style / Map details / Overlays, live pictures, scrolling |
+| `EarthView/mapcontrols/CMakeLists.txt` | New sources; the cities and borders icons dropped |
+| `EarthView/MainWindow.cpp`, `EarthView/MapViewWindow.h/.cpp` | Hand the OSM source's vector layers to both maps as details and the map sources to the thumbnails; Cities action follows the map; no border shapefile, Load Borders… or View ▸ Borders with the on-map controls |
+| `EarthView/tests/tst_mbtilesreader.cpp`, `tst_mapcontrolsmodel.cpp`, `tests/CMakeLists.txt` | A local HTTP server with range support; all four MBTiles layouts read by URL and compared byte for byte; earth-file URL entries; tile-service URLs; layer ids; model tests (layers, styles, thumbnails); new test targets |
+| `EarthView/Data/EarthFiles/README.md`, `osm_mbtiles.earth.sample` | The URL form |
+
+### Files removed
+
+| File | Why |
+|---|---|
+| `EarthView/mapcontrols/qml/icons/overlay_cities.svg`, `overlay_borders.svg` | Cities and Borders are no longer in the panel |
+| `EarthView/EarthView/ARCHITECTURE_AND_APIS.md` | An empty file committed by mistake (2026-10-14); the document is `EarthView/ARCHITECTURE_AND_APIS.md` |
+
+### Behaviour changes to know (2D, D-034)
+
+- The vector (OSM) map has a new look for **every** host: the Standard style. Hosts **without**
+  `MapControlsOverlay` keep the cities, the borders and every layer on, and get the loading fixes.
+- The border shapefile is read only once borders are shown.
+- Vector maps label water names, airports and peaks in addition to places, road names and POIs.
+- On the globe the hillshade is projected (it was drawn flat).
+
+### Known limitations
+
+- The style and the hidden details are not saved: each start is Standard with every layer on.
+  Each window has its own; the map type is shared, as before.
+- A layer the catalog does not know appears under its id, made readable ("ski_area" → "Ski area").
+- A map type whose server does not answer keeps its drawn picture in the panel.
+
+### Offline machine setup
+
+1. Copy `Data/EarthFiles/osm_mbtiles.earth.sample` to `osm_mbtiles.earth` and put the file's URL in
+   `<url>` (same host and port as the TMS entries).
+2. **IIS:** add a MIME type for the extension (`.mbtiles` → `application/octet-stream`) on the
+   site, otherwise IIS answers 404.
+3. Start EarthView from a console. A problem is reported as `Skipping MBTiles layer <url> …` with
+   the reason (HTTP status, no range support, not an MBTiles file).
+
+### Verify
+
+1. `ctest --test-dir build-msvc -C Release --output-on-failure` (Qt `bin` on `PATH`): **24/24**.
+2. On the offline machine:
+   - Layers: the button shows the current map. Map type shows each source at this place, Map
+     style the three looks, Map details the file's layers, Overlays Terrain and Grid. In a short
+     window the panel scrolls.
+   - Standard → Positron → Dark: the OSM map and its names restyle within a moment, with no gaps.
+   - Satellite Imagery: the switched-on details appear over the imagery in the hybrid look;
+     switching one off removes it at once.
+   - Click a road, a town name, a river, a building: outline + card; ✕ closes it.
+   - Wheel zoom in and out quickly over imagery and over the OSM map: steady movement, no blank
+     flashes, the FPS counter does not dip at each notch.
+   - Orthographic: turn the globe with the OSM map, then with Terrain on. It turns smoothly, seas
+     and land cover crossing the horizon fill correctly, and nothing shows through from the far side.
+
+### Verification status
+
+- First draft of this PR (details as six categories), on the dev PC with llvm-mingw 17 / Qt 6.10.3
+  (no Visual Studio there): build **OK**, `ctest` **22/22 passed**. Offscreen check with a
+  generated OSM vector MBTiles (467 tiles) served by a local HTTP server with range requests,
+  loaded through an earth-file URL entry: vector base map, details filter, details over another
+  base map, click on a road and a lake (outline and card) — **as described**. During an eased
+  5-level zoom the UI thread spent on average 0.25 ms per frame, at most 1.8 ms (`EARTHVIEW_PROFILE=1`).
+- This PR as submitted (styles, new panel, globe), MSVC (Visual Studio 18) / Qt 6.11.0, Release,
+  2026-10-24: build **OK**, no warnings; `ctest` **24/24 passed**, including `tst_maptheme` and
+  `tst_featuredetails`.
+- On screen with an OSM file (styles, live pictures, globe, details card): **pending**. There is
+  no vector MBTiles on the MSVC PC. The real planet file on the real web server: **pending
+  (offline machine)**.
 
 ---
 

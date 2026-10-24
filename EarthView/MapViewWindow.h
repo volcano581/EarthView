@@ -23,6 +23,7 @@ public:
     MapWidget* mapWidget() const { return m_mapWidget; }
     /// On-map controls of this window's map; nullptr when built without them.
     MapControlsModel* mapControls() const;
+    MapControlsOverlay* mapControlsOverlay() const { return m_mapControlsOverlay; }
 
 signals:
     void windowVisibilityChanged(bool visible);

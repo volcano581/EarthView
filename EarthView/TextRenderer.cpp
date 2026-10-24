@@ -7,14 +7,18 @@
 #include <QImage>
 #include <QOpenGLContext>
 #include <QOpenGLExtraFunctions>
+#include <QFontMetricsF>
 #include <QPainter>
+#include <QPainterPath>
 #include <QVector2D>
+#include <QtMath>
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
 
 namespace {
 constexpr int kAtlasMargin = 2;
+constexpr int kPreferredAtlasSize = 2048;
 
 struct TextVertex {
     float position[2];
@@ -33,20 +37,35 @@ void appendQuad(
     QVector<TextVertex>& vertices,
     const QRectF& rect,
     const QRect& textureRect,
-    const QSize& atlasSize)
+    int atlasSize,
+    qreal angleDegrees)
 {
-    if (atlasSize.width() <= 0 || atlasSize.height() <= 0)
+    if (atlasSize <= 0)
         return;
 
-    const float u0 = static_cast<float>(textureRect.left()) / atlasSize.width();
-    const float v0 = static_cast<float>(textureRect.top()) / atlasSize.height();
-    const float u1 = static_cast<float>(textureRect.right() + 1) / atlasSize.width();
-    const float v1 = static_cast<float>(textureRect.bottom() + 1) / atlasSize.height();
+    const float u0 = static_cast<float>(textureRect.left()) / atlasSize;
+    const float v0 = static_cast<float>(textureRect.top()) / atlasSize;
+    const float u1 = static_cast<float>(textureRect.right() + 1) / atlasSize;
+    const float v1 = static_cast<float>(textureRect.bottom() + 1) / atlasSize;
 
-    const QPointF p00(rect.left(), rect.top());
-    const QPointF p10(rect.right(), rect.top());
-    const QPointF p11(rect.right(), rect.bottom());
-    const QPointF p01(rect.left(), rect.bottom());
+    QPointF p00(rect.left(), rect.top());
+    QPointF p10(rect.right(), rect.top());
+    QPointF p11(rect.right(), rect.bottom());
+    QPointF p01(rect.left(), rect.bottom());
+    if (angleDegrees != 0.0) {
+        const QPointF center = rect.center();
+        const double radians = qDegreesToRadians(angleDegrees);
+        const double cosA = std::cos(radians);
+        const double sinA = std::sin(radians);
+        auto rotate = [&](const QPointF& p) {
+            const QPointF d = p - center;
+            return center + QPointF(d.x() * cosA - d.y() * sinA, d.x() * sinA + d.y() * cosA);
+        };
+        p00 = rotate(p00);
+        p10 = rotate(p10);
+        p11 = rotate(p11);
+        p01 = rotate(p01);
+    }
 
     vertices.append(textVertex(p00, u0, v0));
     vertices.append(textVertex(p10, u1, v0));
@@ -77,6 +96,11 @@ quint64 quantizedCoordinate(double value)
 {
     return static_cast<quint64>(qRound64(value * 64.0));
 }
+
+QSize labelSize(const TextRenderer::Label& label)
+{
+    return QSize(static_cast<int>(std::ceil(label.rect.width())), static_cast<int>(std::ceil(label.rect.height())));
+}
 }
 
 TextRenderer::TextRenderer(Camera* camera, QObject* parent)
@@ -84,13 +108,14 @@ TextRenderer::TextRenderer(Camera* camera, QObject* parent)
     , m_camera(camera)
     , m_vao(0)
     , m_textureId(0)
-    , m_maxTextureSize(4096)
-    , m_cachedAtlasHash(0)
+    , m_atlasSize(kPreferredAtlasSize)
+    , m_shelfX(kAtlasMargin)
+    , m_shelfY(kAtlasMargin)
+    , m_shelfHeight(0)
+    , m_frame(0)
     , m_cachedGeometryHash(0)
     , m_cachedVertexCount(0)
     , m_gpuResourcesInitialized(false)
-    , m_atlasCacheValid(false)
-    , m_geometryCacheValid(false)
 {
     initializeOpenGLFunctions();
 }
@@ -130,8 +155,9 @@ void TextRenderer::initializeGpuResources()
 
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
     f->initializeOpenGLFunctions();
-    f->glGetIntegerv(GL_MAX_TEXTURE_SIZE, &m_maxTextureSize);
-    m_maxTextureSize = qMax(256, m_maxTextureSize);
+    GLint maxTextureSize = 4096;
+    f->glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maxTextureSize);
+    m_atlasSize = qBound(256, static_cast<int>(maxTextureSize), kPreferredAtlasSize);
 
     f->glGenVertexArrays(1, &m_vao);
     if (!m_vertexBuffer.initialize(GL_ARRAY_BUFFER))
@@ -145,6 +171,7 @@ void TextRenderer::initializeGpuResources()
     f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    f->glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, m_atlasSize, m_atlasSize, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
     f->glBindTexture(GL_TEXTURE_2D, 0);
 
     m_gpuResourcesInitialized = true;
@@ -175,219 +202,137 @@ void TextRenderer::setupVertexArray()
     f->glBindVertexArray(0);
 }
 
-QImage TextRenderer::buildAtlas(const QVector<Label>& labels, QVector<PackedLabel>* packedLabels) const
+quint64 TextRenderer::labelKey(const Label& label)
 {
-    if (!packedLabels)
-        return QImage();
-
-    packedLabels->clear();
-    if (labels.isEmpty())
-        return QImage();
-
-    struct SizedLabel {
-        int sourceIndex = -1;
-        Label label;
-        QSize size;
-    };
-
-    QVector<SizedLabel> sizedLabels;
-    sizedLabels.reserve(labels.size());
-    int widestLabel = 0;
-
-    for (int i = 0; i < labels.size(); ++i) {
-        const Label& label = labels.at(i);
-        const int width = static_cast<int>(std::ceil(label.rect.width()));
-        const int height = static_cast<int>(std::ceil(label.rect.height()));
-        if (label.text.isEmpty() || width <= 0 || height <= 0)
-            continue;
-
-        const QSize size(
-            qMin(width, m_maxTextureSize - kAtlasMargin * 2),
-            qMin(height, m_maxTextureSize - kAtlasMargin * 2));
-        if (size.width() <= 0 || size.height() <= 0)
-            continue;
-
-        sizedLabels.append({ i, label, size });
-        widestLabel = qMax(widestLabel, size.width());
-    }
-
-    if (sizedLabels.isEmpty())
-        return QImage();
-
-    int atlasWidth = qMin(m_maxTextureSize, 4096);
-    atlasWidth = qMin(m_maxTextureSize, qMax(512, atlasWidth));
-    if (widestLabel + kAtlasMargin * 2 > atlasWidth) {
-        atlasWidth = qMin(m_maxTextureSize, widestLabel + kAtlasMargin * 2);
-    }
-
-    int x = kAtlasMargin;
-    int y = kAtlasMargin;
-    int rowHeight = 0;
-
-    for (const SizedLabel& sized : sizedLabels) {
-        if (x + sized.size.width() + kAtlasMargin > atlasWidth) {
-            x = kAtlasMargin;
-            y += rowHeight + kAtlasMargin;
-            rowHeight = 0;
-        }
-
-        if (y + sized.size.height() + kAtlasMargin > m_maxTextureSize)
-            break;
-
-        PackedLabel packed;
-        packed.sourceIndex = sized.sourceIndex;
-        packed.label = sized.label;
-        packed.textureRect = QRect(QPoint(x, y), sized.size);
-        packedLabels->append(packed);
-
-        x += sized.size.width() + kAtlasMargin;
-        rowHeight = qMax(rowHeight, sized.size.height());
-    }
-
-    if (packedLabels->isEmpty())
-        return QImage();
-
-    const int atlasHeight = y + rowHeight + kAtlasMargin;
-    QImage atlas(atlasWidth, atlasHeight, QImage::Format_RGBA8888);
-    atlas.fill(Qt::transparent);
-
-    QPainter painter(&atlas);
-    painter.setRenderHint(QPainter::Antialiasing, true);
-    painter.setRenderHint(QPainter::TextAntialiasing, true);
-
-    for (const PackedLabel& packed : *packedLabels) {
-        const QRect rect = packed.textureRect;
-        if (packed.label.backgroundColor.alpha() > 0) {
-            painter.setPen(Qt::NoPen);
-            painter.setBrush(packed.label.backgroundColor);
-            painter.drawRoundedRect(rect, packed.label.radius, packed.label.radius);
-        }
-
-        painter.setFont(packed.label.font);
-        painter.setPen(packed.label.textColor);
-        painter.drawText(
-            marginsRemovedOrOriginal(rect, packed.label.textMargins),
-            packed.label.alignment,
-            packed.label.text);
-    }
-
-    return atlas;
-}
-
-quint64 TextRenderer::hashAtlas(const QVector<Label>& labels) const
-{
-    quint64 seed = static_cast<quint64>(labels.size());
-    for (const Label& label : labels) {
-        mixHash(&seed, qHash(label.text));
-        mixHash(&seed, qHash(label.font.toString()));
-        mixHash(&seed, label.textColor.rgba());
-        mixHash(&seed, label.backgroundColor.rgba());
-        mixHash(&seed, quantizedCoordinate(label.rect.width()));
-        mixHash(&seed, quantizedCoordinate(label.rect.height()));
-        mixHash(&seed, static_cast<quint64>(label.textMargins.left()));
-        mixHash(&seed, static_cast<quint64>(label.textMargins.top()));
-        mixHash(&seed, static_cast<quint64>(label.textMargins.right()));
-        mixHash(&seed, static_cast<quint64>(label.textMargins.bottom()));
-        mixHash(&seed, static_cast<quint64>(label.radius));
-        mixHash(&seed, static_cast<quint64>(label.alignment.toInt()));
-    }
+    const QSize size = labelSize(label);
+    quint64 seed = qHash(label.text);
+    mixHash(&seed, qHash(label.font));
+    mixHash(&seed, label.textColor.rgba());
+    mixHash(&seed, label.backgroundColor.rgba());
+    mixHash(&seed, static_cast<quint64>(size.width()) << 32 | static_cast<quint32>(size.height()));
+    mixHash(&seed, static_cast<quint64>(label.textMargins.left()) << 48
+                       | static_cast<quint64>(label.textMargins.top() & 0xffff) << 32
+                       | static_cast<quint64>(label.textMargins.right() & 0xffff) << 16
+                       | static_cast<quint64>(label.textMargins.bottom() & 0xffff));
+    mixHash(&seed, static_cast<quint64>(label.radius));
+    mixHash(&seed, static_cast<quint64>(label.alignment.toInt()));
+    mixHash(&seed, label.haloColor.rgba());
+    mixHash(&seed, quantizedCoordinate(label.haloWidth));
+    mixHash(&seed, static_cast<quint64>(label.marker));
+    mixHash(&seed, label.markerColor.rgba());
+    mixHash(&seed, quantizedCoordinate(label.markerSize));
     return seed;
 }
 
-quint64 TextRenderer::hashGeometry(const QVector<Label>& labels) const
+void TextRenderer::paintLabel(QPainter& painter, const QRect& rect, const Label& label)
 {
-    quint64 seed = static_cast<quint64>(labels.size());
-    for (const Label& label : labels) {
-        mixHash(&seed, quantizedCoordinate(label.rect.left()));
-        mixHash(&seed, quantizedCoordinate(label.rect.top()));
-        mixHash(&seed, quantizedCoordinate(label.rect.width()));
-        mixHash(&seed, quantizedCoordinate(label.rect.height()));
+    if (label.backgroundColor.alpha() > 0) {
+        painter.setPen(Qt::NoPen);
+        painter.setBrush(label.backgroundColor);
+        painter.drawRoundedRect(rect, label.radius, label.radius);
     }
-    return seed;
-}
 
-void TextRenderer::uploadAtlas(const QVector<Label>& labels, quint64 atlasHash)
-{
-    FrameProfiler::Scope uploadScope(QStringLiteral("rebuild.textAtlas"));
-    FrameProfiler::recordCount(QStringLiteral("textAtlas.labels"), labels.size());
+    QRectF textRect = marginsRemovedOrOriginal(rect, label.textMargins);
+    if (label.marker != Marker::None && label.markerSize > 0.0) {
+        const qreal size = label.markerSize;
+        const QPointF center(rect.left() + label.haloWidth + size * 0.5 + 0.5, rect.center().y() + 0.5);
+        painter.setPen(QPen(label.haloColor.alpha() > 0 ? label.haloColor : QColor(255, 255, 255, 200), 1.2));
+        painter.setBrush(label.markerColor);
+        if (label.marker == Marker::Circle) {
+            painter.drawEllipse(center, size * 0.5, size * 0.5);
+        }
+        else if (label.marker == Marker::Square) {
+            painter.drawRoundedRect(QRectF(center.x() - size * 0.5, center.y() - size * 0.5, size, size), 2, 2);
+        }
+        else {
+            QPolygonF triangle;
+            triangle << QPointF(center.x(), center.y() - size * 0.55) << QPointF(center.x() + size * 0.55, center.y() + size * 0.45)
+                     << QPointF(center.x() - size * 0.55, center.y() + size * 0.45);
+            painter.drawPolygon(triangle);
+        }
+        textRect.setLeft(rect.left() + label.haloWidth + size + 4.0);
+    }
 
-    QVector<PackedLabel> packedLabels;
-    const QImage atlas = buildAtlas(labels, &packedLabels);
-    if (atlas.isNull() || packedLabels.isEmpty()) {
-        m_cachedPackedLabels.clear();
-        m_cachedAtlasSize = QSize();
-        m_cachedAtlasHash = atlasHash;
-        m_cachedVertexCount = 0;
-        m_atlasCacheValid = true;
-        m_geometryCacheValid = false;
+    if (label.haloColor.alpha() <= 0 || label.haloWidth <= 0.0) {
+        painter.setFont(label.font);
+        painter.setPen(label.textColor);
+        painter.drawText(textRect, label.alignment, label.text);
         return;
     }
 
-    FrameProfiler::recordCount(QStringLiteral("textAtlas.packedLabels"), packedLabels.size());
-    FrameProfiler::recordCount(
-        QStringLiteral("textAtlas.pixels"),
-        static_cast<qint64>(atlas.width()) * atlas.height());
+    // Outlined glyphs: the halo is a stroke of the text path, the text filled over it.
+    const QFontMetricsF metrics(label.font);
+    const qreal textWidth = metrics.horizontalAdvance(label.text);
+    qreal x = textRect.left();
+    if (label.alignment & Qt::AlignHCenter)
+        x = textRect.center().x() - textWidth * 0.5;
+    else if (label.alignment & Qt::AlignRight)
+        x = textRect.right() - textWidth;
+    const qreal baseline = textRect.center().y() + (metrics.ascent() - metrics.descent()) * 0.5;
+    QPainterPath path;
+    path.addText(QPointF(x, baseline), label.font, label.text);
+    painter.strokePath(path, QPen(label.haloColor, label.haloWidth * 2.0, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+    painter.fillPath(path, label.textColor);
+}
+
+void TextRenderer::resetAtlas()
+{
+    m_entries.clear();
+    m_shelfX = kAtlasMargin;
+    m_shelfY = kAtlasMargin;
+    m_shelfHeight = 0;
+}
+
+bool TextRenderer::allocate(const QSize& size, QRect* rect)
+{
+    // Room for a transparent border on every side, written with the label, so linear filtering
+    // never samples a neighbour.
+    const int width = size.width() + 2 * kAtlasMargin;
+    const int height = size.height() + 2 * kAtlasMargin;
+    if (width > m_atlasSize || height > m_atlasSize)
+        return false;
+    if (m_shelfX + width > m_atlasSize) {
+        m_shelfX = 0;
+        m_shelfY += m_shelfHeight;
+        m_shelfHeight = 0;
+    }
+    if (m_shelfY + height > m_atlasSize)
+        return false;
+    *rect = QRect(m_shelfX, m_shelfY, width, height);
+    m_shelfX += width;
+    m_shelfHeight = qMax(m_shelfHeight, height);
+    return true;
+}
+
+bool TextRenderer::addToAtlas(const Label& label, quint64 key, AtlasEntry* entry)
+{
+    const QSize size = labelSize(label);
+    if (label.text.isEmpty() || size.width() <= 0 || size.height() <= 0)
+        return false;
+
+    QRect slot;
+    if (!allocate(size, &slot))
+        return false;
+
+    QImage image(slot.size(), QImage::Format_RGBA8888);
+    image.fill(Qt::transparent);
+    {
+        QPainter painter(&image);
+        painter.setRenderHint(QPainter::Antialiasing, true);
+        painter.setRenderHint(QPainter::TextAntialiasing, true);
+        paintLabel(painter, QRect(QPoint(kAtlasMargin, kAtlasMargin), size), label);
+    }
 
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
-    f->glActiveTexture(GL_TEXTURE0);
     f->glBindTexture(GL_TEXTURE_2D, m_textureId);
-    f->glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    f->glTexImage2D(
-        GL_TEXTURE_2D,
-        0,
-        GL_RGBA8,
-        atlas.width(),
-        atlas.height(),
-        0,
-        GL_RGBA,
-        GL_UNSIGNED_BYTE,
-        atlas.constBits());
+    f->glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+    f->glTexSubImage2D(GL_TEXTURE_2D, 0, slot.x(), slot.y(), slot.width(), slot.height(),
+                       GL_RGBA, GL_UNSIGNED_BYTE, image.constBits());
 
-    m_cachedPackedLabels = packedLabels;
-    m_cachedAtlasSize = atlas.size();
-    m_cachedAtlasHash = atlasHash;
-    m_atlasCacheValid = true;
-    m_geometryCacheValid = false;
-}
-
-void TextRenderer::uploadGeometry(const QVector<Label>& labels, quint64 geometryHash)
-{
-    FrameProfiler::Scope uploadScope(QStringLiteral("upload.textGeometry"));
-
-    QVector<TextVertex> vertices;
-    vertices.reserve(m_cachedPackedLabels.size() * 6);
-    for (const PackedLabel& packed : m_cachedPackedLabels) {
-        if (packed.sourceIndex < 0 || packed.sourceIndex >= labels.size())
-            continue;
-
-        appendQuad(vertices, labels.at(packed.sourceIndex).rect, packed.textureRect, m_cachedAtlasSize);
-    }
-
-    if (vertices.isEmpty()) {
-        m_cachedGeometryHash = geometryHash;
-        m_cachedVertexCount = 0;
-        m_geometryCacheValid = true;
-        return;
-    }
-
-    FrameProfiler::recordCount(QStringLiteral("upload.textGeometry.vertices"), vertices.size());
-    FrameProfiler::recordCount(
-        QStringLiteral("upload.textGeometry.bytes"),
-        vertices.size() * static_cast<qsizetype>(sizeof(TextVertex)));
-
-    const StreamingBuffer::UploadResult upload = m_vertexBuffer.upload(
-        vertices.constData(),
-        vertices.size() * static_cast<qsizetype>(sizeof(TextVertex)),
-        GL_STREAM_DRAW);
-    if (!upload.ok)
-        return;
-    if (upload.bufferRecreated) {
-        setupVertexArray();
-    }
-
-    m_cachedGeometryHash = geometryHash;
-    m_cachedVertexCount = vertices.size();
-    m_geometryCacheValid = true;
+    entry->textureRect = QRect(slot.topLeft() + QPoint(kAtlasMargin, kAtlasMargin), size);
+    entry->lastUsedFrame = m_frame;
+    m_entries.insert(key, *entry);
+    return true;
 }
 
 void TextRenderer::render(const QVector<Label>& labels)
@@ -399,14 +344,69 @@ void TextRenderer::render(const QVector<Label>& labels)
     if (!m_gpuResourcesInitialized || !m_program.isLinked())
         return;
 
-    const quint64 atlasHash = hashAtlas(labels);
-    if (!m_atlasCacheValid || atlasHash != m_cachedAtlasHash) {
-        uploadAtlas(labels, atlasHash);
-    }
+    ++m_frame;
+    QVector<quint64> keys;
+    keys.reserve(labels.size());
+    int newLabels = 0;
+    for (int pass = 0; pass < 2; ++pass) {
+        keys.clear();
+        bool full = false;
+        quint64 geometryHash = static_cast<quint64>(labels.size());
+        for (const Label& label : labels) {
+            const quint64 key = labelKey(label);
+            keys.append(key);
+            mixHash(&geometryHash, key);
+            mixHash(&geometryHash, quantizedCoordinate(label.rect.left()));
+            mixHash(&geometryHash, quantizedCoordinate(label.rect.top()));
+            mixHash(&geometryHash, quantizedCoordinate(label.angle));
 
-    const quint64 geometryHash = hashGeometry(labels);
-    if (!m_geometryCacheValid || geometryHash != m_cachedGeometryHash) {
-        uploadGeometry(labels, geometryHash);
+            auto it = m_entries.find(key);
+            if (it != m_entries.end()) {
+                it->lastUsedFrame = m_frame;
+                continue;
+            }
+            AtlasEntry entry;
+            if (addToAtlas(label, key, &entry)) {
+                ++newLabels;
+                continue;
+            }
+            if (!label.text.isEmpty())
+                full = true;
+        }
+        if (!full || pass == 1) {
+            if (newLabels > 0) {
+                FrameProfiler::recordCount(QStringLiteral("textAtlas.newLabels"), newLabels);
+                m_cachedGeometryHash = 0;  // texture coordinates of reused keys may have moved
+            }
+            if (geometryHash != m_cachedGeometryHash || m_cachedVertexCount == 0) {
+                FrameProfiler::Scope uploadScope(QStringLiteral("upload.textGeometry"));
+                QVector<TextVertex> vertices;
+                vertices.reserve(labels.size() * 6);
+                for (int i = 0; i < labels.size(); ++i) {
+                    const auto it = m_entries.constFind(keys.at(i));
+                    if (it != m_entries.cend())
+                        appendQuad(vertices, labels.at(i).rect, it->textureRect, m_atlasSize, labels.at(i).angle);
+                }
+                m_cachedVertexCount = 0;
+                if (!vertices.isEmpty()) {
+                    const StreamingBuffer::UploadResult upload = m_vertexBuffer.upload(
+                        vertices.constData(),
+                        vertices.size() * static_cast<qsizetype>(sizeof(TextVertex)),
+                        GL_STREAM_DRAW);
+                    if (upload.ok) {
+                        if (upload.bufferRecreated)
+                            setupVertexArray();
+                        m_cachedVertexCount = vertices.size();
+                    }
+                }
+                m_cachedGeometryHash = geometryHash;
+            }
+            break;
+        }
+        // Full: start over with only what this frame shows.
+        FrameProfiler::recordCount(QStringLiteral("textAtlas.resets"));
+        resetAtlas();
+        newLabels = 0;
     }
 
     if (m_cachedVertexCount <= 0)

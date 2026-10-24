@@ -65,10 +65,12 @@ set(LIBRARY_SOURCES
     GridRenderer.cpp
     LineBatchRenderer.cpp
     MapSourceCatalog.cpp
+    MapTheme.cpp
     MapWidget.cpp
     MbTilesReader.cpp
     MercatorProjection.cpp
     OpenGLRuntime.cpp
+    RemoteMbTiles.cpp
     ShaderUtils.cpp
     StreamingBuffer.cpp
     TerrainRenderer.cpp
@@ -89,11 +91,14 @@ set(LIBRARY_HEADERS
     FrameProfiler.h
     GridRenderer.h
     LineBatchRenderer.h
+    MapFeatures.h
     MapSourceCatalog.h
+    MapTheme.h
     MapWidget.h
     MbTilesReader.h
     MercatorProjection.h
     OpenGLRuntime.h
+    RemoteMbTiles.h
     ShaderUtils.h
     StreamingBuffer.h
     TerrainRenderer.h
@@ -119,6 +124,13 @@ set(SHADERS
     shaders/point_marker.frag
     shaders/terrain_flat.vert
     shaders/terrain_height.frag
+    shaders/vector_geometry.vert
+    shaders/vector_line.vert
+    shaders/vector_line.frag
+    shaders/globe_composite.vert
+    shaders/globe_composite.frag
+    shaders/textured_globe.vert
+    shaders/textured_globe.frag
 )
 
 # ── earthview_core: static library for doctrine and other hosts ───────────────

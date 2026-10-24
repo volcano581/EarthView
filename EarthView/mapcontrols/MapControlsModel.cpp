@@ -1,5 +1,7 @@
 #include "MapControlsModel.h"
 #include "Camera.h"
+#include "MapFeatures.h"
+#include "MapTheme.h"
 
 #include <QtMath>
 #include <cmath>
@@ -19,6 +21,9 @@ MapControlsModel::MapControlsModel(QObject* parent)
     , m_citiesVisible(true)
     , m_bordersVisible(true)
     , m_gridVisible(true)
+    , m_currentTheme(QStringLiteral("standard"))
+    , m_thumbnailRevision(0)
+    , m_panelMaxHeight(10000)
 {
 }
 
@@ -187,6 +192,79 @@ void MapControlsModel::setGridVisible(bool visible)
         return;
     m_gridVisible = visible;
     emit gridVisibleChanged(m_gridVisible);
+}
+
+void MapControlsModel::setFeatureLayerIds(const QStringList& ids)
+{
+    QVariantList layers;
+    for (const QString& id : MapFeatures::sortedLayers(ids)) {
+        // "Points of interest" does not fit under a tile.
+        const QString label = id == QLatin1String("poi") || id == QLatin1String("poi_label")
+            ? QStringLiteral("POIs") : MapFeatures::layerLabel(id);
+        layers.append(QVariantMap{ { "id", id }, { "label", label } });
+    }
+    if (layers == m_featureLayers)
+        return;
+    m_featureLayers = layers;
+    emit featureLayersChanged();
+}
+
+void MapControlsModel::setHiddenFeatureLayers(const QStringList& layers)
+{
+    QStringList sorted = layers;
+    sorted.removeDuplicates();
+    sorted.sort();
+    if (sorted == m_hiddenFeatureLayers)
+        return;
+    m_hiddenFeatureLayers = sorted;
+    emit hiddenFeatureLayersChanged(m_hiddenFeatureLayers);
+}
+
+void MapControlsModel::toggleFeatureLayer(const QString& id)
+{
+    QStringList layers = m_hiddenFeatureLayers;
+    if (!layers.removeAll(id))
+        layers.append(id);
+    setHiddenFeatureLayers(layers);
+}
+
+QVariantList MapControlsModel::themes()
+{
+    QVariantList list;
+    for (const QString& id : MapTheme::ids())
+        list.append(QVariantMap{ { "id", id }, { "label", MapTheme::displayName(id) } });
+    return list;
+}
+
+void MapControlsModel::setCurrentTheme(const QString& id)
+{
+    if (!MapTheme::ids().contains(id) || id == m_currentTheme)
+        return;
+    m_currentTheme = id;
+    emit currentThemeChanged(m_currentTheme);
+}
+
+void MapControlsModel::bumpThumbnailRevision()
+{
+    ++m_thumbnailRevision;
+    emit thumbnailRevisionChanged();
+}
+
+void MapControlsModel::setPanelMaxHeight(int height)
+{
+    height = qMax(120, height);
+    if (height == m_panelMaxHeight)
+        return;
+    m_panelMaxHeight = height;
+    emit panelMaxHeightChanged();
+}
+
+void MapControlsModel::setSelectedFeature(const QVariantMap& feature)
+{
+    if (m_selectedFeature == feature)
+        return;
+    m_selectedFeature = feature;
+    emit selectedFeatureChanged();
 }
 
 void MapControlsModel::resetNorth()

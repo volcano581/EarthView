@@ -1,6 +1,7 @@
 #include "MapSourceCatalog.h"
 
 #include "MbTilesReader.h"
+#include "RemoteMbTiles.h"
 
 #include <QBuffer>
 #include <QCoreApplication>
@@ -8,6 +9,9 @@
 #include <QEventLoop>
 #include <QFile>
 #include <QFileInfo>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QNetworkRequest>
@@ -288,7 +292,173 @@ void applyTileMapResourceMetadata(
     layer.maxTileZoom = metadata.maxTileZoom;
     layer.tmsYOrigin = metadata.tmsYOrigin;
 }
+
+// Vector tiles of OpenMapTiles-style OSM maps stop at z14; deeper views over-zoom them.
+constexpr int kDefaultVectorMaxTileZoom = 14;
+constexpr int kProbeTimeoutMs = 5000;
+
+bool isVectorExtension(const QString& extension)
+{
+    const QString e = extension.toLower();
+    return e == QLatin1String("pbf") || e == QLatin1String("mvt") || e == QLatin1String("vector");
+}
+
+bool isRasterExtension(const QString& extension)
+{
+    const QString e = extension.toLower();
+    return e == QLatin1String("png") || e == QLatin1String("jpg") || e == QLatin1String("jpeg")
+        || e == QLatin1String("webp");
+}
+
+QString urlPathExtension(const QString& url)
+{
+    return QFileInfo(QUrl(url).path()).suffix().toLower();
+}
+
+bool looksLikeRasterImage(const QByteArray& data)
+{
+    return data.startsWith("\x89PNG") || data.startsWith("\xFF\xD8") || data.startsWith("RIFF")
+        || data.startsWith("GIF8");
+}
+
+/// Fills @p layer as a tile-server layer: vector (VectorMbTiles without a file, tiles fetched by
+/// URL) or raster (an ordinary URL template layer).
+void setTileServerLayer(TmsLoader::TileSourceLayer* layer, const QString& urlTemplate, bool vector,
+                        bool tmsYOrigin, int minTileZoom, int maxTileZoom)
+{
+    layer->urlTemplate = urlTemplate;
+    layer->mbTilesPath.clear();
+    layer->tmsYOrigin = tmsYOrigin;
+    if (vector) {
+        layer->sourceType = TmsLoader::TileSourceLayer::SourceType::VectorMbTiles;
+        layer->mbTilesFormat = QStringLiteral("pbf");
+        layer->minTileZoom = minTileZoom >= 0 ? minTileZoom : 0;
+        layer->maxTileZoom = maxTileZoom >= 0 ? maxTileZoom : kDefaultVectorMaxTileZoom;
+    }
+    else {
+        layer->sourceType = TmsLoader::TileSourceLayer::SourceType::UrlTemplate;
+        layer->minTileZoom = minTileZoom >= 0 ? minTileZoom : 0;
+        layer->maxTileZoom = maxTileZoom >= 0 ? maxTileZoom : GIS::MAX_TILE_ZOOM;
+    }
+}
+
+bool tileJsonLayer(const QByteArray& json, const QString& jsonUrl, TmsLoader::TileSourceLayer* layer,
+                   QString* errorMessage)
+{
+    const QJsonObject tileJson = QJsonDocument::fromJson(json).object();
+    const QJsonArray tiles = tileJson.value(QStringLiteral("tiles")).toArray();
+    if (tiles.isEmpty() || !tiles.first().isString()) {
+        if (errorMessage)
+            *errorMessage = QStringLiteral("%1 is not a TileJSON document (no \"tiles\")").arg(jsonUrl);
+        return false;
+    }
+    // Resolve a relative template against the document; QUrl would percent-encode the braces.
+    QString tileUrl = tiles.first().toString();
+    if (!RemoteMbTiles::isRemoteUrl(tileUrl)) {
+        tileUrl.replace(QLatin1String("{z}"), QLatin1String("__z__"))
+            .replace(QLatin1String("{x}"), QLatin1String("__x__"))
+            .replace(QLatin1String("{y}"), QLatin1String("__y__"));
+        tileUrl = QUrl(jsonUrl).resolved(QUrl(tileUrl)).toString();
+        tileUrl.replace(QLatin1String("__z__"), QLatin1String("{z}"))
+            .replace(QLatin1String("__x__"), QLatin1String("{x}"))
+            .replace(QLatin1String("__y__"), QLatin1String("{y}"));
+    }
+    QString format = tileJson.value(QStringLiteral("format")).toString();
+    if (format.isEmpty())
+        format = urlPathExtension(QString(tileUrl).replace(QLatin1String("{z}"), QLatin1String("0")));
+    const bool vector = isVectorExtension(format) || tileJson.contains(QStringLiteral("vector_layers"));
+    const bool tms = tileJson.value(QStringLiteral("scheme")).toString().compare(QLatin1String("tms"), Qt::CaseInsensitive) == 0;
+    setTileServerLayer(layer, tileUrl, vector, tms,
+                       tileJson.value(QStringLiteral("minzoom")).toInt(-1),
+                       tileJson.value(QStringLiteral("maxzoom")).toInt(-1));
+    if (layer->name.isEmpty())
+        layer->name = tileJson.value(QStringLiteral("name")).toString();
+    layer->vectorLayers = MbTilesReader::vectorLayerIds(json);
+    return true;
+}
+
+bool tileMapResourceLayer(const QByteArray& xml, const QString& tileMapUrl, TmsLoader::TileSourceLayer* layer,
+                          QString* errorMessage)
+{
+    QByteArray data = xml;
+    QBuffer buffer(&data);
+    buffer.open(QIODevice::ReadOnly);
+    const TileMapResourceMetadata metadata = readTileMapResourceMetadata(&buffer);
+    if (!metadata.valid) {
+        if (errorMessage)
+            *errorMessage = QStringLiteral("%1 is not a TMS tilemapresource.xml").arg(tileMapUrl);
+        return false;
+    }
+    const bool vector = isVectorExtension(metadata.extension);
+    setTileServerLayer(layer, tileTemplateFromUrl(tileMapUrl, metadata.extension), vector, metadata.tmsYOrigin,
+                       metadata.minTileZoom, metadata.maxTileZoom);
+    return true;
+}
 } // namespace
+
+bool MapSourceCatalog::urlMbTilesLayer(const QString& url, TmsLoader::TileSourceLayer* layer, QString* errorMessage)
+{
+    if (!layer)
+        return false;
+    QString location = url.trimmed();
+
+    // A tile server's {z}/{x}/{y} template ({-y} = TMS row order).
+    if (hasTilePlaceholders(location) || location.contains(QLatin1String("{-y}"))) {
+        const bool tms = location.contains(QLatin1String("{-y}"));
+        location.replace(QLatin1String("{-y}"), QLatin1String("{y}"));
+        const QString extension = urlPathExtension(QString(location).replace(QLatin1String("{z}"), QLatin1String("0")));
+        bool vector = isVectorExtension(extension);
+        if (!vector && !isRasterExtension(extension)) {
+            // No telling extension: look at the world tile.
+            QString probeUrl = location;
+            probeUrl.replace(QLatin1String("{z}"), QLatin1String("0"))
+                .replace(QLatin1String("{x}"), QLatin1String("0"))
+                .replace(QLatin1String("{y}"), QLatin1String("0"));
+            vector = !looksLikeRasterImage(RemoteMbTiles::httpGet(probeUrl, kProbeTimeoutMs));
+        }
+        setTileServerLayer(layer, location, vector, tms, -1, -1);
+        return true;
+    }
+
+    const QString extension = urlPathExtension(location);
+    if (extension == QLatin1String("mbtiles") || extension == QLatin1String("mbtile"))
+        return mbTilesLayer(location, layer, errorMessage);
+
+    // A document: TMS tilemapresource.xml, TileJSON, or the .mbtiles file under another name.
+    int status = 0;
+    QString requestError;
+    const bool small = location.endsWith(QLatin1String(".xml"), Qt::CaseInsensitive)
+        || extension == QLatin1String("json");
+    const QByteArray head = RemoteMbTiles::httpGet(location, kProbeTimeoutMs, &status, &requestError,
+                                                   small ? QByteArray() : QByteArrayLiteral("bytes=0-15"));
+    if (!requestError.isEmpty() || (status != 200 && status != 206)) {
+        if (errorMessage) {
+            *errorMessage = requestError.isEmpty()
+                ? QStringLiteral("HTTP %1 for %2").arg(status).arg(location)
+                : requestError;
+        }
+        return false;
+    }
+    if (head.startsWith(QByteArrayLiteral("SQLite format 3")))
+        return mbTilesLayer(location, layer, errorMessage);
+
+    QByteArray document = head;
+    if (status == 206) {
+        // Only the first bytes came back: fetch the (small) document whole.
+        document = RemoteMbTiles::httpGet(location, kProbeTimeoutMs, &status, &requestError);
+    }
+    const QByteArray trimmed = document.trimmed();
+    if (trimmed.startsWith('{'))
+        return tileJsonLayer(trimmed, location, layer, errorMessage);
+    if (trimmed.startsWith('<'))
+        return tileMapResourceLayer(trimmed, location, layer, errorMessage);
+
+    if (errorMessage) {
+        *errorMessage = QStringLiteral("%1 is neither an MBTiles file nor a tile service "
+                                       "(TileJSON, tilemapresource.xml or a {z}/{x}/{y} URL)").arg(location);
+    }
+    return false;
+}
 
 /**
  * @brief Read the layer list of a 2D .earth file.
@@ -317,6 +487,7 @@ bool MapSourceCatalog::mbTilesLayer(const QString& filePath, TmsLoader::TileSour
     layer->minTileZoom = metadata.minZoom;
     layer->maxTileZoom = metadata.maxZoom;
     layer->tmsYOrigin = metadata.scheme.compare("xyz", Qt::CaseInsensitive) != 0;
+    layer->vectorLayers = metadata.vectorLayers;
     return true;
 }
 
@@ -368,26 +539,43 @@ QList<TmsLoader::TileSourceLayer> MapSourceCatalog::readEarthLayers(const QStrin
                     && driver.compare("tms", Qt::CaseInsensitive) != 0;
                 currentLayer = TmsLoader::TileSourceLayer();
                 currentLayer.name = attributes.value("name").toString();
-                currentLayer.minZoom = readZoomValue(attributes, { "min_level", "minLevel", "min_zoom", "minZoom" });
-                currentLayer.maxZoom = readZoomValue(attributes, { "max_level", "maxLevel", "max_zoom", "maxZoom" });
+                // Without the attributes the layer shows at every zoom. (TMS layers get their
+                // display range from their tile range in TmsLoader anyway; vector layers use
+                // this one as it is, and -1 hid them at every zoom.)
+                const int minLevel = readZoomValue(attributes, { "min_level", "minLevel", "min_zoom", "minZoom" });
+                const int maxLevel = readZoomValue(attributes, { "max_level", "maxLevel", "max_zoom", "maxZoom" });
+                if (minLevel >= 0)
+                    currentLayer.minZoom = minLevel;
+                if (maxLevel >= 0)
+                    currentLayer.maxZoom = maxLevel;
                 currentLayer.tmsYOrigin = driver.compare("tms", Qt::CaseInsensitive) == 0;
             }
             else if (insideImage && currentIsMbTiles && elementName == "url") {
-                // An MBTiles file on the imagery server's share (UNC / mapped drive), or relative
-                // to this earth file. Its metadata is read once here; tiles are read on demand.
+                // An MBTiles file on the imagery server's share (UNC / mapped drive), relative to
+                // this earth file, or on its web server by URL (the file itself, or a tile service
+                // in front of it). Its metadata is read once here; tiles are read on demand.
                 QString path = xml.readElementText(QXmlStreamReader::SkipChildElements).trimmed();
-                if (path.startsWith("file:", Qt::CaseInsensitive))
-                    path = QUrl(path).toLocalFile();
-                if (QFileInfo(path).isRelative())
-                    path = QFileInfo(filePath).absoluteDir().absoluteFilePath(path);
                 QString errorMessage;
-                if (!mbTilesLayer(path, &currentLayer, &errorMessage)) {
-                    qWarning() << "Skipping MBTiles layer" << path << "in" << filePath << errorMessage;
-                    skipCurrentImage = true;
+                bool loaded = false;
+                if (RemoteMbTiles::isRemoteUrl(path)) {
+                    loaded = urlMbTilesLayer(path, &currentLayer, &errorMessage);
+                    if (loaded && currentLayer.urlTemplate.isEmpty())
+                        currentLayer.urlTemplate = path;  // The .mbtiles file itself
                 }
                 else {
-                    // Marks the layer as complete for the end-of-image check below.
-                    currentLayer.urlTemplate = path;
+                    if (path.startsWith("file:", Qt::CaseInsensitive))
+                        path = QUrl(path).toLocalFile();
+                    if (QFileInfo(path).isRelative())
+                        path = QFileInfo(filePath).absoluteDir().absoluteFilePath(path);
+                    loaded = mbTilesLayer(path, &currentLayer, &errorMessage);
+                    if (loaded) {
+                        // Marks the layer as complete for the end-of-image check below.
+                        currentLayer.urlTemplate = path;
+                    }
+                }
+                if (!loaded) {
+                    qWarning() << "Skipping MBTiles layer" << path << "in" << filePath << errorMessage;
+                    skipCurrentImage = true;
                 }
             }
             else if (insideImage && elementName == "url") {
@@ -536,4 +724,18 @@ QList<MapSourceCatalog::Source> MapSourceCatalog::discoverMapSources()
     QList<Source> sources = discoverMbTilesSources();
     sources.append(discoverEarthSources());
     return sources;
+}
+
+QList<TmsLoader::TileSourceLayer> MapSourceCatalog::featureLayers(const QList<Source>& sources)
+{
+    for (const Source& source : sources) {
+        QList<TmsLoader::TileSourceLayer> layers;
+        for (const TmsLoader::TileSourceLayer& layer : source.layers) {
+            if (layer.sourceType == TmsLoader::TileSourceLayer::SourceType::VectorMbTiles)
+                layers.append(layer);
+        }
+        if (!layers.isEmpty())
+            return layers;
+    }
+    return {};
 }

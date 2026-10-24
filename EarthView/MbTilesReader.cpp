@@ -1,8 +1,12 @@
 #include "MbTilesReader.h"
+#include "RemoteMbTiles.h"
 
 #include <QDir>
 #include <QFileInfo>
 #include <QHash>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QSqlDatabase>
 #include <QSqlError>
 #include <QSqlQuery>
@@ -104,6 +108,9 @@ bool openDatabase(const QString& filePath, const QString& name, QSqlDatabase* da
 
 QHash<QString, QString> readMetadataMap(const QString& filePath, QString* errorMessage)
 {
+    if (RemoteMbTiles::isRemoteUrl(filePath))
+        return RemoteMbTiles::readMetadata(filePath, errorMessage);
+
     const QString name = connectionName();
     QHash<QString, QString> metadata;
 
@@ -139,11 +146,14 @@ QByteArray readTileData(
     bool tmsYOrigin,
     QString* errorMessage)
 {
+    const int tileRow = tmsYOrigin ? ((1 << z) - 1 - y) : y;
+    if (RemoteMbTiles::isRemoteUrl(filePath))
+        return RemoteMbTiles::readTile(filePath, z, x, tileRow, errorMessage);
+
     QSqlDatabase database = threadConnection(filePath, errorMessage);
     if (!database.isOpen())
         return QByteArray();
 
-    const int tileRow = tmsYOrigin ? ((1 << z) - 1 - y) : y;
     QSqlQuery query(database);
     query.setForwardOnly(true);
     query.prepare(QStringLiteral(
@@ -411,7 +421,10 @@ MvtFeature parseFeature(
         if (!readField(data, &offset, &field, &wire, &varint, &bytes))
             break;
 
-        if (field == 2 && wire == 2) {
+        if (field == 1 && wire == 0) {
+            feature.id = varint;
+        }
+        else if (field == 2 && wire == 2) {
             tagIndices = readPackedVarints(bytes);
         }
         else if (field == 3 && wire == 0) {
@@ -532,6 +545,18 @@ QString MbTilesReader::immutableUri(const QString& filePath)
     return uri + QLatin1String("?mode=ro&immutable=1");
 }
 
+QStringList MbTilesReader::vectorLayerIds(const QByteArray& json)
+{
+    QStringList ids;
+    const QJsonArray layers = QJsonDocument::fromJson(json).object().value(QStringLiteral("vector_layers")).toArray();
+    for (const QJsonValue& layer : layers) {
+        const QString id = layer.toObject().value(QStringLiteral("id")).toString();
+        if (!id.isEmpty() && !ids.contains(id))
+            ids.append(id);
+    }
+    return ids;
+}
+
 bool MbTilesReader::isVectorFormat(const QString& format)
 {
     const QString normalizedFormat = format.trimmed().toLower();
@@ -550,6 +575,7 @@ MbTilesMetadata MbTilesReader::readMetadata(const QString& filePath, QString* er
     metadata.scheme = metadataMap.value(QStringLiteral("scheme"), QStringLiteral("tms")).toLower();
     metadata.minZoom = metadataMap.value(QStringLiteral("minzoom"), QStringLiteral("0")).toInt();
     metadata.maxZoom = metadataMap.value(QStringLiteral("maxzoom"), QStringLiteral("0")).toInt();
+    metadata.vectorLayers = vectorLayerIds(metadataMap.value(QStringLiteral("json")).toUtf8());
     return metadata;
 }
 
@@ -565,9 +591,52 @@ MbTilesVectorTile MbTilesReader::readVectorTile(
     if (tileData.isEmpty())
         return {};
 
-    const QByteArray protobuf = gunzip(tileData);
-    if (protobuf.isEmpty()) {
+    QString decodeError;
+    MbTilesVectorTile tile = decodeVectorTile(tileData, &decodeError);
+    if (!decodeError.isEmpty())
         setError(errorMessage, QStringLiteral("Could not decode vector tile from %1.").arg(QFileInfo(filePath).fileName()));
+    return tile;
+}
+
+MbTilesVectorTile MbTilesReader::readVectorTileFromUrl(
+    const QString& urlTemplate,
+    int z,
+    int x,
+    int y,
+    bool tmsYOrigin,
+    QString* errorMessage)
+{
+    QString url = urlTemplate;
+    url.replace(QLatin1String("{z}"), QString::number(z));
+    url.replace(QLatin1String("{x}"), QString::number(x));
+    url.replace(QLatin1String("{y}"), QString::number(tmsYOrigin ? ((1 << z) - 1 - y) : y));
+
+    int status = 0;
+    QString requestError;
+    const QByteArray data = RemoteMbTiles::httpGet(url, 15000, &status, &requestError);
+    if (status == 404 || status == 204)
+        return {};  // No tile there: the server's way of saying "empty".
+    if (!requestError.isEmpty() || (status != 0 && status != 200)) {
+        setError(errorMessage, requestError.isEmpty()
+                                   ? QStringLiteral("HTTP %1 for vector tile %2").arg(status).arg(url)
+                                   : requestError);
+        return {};
+    }
+    if (data.isEmpty())
+        return {};
+
+    QString decodeError;
+    MbTilesVectorTile tile = decodeVectorTile(data, &decodeError);
+    if (!decodeError.isEmpty())
+        setError(errorMessage, QStringLiteral("Could not decode vector tile %1.").arg(url));
+    return tile;
+}
+
+MbTilesVectorTile MbTilesReader::decodeVectorTile(const QByteArray& data, QString* errorMessage)
+{
+    const QByteArray protobuf = gunzip(data);
+    if (protobuf.isEmpty()) {
+        setError(errorMessage, QStringLiteral("Could not decode vector tile."));
         return {};
     }
 
