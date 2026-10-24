@@ -104,7 +104,11 @@ costs a few small requests; the planet file is never downloaded. Layouts: `tiles
 `map` + `images` behind a `tiles` view (OpenMapTiles, tippecanoe, mbutil), planetiler's
 `tiles_shallow` + `tiles_data`. The server must answer range requests (IIS, nginx, Apache do for
 static files); a server that ignores them is refused unless the file is ≤ 64 MB. Opening is
-limited to 5 s, so an unreachable server does not hold the start-up.
+limited to 5 s, so an unreachable server does not hold the start-up. Each thread keeps one HTTP
+manager for its keep-alive connections. It is deleted with its thread, and the reader threads end
+when the application object is destroyed (waiting at most 3 s for a read still running): a
+manager left alive kept its own network thread running into the process exit, which crashed on
+Linux.
 
 ### How the OSM map is drawn
 
@@ -147,7 +151,7 @@ limited to 5 s, so an unreachable server does not hold the start-up.
 | File | Change |
 |---|---|
 | `EarthView/CMakeLists.txt` | New core sources and shaders |
-| `EarthView/MbTilesReader.h/.cpp` | http(s) locations go to `RemoteMbTiles`; `readVectorTileFromUrl()`, `decodeVectorTile()`; MVT feature ids are read (to gather a feature's pieces across tiles); `vectorLayerIds()`: the file's layers from its metadata |
+| `EarthView/MbTilesReader.h/.cpp` | http(s) locations go to `RemoteMbTiles`; `readVectorTileFromUrl()`, `decodeVectorTile()`; MVT feature ids are read (to gather a feature's pieces across tiles); `vectorLayerIds()`: the file's layers from its metadata; the reader pool's threads end when the application object is destroyed |
 | `EarthView/MapSourceCatalog.h/.cpp` | `mbtiles` entries by URL (`urlMbTilesLayer()`); `featureLayers()`; layer ids from MBTiles metadata and TileJSON; the −1 display range fix |
 | `EarthView/TMSLoader.h/.cpp` | Off-thread decoding; `TileSourceLayer::vectorLayers` |
 | `EarthView/VectorTileRenderer.h/.cpp` | Rewritten: styled per-tile meshes built off the UI thread, lines as instanced quads in the shader, the globe through an offscreen texture, Overlay mode, per-layer hiding (`setHiddenLayers()`), `setTheme()`, `pick()`, `seenLayers()`. Now a `QObject` with `contentChanged()` and `layersDiscovered()` |

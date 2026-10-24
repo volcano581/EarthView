@@ -1,6 +1,7 @@
 #include "MbTilesReader.h"
 #include "RemoteMbTiles.h"
 
+#include <QCoreApplication>
 #include <QDir>
 #include <QFileInfo>
 #include <QHash>
@@ -25,6 +26,8 @@
 
 namespace {
 constexpr int kTileImageSize = 256;
+// At application exit, how long the reader pool waits for reads still running (ms).
+constexpr int kShutdownWaitMs = 3000;
 
 using MvtFeature = MbTilesVectorFeature;
 using MvtLayer = MbTilesVectorLayer;
@@ -519,8 +522,12 @@ QThreadPool* MbTilesReader::threadPool()
         auto* p = new QThreadPool();
         // Few readers: a network share serves a handful of parallel reads well, more only queue.
         p->setMaxThreadCount(4);
-        // Threads never expire, so their open connections stay warm.
+        // Threads never expire, so their open connections stay warm...
         p->setExpiryTimeout(-1);
+        // ...until the application object is destroyed: the threads end there, and their HTTP
+        // managers with them (RemoteMbTiles), before the process exit tears Qt down. A read
+        // still running then is waited for only briefly.
+        qAddPostRoutine([]() { MbTilesReader::threadPool()->waitForDone(kShutdownWaitMs); });
         return p;
     }();
     return pool;

@@ -1,6 +1,7 @@
 #include "RemoteMbTiles.h"
 
 #include <QCache>
+#include <QCoreApplication>
 #include <QDateTime>
 #include <QEventLoop>
 #include <QMutex>
@@ -8,9 +9,12 @@
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QNetworkRequest>
+#include <QPointer>
 #include <QRegularExpression>
 #include <QSet>
 #include <QStringList>
+#include <QThread>
+#include <QThreadStorage>
 #include <QTimer>
 #include <QUrl>
 #include <QVector>
@@ -41,14 +45,27 @@ void setError(QString* errorMessage, const QString& message)
 
 // ── HTTP ─────────────────────────────────────────────────────────────────────
 
-/// One manager per thread, kept for the thread's lifetime so its keep-alive connections are
-/// reused. Deliberately never deleted: reader threads live until the process exits.
+/// One manager per thread, kept while the thread runs so its keep-alive connections are reused.
+/// Every manager is deleted before the process exits: each runs a network thread of its own, and
+/// on Linux one still running while Qt's globals are destroyed crashes the exit. The main
+/// thread's manager goes with the application object; any other thread's is deleted on that
+/// thread when it finishes (the reader pool ends its threads with the application, see
+/// MbTilesReader::threadPool()).
 QNetworkAccessManager* threadNetworkManager()
 {
-    thread_local QNetworkAccessManager* manager = nullptr;
-    if (!manager)
-        manager = new QNetworkAccessManager();
-    return manager;
+    QCoreApplication* app = QCoreApplication::instance();
+    if (app && QThread::currentThread() == app->thread()) {
+        static QPointer<QNetworkAccessManager> mainManager;
+        if (!mainManager) {
+            mainManager = new QNetworkAccessManager();
+            qAddPostRoutine([]() { delete mainManager.data(); });
+        }
+        return mainManager;
+    }
+    static QThreadStorage<QNetworkAccessManager*> managers;
+    if (!managers.hasLocalData())
+        managers.setLocalData(new QNetworkAccessManager());
+    return managers.localData();
 }
 
 struct HttpResult {

@@ -146,8 +146,10 @@ QString tileKey(int z, int x, int row)
 
 QByteArray tileBlob(int z, int x, int row)
 {
-    // Sizes from a few bytes to several pages, so cells spill into overflow chains.
-    const int size = 1 + int((quint32(z * 7919 + x * 104729 + row * 1299709) % 23000));
+    // Sizes from a few bytes to several pages, so cells spill into overflow chains. Unsigned:
+    // for the z12 rows the sum overflows an int.
+    const quint32 mix = quint32(z) * 7919u + quint32(x) * 104729u + quint32(row) * 1299709u;
+    const int size = 1 + int(mix % 23000u);
     QByteArray blob(size, Qt::Uninitialized);
     for (int i = 0; i < size; ++i)
         blob[i] = char((i * 31 + z + x * 3 + row * 5) & 0xff);
