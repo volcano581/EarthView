@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="D:\Source\EarthView1\EarthView\build-msvc\CMakeFiles\97f3527210425e90cbf5aa1e7b721f25\INSTALL_force.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{E17036C2-A1C8-3111-A9BA-42F113F6BFE6}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

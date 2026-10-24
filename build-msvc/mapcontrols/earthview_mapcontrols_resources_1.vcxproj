@@ -1,0 +1,311 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <PreferredToolArchitecture>x64</PreferredToolArchitecture>
+  </PropertyGroup>
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="MinSizeRel|x64">
+      <Configuration>MinSizeRel</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="RelWithDebInfo|x64">
+      <Configuration>RelWithDebInfo</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{BE0CF45F-5221-3705-B026-CDAD5E86E97C}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <WindowsTargetPlatformVersion>10.0.26100.0</WindowsTargetPlatformVersion>
+    <Platform>x64</Platform>
+    <ProjectName>earthview_mapcontrols_resources_1</ProjectName>
+    <VCProjectUpgraderObjectName>NoUpgrade</VCProjectUpgraderObjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.20506.1</_ProjectFileVersion>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">earthview_mapcontrols_resources_1.dir\Debug\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">earthview_mapcontrols_resources_1.dir\Debug\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">earthview_mapcontrols_resources_1</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">.lib</TargetExt>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">earthview_mapcontrols_resources_1.dir\Release\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">earthview_mapcontrols_resources_1.dir\Release\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">earthview_mapcontrols_resources_1</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='Release|x64'">.lib</TargetExt>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">earthview_mapcontrols_resources_1.dir\MinSizeRel\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">earthview_mapcontrols_resources_1.dir\MinSizeRel\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">earthview_mapcontrols_resources_1</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">.lib</TargetExt>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">earthview_mapcontrols_resources_1.dir\RelWithDebInfo\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">earthview_mapcontrols_resources_1.dir\RelWithDebInfo\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">earthview_mapcontrols_resources_1</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">.lib</TargetExt>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>D:\Source\EarthView1\EarthView\build-msvc\mapcontrols;D:\Source\EarthView1\EarthView\mapcontrols;C:\Qt\6.11.1\msvc2022_64\include\QtCore;D:\Source\EarthView1\EarthView\build-msvc\mapcontrols\earthview_mapcontrols_autogen\include_Debug;D:\Source\EarthView1\EarthView;C:\Qt\6.11.1\msvc2022_64\include\QtWidgets;C:\Qt\6.11.1\msvc2022_64\include\QtGui;C:\Qt\6.11.1\msvc2022_64\include\QtNetwork;C:\Qt\6.11.1\msvc2022_64\include\QtOpenGL;C:\Qt\6.11.1\msvc2022_64\include\QtOpenGLWidgets;C:\Qt\6.11.1\msvc2022_64\include\QtSql;C:\Qt\6.11.1\msvc2022_64\include\QtQml;C:\Qt\6.11.1\msvc2022_64\include\QtQmlIntegration;C:\Qt\6.11.1\msvc2022_64\include\QtQuick;C:\Qt\6.11.1\msvc2022_64\include\QtQuickWidgets;C:\Qt\6.11.1\msvc2022_64\include\QtSvg;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /external:I "C:/Qt/6.11.1/msvc2022_64/include" /external:I "C:/Qt/6.11.1/msvc2022_64/mkspecs/win32-msvc" -Zc:__cplusplus -utf-8</AdditionalOptions>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <ConformanceMode>true</ConformanceMode>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <ExternalWarningLevel>TurnOffAllWarnings</ExternalWarningLevel>
+      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <MinimalRebuild></MinimalRebuild>
+      <Optimization>Disabled</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <SupportJustMyCode></SupportJustMyCode>
+      <UseFullPaths>false</UseFullPaths>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;QT_CORE_LIB;_ENABLE_EXTENDED_ALIGNED_STORAGE;WIN64;_WIN64;UNICODE;_UNICODE;QT_WIDGETS_LIB;QT_GUI_LIB;QT_NETWORK_LIB;QT_OPENGL_LIB;QT_OPENGLWIDGETS_LIB;QT_SQL_LIB;QT_QML_LIB;QT_QMLINTEGRATION_LIB;QT_QUICK_LIB;QT_QUICKWIDGETS_LIB;QT_SVG_LIB;CMAKE_INTDIR="Debug"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_DEBUG;_WINDOWS;QT_CORE_LIB;_ENABLE_EXTENDED_ALIGNED_STORAGE;WIN64;_WIN64;UNICODE;_UNICODE;QT_WIDGETS_LIB;QT_GUI_LIB;QT_NETWORK_LIB;QT_OPENGL_LIB;QT_OPENGLWIDGETS_LIB;QT_SQL_LIB;QT_QML_LIB;QT_QMLINTEGRATION_LIB;QT_QUICK_LIB;QT_QUICKWIDGETS_LIB;QT_SVG_LIB;CMAKE_INTDIR=\"Debug\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>D:\Source\EarthView1\EarthView\build-msvc\mapcontrols;D:\Source\EarthView1\EarthView\mapcontrols;C:\Qt\6.11.1\msvc2022_64\include\QtCore;D:\Source\EarthView1\EarthView\build-msvc\mapcontrols\earthview_mapcontrols_autogen\include_Debug;D:\Source\EarthView1\EarthView;C:\Qt\6.11.1\msvc2022_64\include\QtWidgets;C:\Qt\6.11.1\msvc2022_64\include\QtGui;C:\Qt\6.11.1\msvc2022_64\include\QtNetwork;C:\Qt\6.11.1\msvc2022_64\include\QtOpenGL;C:\Qt\6.11.1\msvc2022_64\include\QtOpenGLWidgets;C:\Qt\6.11.1\msvc2022_64\include\QtSql;C:\Qt\6.11.1\msvc2022_64\include\QtQml;C:\Qt\6.11.1\msvc2022_64\include\QtQmlIntegration;C:\Qt\6.11.1\msvc2022_64\include\QtQuick;C:\Qt\6.11.1\msvc2022_64\include\QtQuickWidgets;C:\Qt\6.11.1\msvc2022_64\include\QtSvg;C:\Qt\6.11.1\msvc2022_64\include;C:\Qt\6.11.1\msvc2022_64\mkspecs\win32-msvc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>D:\Source\EarthView1\EarthView\build-msvc\mapcontrols;D:\Source\EarthView1\EarthView\mapcontrols;C:\Qt\6.11.1\msvc2022_64\include\QtCore;D:\Source\EarthView1\EarthView\build-msvc\mapcontrols\earthview_mapcontrols_autogen\include_Debug;D:\Source\EarthView1\EarthView;C:\Qt\6.11.1\msvc2022_64\include\QtWidgets;C:\Qt\6.11.1\msvc2022_64\include\QtGui;C:\Qt\6.11.1\msvc2022_64\include\QtNetwork;C:\Qt\6.11.1\msvc2022_64\include\QtOpenGL;C:\Qt\6.11.1\msvc2022_64\include\QtOpenGLWidgets;C:\Qt\6.11.1\msvc2022_64\include\QtSql;C:\Qt\6.11.1\msvc2022_64\include\QtQml;C:\Qt\6.11.1\msvc2022_64\include\QtQmlIntegration;C:\Qt\6.11.1\msvc2022_64\include\QtQuick;C:\Qt\6.11.1\msvc2022_64\include\QtQuickWidgets;C:\Qt\6.11.1\msvc2022_64\include\QtSvg;C:\Qt\6.11.1\msvc2022_64\include;C:\Qt\6.11.1\msvc2022_64\mkspecs\win32-msvc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Lib>
+      <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>D:\Source\EarthView1\EarthView\build-msvc\mapcontrols;D:\Source\EarthView1\EarthView\mapcontrols;C:\Qt\6.11.1\msvc2022_64\include\QtCore;D:\Source\EarthView1\EarthView\build-msvc\mapcontrols\earthview_mapcontrols_autogen\include_Release;D:\Source\EarthView1\EarthView;C:\Qt\6.11.1\msvc2022_64\include\QtWidgets;C:\Qt\6.11.1\msvc2022_64\include\QtGui;C:\Qt\6.11.1\msvc2022_64\include\QtNetwork;C:\Qt\6.11.1\msvc2022_64\include\QtOpenGL;C:\Qt\6.11.1\msvc2022_64\include\QtOpenGLWidgets;C:\Qt\6.11.1\msvc2022_64\include\QtSql;C:\Qt\6.11.1\msvc2022_64\include\QtQml;C:\Qt\6.11.1\msvc2022_64\include\QtQmlIntegration;C:\Qt\6.11.1\msvc2022_64\include\QtQuick;C:\Qt\6.11.1\msvc2022_64\include\QtQuickWidgets;C:\Qt\6.11.1\msvc2022_64\include\QtSvg;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /external:I "C:/Qt/6.11.1/msvc2022_64/include" /external:I "C:/Qt/6.11.1/msvc2022_64/mkspecs/win32-msvc" -Zc:__cplusplus -utf-8</AdditionalOptions>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <ConformanceMode>true</ConformanceMode>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <ExternalWarningLevel>TurnOffAllWarnings</ExternalWarningLevel>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <MinimalRebuild></MinimalRebuild>
+      <Optimization>MaxSpeed</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <SupportJustMyCode></SupportJustMyCode>
+      <UseFullPaths>false</UseFullPaths>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;QT_CORE_LIB;QT_NO_DEBUG;_ENABLE_EXTENDED_ALIGNED_STORAGE;WIN64;_WIN64;UNICODE;_UNICODE;QT_WIDGETS_LIB;QT_GUI_LIB;QT_NETWORK_LIB;QT_OPENGL_LIB;QT_OPENGLWIDGETS_LIB;QT_SQL_LIB;QT_QML_LIB;QT_QMLINTEGRATION_LIB;QT_QUICK_LIB;QT_QUICKWIDGETS_LIB;QT_SVG_LIB;CMAKE_INTDIR="Release"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <DebugInformationFormat>
+      </DebugInformationFormat>
+      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;QT_CORE_LIB;QT_NO_DEBUG;_ENABLE_EXTENDED_ALIGNED_STORAGE;WIN64;_WIN64;UNICODE;_UNICODE;QT_WIDGETS_LIB;QT_GUI_LIB;QT_NETWORK_LIB;QT_OPENGL_LIB;QT_OPENGLWIDGETS_LIB;QT_SQL_LIB;QT_QML_LIB;QT_QMLINTEGRATION_LIB;QT_QUICK_LIB;QT_QUICKWIDGETS_LIB;QT_SVG_LIB;CMAKE_INTDIR=\"Release\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>D:\Source\EarthView1\EarthView\build-msvc\mapcontrols;D:\Source\EarthView1\EarthView\mapcontrols;C:\Qt\6.11.1\msvc2022_64\include\QtCore;D:\Source\EarthView1\EarthView\build-msvc\mapcontrols\earthview_mapcontrols_autogen\include_Release;D:\Source\EarthView1\EarthView;C:\Qt\6.11.1\msvc2022_64\include\QtWidgets;C:\Qt\6.11.1\msvc2022_64\include\QtGui;C:\Qt\6.11.1\msvc2022_64\include\QtNetwork;C:\Qt\6.11.1\msvc2022_64\include\QtOpenGL;C:\Qt\6.11.1\msvc2022_64\include\QtOpenGLWidgets;C:\Qt\6.11.1\msvc2022_64\include\QtSql;C:\Qt\6.11.1\msvc2022_64\include\QtQml;C:\Qt\6.11.1\msvc2022_64\include\QtQmlIntegration;C:\Qt\6.11.1\msvc2022_64\include\QtQuick;C:\Qt\6.11.1\msvc2022_64\include\QtQuickWidgets;C:\Qt\6.11.1\msvc2022_64\include\QtSvg;C:\Qt\6.11.1\msvc2022_64\include;C:\Qt\6.11.1\msvc2022_64\mkspecs\win32-msvc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>D:\Source\EarthView1\EarthView\build-msvc\mapcontrols;D:\Source\EarthView1\EarthView\mapcontrols;C:\Qt\6.11.1\msvc2022_64\include\QtCore;D:\Source\EarthView1\EarthView\build-msvc\mapcontrols\earthview_mapcontrols_autogen\include_Release;D:\Source\EarthView1\EarthView;C:\Qt\6.11.1\msvc2022_64\include\QtWidgets;C:\Qt\6.11.1\msvc2022_64\include\QtGui;C:\Qt\6.11.1\msvc2022_64\include\QtNetwork;C:\Qt\6.11.1\msvc2022_64\include\QtOpenGL;C:\Qt\6.11.1\msvc2022_64\include\QtOpenGLWidgets;C:\Qt\6.11.1\msvc2022_64\include\QtSql;C:\Qt\6.11.1\msvc2022_64\include\QtQml;C:\Qt\6.11.1\msvc2022_64\include\QtQmlIntegration;C:\Qt\6.11.1\msvc2022_64\include\QtQuick;C:\Qt\6.11.1\msvc2022_64\include\QtQuickWidgets;C:\Qt\6.11.1\msvc2022_64\include\QtSvg;C:\Qt\6.11.1\msvc2022_64\include;C:\Qt\6.11.1\msvc2022_64\mkspecs\win32-msvc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Lib>
+      <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>D:\Source\EarthView1\EarthView\build-msvc\mapcontrols;D:\Source\EarthView1\EarthView\mapcontrols;C:\Qt\6.11.1\msvc2022_64\include\QtCore;D:\Source\EarthView1\EarthView\build-msvc\mapcontrols\earthview_mapcontrols_autogen\include_MinSizeRel;D:\Source\EarthView1\EarthView;C:\Qt\6.11.1\msvc2022_64\include\QtWidgets;C:\Qt\6.11.1\msvc2022_64\include\QtGui;C:\Qt\6.11.1\msvc2022_64\include\QtNetwork;C:\Qt\6.11.1\msvc2022_64\include\QtOpenGL;C:\Qt\6.11.1\msvc2022_64\include\QtOpenGLWidgets;C:\Qt\6.11.1\msvc2022_64\include\QtSql;C:\Qt\6.11.1\msvc2022_64\include\QtQml;C:\Qt\6.11.1\msvc2022_64\include\QtQmlIntegration;C:\Qt\6.11.1\msvc2022_64\include\QtQuick;C:\Qt\6.11.1\msvc2022_64\include\QtQuickWidgets;C:\Qt\6.11.1\msvc2022_64\include\QtSvg;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /external:I "C:/Qt/6.11.1/msvc2022_64/include" /external:I "C:/Qt/6.11.1/msvc2022_64/mkspecs/win32-msvc" -Zc:__cplusplus -utf-8</AdditionalOptions>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <ConformanceMode>true</ConformanceMode>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <ExternalWarningLevel>TurnOffAllWarnings</ExternalWarningLevel>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <MinimalRebuild></MinimalRebuild>
+      <Optimization>MinSpace</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <SupportJustMyCode></SupportJustMyCode>
+      <UseFullPaths>false</UseFullPaths>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;QT_CORE_LIB;QT_NO_DEBUG;_ENABLE_EXTENDED_ALIGNED_STORAGE;WIN64;_WIN64;UNICODE;_UNICODE;QT_WIDGETS_LIB;QT_GUI_LIB;QT_NETWORK_LIB;QT_OPENGL_LIB;QT_OPENGLWIDGETS_LIB;QT_SQL_LIB;QT_QML_LIB;QT_QMLINTEGRATION_LIB;QT_QUICK_LIB;QT_QUICKWIDGETS_LIB;QT_SVG_LIB;CMAKE_INTDIR="MinSizeRel"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <DebugInformationFormat>
+      </DebugInformationFormat>
+      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;QT_CORE_LIB;QT_NO_DEBUG;_ENABLE_EXTENDED_ALIGNED_STORAGE;WIN64;_WIN64;UNICODE;_UNICODE;QT_WIDGETS_LIB;QT_GUI_LIB;QT_NETWORK_LIB;QT_OPENGL_LIB;QT_OPENGLWIDGETS_LIB;QT_SQL_LIB;QT_QML_LIB;QT_QMLINTEGRATION_LIB;QT_QUICK_LIB;QT_QUICKWIDGETS_LIB;QT_SVG_LIB;CMAKE_INTDIR=\"MinSizeRel\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>D:\Source\EarthView1\EarthView\build-msvc\mapcontrols;D:\Source\EarthView1\EarthView\mapcontrols;C:\Qt\6.11.1\msvc2022_64\include\QtCore;D:\Source\EarthView1\EarthView\build-msvc\mapcontrols\earthview_mapcontrols_autogen\include_MinSizeRel;D:\Source\EarthView1\EarthView;C:\Qt\6.11.1\msvc2022_64\include\QtWidgets;C:\Qt\6.11.1\msvc2022_64\include\QtGui;C:\Qt\6.11.1\msvc2022_64\include\QtNetwork;C:\Qt\6.11.1\msvc2022_64\include\QtOpenGL;C:\Qt\6.11.1\msvc2022_64\include\QtOpenGLWidgets;C:\Qt\6.11.1\msvc2022_64\include\QtSql;C:\Qt\6.11.1\msvc2022_64\include\QtQml;C:\Qt\6.11.1\msvc2022_64\include\QtQmlIntegration;C:\Qt\6.11.1\msvc2022_64\include\QtQuick;C:\Qt\6.11.1\msvc2022_64\include\QtQuickWidgets;C:\Qt\6.11.1\msvc2022_64\include\QtSvg;C:\Qt\6.11.1\msvc2022_64\include;C:\Qt\6.11.1\msvc2022_64\mkspecs\win32-msvc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>D:\Source\EarthView1\EarthView\build-msvc\mapcontrols;D:\Source\EarthView1\EarthView\mapcontrols;C:\Qt\6.11.1\msvc2022_64\include\QtCore;D:\Source\EarthView1\EarthView\build-msvc\mapcontrols\earthview_mapcontrols_autogen\include_MinSizeRel;D:\Source\EarthView1\EarthView;C:\Qt\6.11.1\msvc2022_64\include\QtWidgets;C:\Qt\6.11.1\msvc2022_64\include\QtGui;C:\Qt\6.11.1\msvc2022_64\include\QtNetwork;C:\Qt\6.11.1\msvc2022_64\include\QtOpenGL;C:\Qt\6.11.1\msvc2022_64\include\QtOpenGLWidgets;C:\Qt\6.11.1\msvc2022_64\include\QtSql;C:\Qt\6.11.1\msvc2022_64\include\QtQml;C:\Qt\6.11.1\msvc2022_64\include\QtQmlIntegration;C:\Qt\6.11.1\msvc2022_64\include\QtQuick;C:\Qt\6.11.1\msvc2022_64\include\QtQuickWidgets;C:\Qt\6.11.1\msvc2022_64\include\QtSvg;C:\Qt\6.11.1\msvc2022_64\include;C:\Qt\6.11.1\msvc2022_64\mkspecs\win32-msvc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Lib>
+      <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>D:\Source\EarthView1\EarthView\build-msvc\mapcontrols;D:\Source\EarthView1\EarthView\mapcontrols;C:\Qt\6.11.1\msvc2022_64\include\QtCore;D:\Source\EarthView1\EarthView\build-msvc\mapcontrols\earthview_mapcontrols_autogen\include_RelWithDebInfo;D:\Source\EarthView1\EarthView;C:\Qt\6.11.1\msvc2022_64\include\QtWidgets;C:\Qt\6.11.1\msvc2022_64\include\QtGui;C:\Qt\6.11.1\msvc2022_64\include\QtNetwork;C:\Qt\6.11.1\msvc2022_64\include\QtOpenGL;C:\Qt\6.11.1\msvc2022_64\include\QtOpenGLWidgets;C:\Qt\6.11.1\msvc2022_64\include\QtSql;C:\Qt\6.11.1\msvc2022_64\include\QtQml;C:\Qt\6.11.1\msvc2022_64\include\QtQmlIntegration;C:\Qt\6.11.1\msvc2022_64\include\QtQuick;C:\Qt\6.11.1\msvc2022_64\include\QtQuickWidgets;C:\Qt\6.11.1\msvc2022_64\include\QtSvg;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /external:I "C:/Qt/6.11.1/msvc2022_64/include" /external:I "C:/Qt/6.11.1/msvc2022_64/mkspecs/win32-msvc" -Zc:__cplusplus -utf-8</AdditionalOptions>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <ConformanceMode>true</ConformanceMode>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <ExternalWarningLevel>TurnOffAllWarnings</ExternalWarningLevel>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <MinimalRebuild></MinimalRebuild>
+      <Optimization>MaxSpeed</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <SupportJustMyCode></SupportJustMyCode>
+      <UseFullPaths>false</UseFullPaths>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;QT_CORE_LIB;QT_NO_DEBUG;_ENABLE_EXTENDED_ALIGNED_STORAGE;WIN64;_WIN64;UNICODE;_UNICODE;QT_WIDGETS_LIB;QT_GUI_LIB;QT_NETWORK_LIB;QT_OPENGL_LIB;QT_OPENGLWIDGETS_LIB;QT_SQL_LIB;QT_QML_LIB;QT_QMLINTEGRATION_LIB;QT_QUICK_LIB;QT_QUICKWIDGETS_LIB;QT_SVG_LIB;CMAKE_INTDIR="RelWithDebInfo"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;QT_CORE_LIB;QT_NO_DEBUG;_ENABLE_EXTENDED_ALIGNED_STORAGE;WIN64;_WIN64;UNICODE;_UNICODE;QT_WIDGETS_LIB;QT_GUI_LIB;QT_NETWORK_LIB;QT_OPENGL_LIB;QT_OPENGLWIDGETS_LIB;QT_SQL_LIB;QT_QML_LIB;QT_QMLINTEGRATION_LIB;QT_QUICK_LIB;QT_QUICKWIDGETS_LIB;QT_SVG_LIB;CMAKE_INTDIR=\"RelWithDebInfo\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>D:\Source\EarthView1\EarthView\build-msvc\mapcontrols;D:\Source\EarthView1\EarthView\mapcontrols;C:\Qt\6.11.1\msvc2022_64\include\QtCore;D:\Source\EarthView1\EarthView\build-msvc\mapcontrols\earthview_mapcontrols_autogen\include_RelWithDebInfo;D:\Source\EarthView1\EarthView;C:\Qt\6.11.1\msvc2022_64\include\QtWidgets;C:\Qt\6.11.1\msvc2022_64\include\QtGui;C:\Qt\6.11.1\msvc2022_64\include\QtNetwork;C:\Qt\6.11.1\msvc2022_64\include\QtOpenGL;C:\Qt\6.11.1\msvc2022_64\include\QtOpenGLWidgets;C:\Qt\6.11.1\msvc2022_64\include\QtSql;C:\Qt\6.11.1\msvc2022_64\include\QtQml;C:\Qt\6.11.1\msvc2022_64\include\QtQmlIntegration;C:\Qt\6.11.1\msvc2022_64\include\QtQuick;C:\Qt\6.11.1\msvc2022_64\include\QtQuickWidgets;C:\Qt\6.11.1\msvc2022_64\include\QtSvg;C:\Qt\6.11.1\msvc2022_64\include;C:\Qt\6.11.1\msvc2022_64\mkspecs\win32-msvc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>D:\Source\EarthView1\EarthView\build-msvc\mapcontrols;D:\Source\EarthView1\EarthView\mapcontrols;C:\Qt\6.11.1\msvc2022_64\include\QtCore;D:\Source\EarthView1\EarthView\build-msvc\mapcontrols\earthview_mapcontrols_autogen\include_RelWithDebInfo;D:\Source\EarthView1\EarthView;C:\Qt\6.11.1\msvc2022_64\include\QtWidgets;C:\Qt\6.11.1\msvc2022_64\include\QtGui;C:\Qt\6.11.1\msvc2022_64\include\QtNetwork;C:\Qt\6.11.1\msvc2022_64\include\QtOpenGL;C:\Qt\6.11.1\msvc2022_64\include\QtOpenGLWidgets;C:\Qt\6.11.1\msvc2022_64\include\QtSql;C:\Qt\6.11.1\msvc2022_64\include\QtQml;C:\Qt\6.11.1\msvc2022_64\include\QtQmlIntegration;C:\Qt\6.11.1\msvc2022_64\include\QtQuick;C:\Qt\6.11.1\msvc2022_64\include\QtQuickWidgets;C:\Qt\6.11.1\msvc2022_64\include\QtSvg;C:\Qt\6.11.1\msvc2022_64\include;C:\Qt\6.11.1\msvc2022_64\mkspecs\win32-msvc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Lib>
+      <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <CustomBuild Include="D:\Source\EarthView1\EarthView\mapcontrols\CMakeLists.txt">
+      <UseUtf8Encoding>Always</UseUtf8Encoding>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Building Custom Rule D:/Source/EarthView1/EarthView/mapcontrols/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SD:/Source/EarthView1/EarthView -BD:/Source/EarthView1/EarthView/build-msvc --check-stamp-file D:/Source/EarthView1/EarthView/build-msvc/mapcontrols/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Qt\6.11.1\msvc2022_64\lib\cmake\Qt6Core\Qt6CoreConfigureFileTemplate.in;C:\Qt\6.11.1\msvc2022_64\lib\cmake\Qt6Core\Qt6CoreResourceInit.in.cpp;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">D:\Source\EarthView1\EarthView\build-msvc\mapcontrols\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Building Custom Rule D:/Source/EarthView1/EarthView/mapcontrols/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SD:/Source/EarthView1/EarthView -BD:/Source/EarthView1/EarthView/build-msvc --check-stamp-file D:/Source/EarthView1/EarthView/build-msvc/mapcontrols/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\Qt\6.11.1\msvc2022_64\lib\cmake\Qt6Core\Qt6CoreConfigureFileTemplate.in;C:\Qt\6.11.1\msvc2022_64\lib\cmake\Qt6Core\Qt6CoreResourceInit.in.cpp;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">D:\Source\EarthView1\EarthView\build-msvc\mapcontrols\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">Building Custom Rule D:/Source/EarthView1/EarthView/mapcontrols/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SD:/Source/EarthView1/EarthView -BD:/Source/EarthView1/EarthView/build-msvc --check-stamp-file D:/Source/EarthView1/EarthView/build-msvc/mapcontrols/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">C:\Qt\6.11.1\msvc2022_64\lib\cmake\Qt6Core\Qt6CoreConfigureFileTemplate.in;C:\Qt\6.11.1\msvc2022_64\lib\cmake\Qt6Core\Qt6CoreResourceInit.in.cpp;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">D:\Source\EarthView1\EarthView\build-msvc\mapcontrols\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">Building Custom Rule D:/Source/EarthView1/EarthView/mapcontrols/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SD:/Source/EarthView1/EarthView -BD:/Source/EarthView1/EarthView/build-msvc --check-stamp-file D:/Source/EarthView1/EarthView/build-msvc/mapcontrols/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">C:\Qt\6.11.1\msvc2022_64\lib\cmake\Qt6Core\Qt6CoreConfigureFileTemplate.in;C:\Qt\6.11.1\msvc2022_64\lib\cmake\Qt6Core\Qt6CoreResourceInit.in.cpp;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">D:\Source\EarthView1\EarthView\build-msvc\mapcontrols\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">false</LinkObjects>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="D:\Source\EarthView1\EarthView\build-msvc\mapcontrols\.qt\rcc\qrc_earthview_mapcontrols_qml_init.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup />
+  <ItemGroup>
+    <ProjectReference Include="D:\Source\EarthView1\EarthView\build-msvc\ZERO_CHECK.vcxproj">
+      <Project>{C57955C1-E3EE-3E10-905C-8B37F2171F11}</Project>
+      <Name>ZERO_CHECK</Name>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

@@ -1,0 +1,104 @@
+#pragma once
+#ifndef EARTHVIEW3D_DEMO_DEMOWINDOW_H
+#define EARTHVIEW3D_DEMO_DEMOWINDOW_H
+
+#include "SyntheticFeed.h"
+
+#include "MapSourceCatalog.h"
+
+#include <earthview3d/EarthFileCatalog.h>
+#include <earthview3d/MapConfig.h>
+
+#include <QList>
+#include <QMainWindow>
+#include <QPointer>
+#include <QWidget>
+
+class QComboBox;
+
+class MapWidget;
+
+namespace earthview3d {
+class GlobeView3D;
+}
+
+namespace earthview3d::demo {
+
+/**
+ * @brief Transparent overlay that draws the feed's entities on top of the 2D MapWidget.
+ *
+ * Uses only MapWidget's public Camera API (projectMercatorToScreen), so 2D code is unchanged.
+ */
+class EntityOverlay2D : public QWidget
+{
+    Q_OBJECT
+
+public:
+    EntityOverlay2D(MapWidget* map, const SnapshotBuffer* buffer, QWidget* parent);
+
+    /// The snapshot last drawn (for the 2D/3D agreement check).
+    const std::vector<EntityState3D>& entities() const { return m_entities; }
+
+protected:
+    void paintEvent(QPaintEvent* event) override;
+
+private:
+    MapWidget* m_map;
+    const SnapshotBuffer* m_buffer;
+    std::uint64_t m_lastTick = 0;
+    std::vector<EntityState3D> m_entities;
+};
+
+/**
+ * @brief Demo host main window: 2D map + "Open 3D View", both fed from one SnapshotBuffer.
+ */
+class DemoWindow : public QMainWindow
+{
+    Q_OBJECT
+
+public:
+    DemoWindow(const MapConfig& mapConfig, const SyntheticFeed::Settings& feedSettings,
+               const SnapshotBuffer* buffer, QWidget* parent = nullptr);
+
+    /// Maps offered in the "Map" dropdown; entry @p currentIndex is the one in use. Selecting
+    /// another entry switches MapConfig::earthFile and rebuilds the 3D view if it is open.
+    void setMapCatalog(const QList<MapCatalogEntry>& entries, int currentIndex);
+    /// The map currently selected (index into the catalog; 0 when there is no catalog).
+    int currentMapIndex() const { return m_mapIndex; }
+
+    MapWidget* mapWidget() const { return m_map; }
+    /// The open 3D view, or nullptr.
+    GlobeView3D* view3D() const;
+
+    /// Open (or raise) the 3D window.
+    GlobeView3D* open3DView();
+    /// 2D map including the entity overlay, as an image.
+    QImage grab2D() const;
+    /// Compare where the 2D overlay drew each entity with where the 3D view placed it.
+    AgreementReport checkAgreement() const;
+
+private:
+    void selectMap(int index);
+    /// Give the 2D pane one discovered map source (imagery layers + DTED folder). A source
+    /// with no layers is ignored, so the pane keeps what it has.
+    void applySource2D(const MapSourceCatalog::Source& source);
+    /// The 2D source built from the same file as @p entry, or an empty one.
+    MapSourceCatalog::Source source2DFor(const MapCatalogEntry& entry) const;
+
+    MapConfig m_mapConfig;
+    SyntheticFeed::Settings m_feedSettings;
+    const SnapshotBuffer* m_buffer;
+    QWidget* m_mapContainer = nullptr;
+    MapWidget* m_map = nullptr;
+    EntityOverlay2D* m_overlay = nullptr;
+    QComboBox* m_mapCombo = nullptr;
+    QList<MapCatalogEntry> m_catalog;
+    QList<MapSourceCatalog::Source> m_sources2D;   // 2D pane sources, as the 2D viewer finds them
+    int m_mapIndex = 0;
+    QPointer<QMainWindow> m_window3D;
+    QPointer<GlobeView3D> m_view3D;
+};
+
+} // namespace earthview3d::demo
+
+#endif // EARTHVIEW3D_DEMO_DEMOWINDOW_H

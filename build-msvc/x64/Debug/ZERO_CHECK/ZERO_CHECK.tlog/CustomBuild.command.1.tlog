@@ -1,0 +1,10 @@
+^D:\SOURCE\EARTHVIEW1\EARTHVIEW\BUILD-MSVC\CMAKEFILES\73A4620439F4C126978FFC90F6C3C05A\GENERATE.STAMP.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SD:/Source/EarthView1/EarthView -BD:/Source/EarthView1/EarthView/build-msvc --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file D:/Source/EarthView1/EarthView/build-msvc/EarthView.sln
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

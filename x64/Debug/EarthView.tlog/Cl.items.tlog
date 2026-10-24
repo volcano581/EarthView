@@ -1,0 +1,15 @@
+G:\Projects\EarthView\EarthView\BorderRenderer.cpp;G:\Projects\EarthView\EarthView\x64\Debug\BorderRenderer.obj
+G:\Projects\EarthView\EarthView\Camera.cpp;G:\Projects\EarthView\EarthView\x64\Debug\Camera.obj
+G:\Projects\EarthView\EarthView\main.cpp;G:\Projects\EarthView\EarthView\x64\Debug\main.obj
+G:\Projects\EarthView\EarthView\MainWindow.cpp;G:\Projects\EarthView\EarthView\x64\Debug\MainWindow.obj
+G:\Projects\EarthView\EarthView\MapWidget.cpp;G:\Projects\EarthView\EarthView\x64\Debug\MapWidget.obj
+G:\Projects\EarthView\EarthView\MercatorProjection.cpp;G:\Projects\EarthView\EarthView\x64\Debug\MercatorProjection.obj
+G:\Projects\EarthView\EarthView\TextureManager.cpp;G:\Projects\EarthView\EarthView\x64\Debug\TextureManager.obj
+G:\Projects\EarthView\EarthView\TileRenderer.cpp;G:\Projects\EarthView\EarthView\x64\Debug\TileRenderer.obj
+G:\Projects\EarthView\EarthView\TMSLoader.cpp;G:\Projects\EarthView\EarthView\x64\Debug\TMSLoader.obj
+G:\Projects\EarthView\EarthView\x64\Debug\qt\moc\moc_MainWindow.cpp;G:\Projects\EarthView\EarthView\x64\Debug\moc_MainWindow.obj
+G:\Projects\EarthView\EarthView\x64\Debug\qt\moc\moc_MapWidget.cpp;G:\Projects\EarthView\EarthView\x64\Debug\moc_MapWidget.obj
+G:\Projects\EarthView\EarthView\x64\Debug\qt\moc\moc_BorderRenderer.cpp;G:\Projects\EarthView\EarthView\x64\Debug\moc_BorderRenderer.obj
+G:\Projects\EarthView\EarthView\x64\Debug\qt\moc\moc_TileRenderer.cpp;G:\Projects\EarthView\EarthView\x64\Debug\moc_TileRenderer.obj
+G:\Projects\EarthView\EarthView\x64\Debug\qt\moc\moc_TMSLoader.cpp;G:\Projects\EarthView\EarthView\x64\Debug\moc_TMSLoader.obj
+G:\Projects\EarthView\EarthView\x64\Debug\qt\moc\moc_Camera.cpp;G:\Projects\EarthView\EarthView\x64\Debug\moc_Camera.obj

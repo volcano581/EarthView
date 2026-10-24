@@ -1,0 +1,137 @@
+#pragma once
+#ifndef TMSLOADER_H
+#define TMSLOADER_H
+
+#include <QObject>
+#include <QString>
+#include <QNetworkAccessManager>
+#include <QHash>
+#include <QList>
+#include <QMap>
+#include <QSet>
+#include <QStringList>
+#include <QImage>
+#include <memory>
+#include "Constants.h"
+#include "TextureManager.h"
+
+class Camera;
+class MbTilesRequestSet;
+class QNetworkReply;
+
+/**
+ * @brief TmsLoader downloads and manages TMS tile loading
+ *
+ * Responsibilities:
+ * - Download tiles from TMS server
+ * - Manage pending requests
+ * - Update visible tile set
+ * - Delegate texture creation to TextureManager
+ */
+class TmsLoader : public QObject
+{
+    Q_OBJECT
+
+public:
+    struct TileInfo {
+        GLuint textureId;
+        QRectF mercatorBounds;
+        QString textureCacheKey;
+        QImage image;
+        bool isLoading;
+        int layerIndex;
+        int tileZoomLevel;
+        QList<int> fallbackLayerIndices;
+    };
+
+    struct TileSourceLayer {
+        enum class SourceType {
+            UrlTemplate,
+            MbTiles,
+            VectorMbTiles
+        };
+
+        QString name;
+        QString urlTemplate;
+        QString mbTilesPath;
+        QString mbTilesFormat;
+        SourceType sourceType = SourceType::UrlTemplate;
+        int minZoom = 0;
+        int maxZoom = GIS::MAX_TILE_ZOOM;
+        int minTileZoom = 0;
+        int maxTileZoom = GIS::MAX_TILE_ZOOM;
+        bool tmsYOrigin = false;
+        /// Vector layers: the ids of the file's layers when its metadata lists them.
+        QStringList vectorLayers;
+    };
+
+    explicit TmsLoader(Camera* camera, QObject* parent = nullptr);
+    ~TmsLoader();
+
+    // Configuration
+    void setTileUrl(const QString& urlTemplate);
+    void setTileSourceLayers(const QList<TileSourceLayer>& layers);
+    void setLoadingEnabled(bool enabled);
+    bool isLoadingEnabled() const { return m_loadingEnabled; }
+
+    // Tile management
+    void updateVisibleTiles();
+    void clearCache();
+    /// Drops the retained tiles once every active tile is drawable (TileRenderer calls it after
+    /// uploading textures).
+    void releaseRetainedTilesWhenLoaded();
+
+    // Accessors
+    QMap<QString, TileInfo>& getActiveTiles() { return m_activeTiles; }
+    const QMap<QString, TileInfo>& getActiveTiles() const { return m_activeTiles; }
+    /// Tiles of the previous view (e.g. the zoom level just left) that stay drawn under the
+    /// active ones until those have loaded, so zooming never shows an empty map.
+    const QMap<QString, TileInfo>& getRetainedTiles() const { return m_retainedTiles; }
+    TextureManager* getTextureManager() { return m_textureManager; }
+    const QList<TileSourceLayer>& getTileSourceLayers() const { return m_tileLayers; }
+
+signals:
+    void tileLoaded(const QString& key);
+    void tileFailed(const QString& key);
+
+private slots:
+    void onTileDownloaded(QNetworkReply* reply, int z, int x, int y, int layerIndex);
+
+private:
+    void deriveDisplayZoomsFromTileResources();
+    void fetchTile(int z, int x, int y, int layerIndex);
+    void fetchMbTile(int z, int x, int y, int layerIndex);
+    void completeMbTileRead(
+        const QString& key,
+        const QImage& image,
+        const QString& errorMessage,
+        int z,
+        int x,
+        int y,
+        quint64 generation);
+    void applyTileImage(const QString& key, const QImage& image);
+    void handleTileFailure(const QString& key, int z, int x, int y);
+    void abortRequestsExcept(const QSet<QString>& keepKeys);
+    QList<int> layerIndicesForZoom(int zoomLevel) const;
+    int tileZoomForLayer(int zoomLevel, int layerIndex) const;
+    QString tileToUrl(int z, int x, int y, int layerIndex) const;
+    QRectF tileToMercatorBounds(int z, int x, int y) const;
+
+private:
+    Camera* m_camera;
+    QNetworkAccessManager* m_networkManager;
+    TextureManager* m_textureManager;
+    QMap<QString, TileInfo> m_activeTiles;
+    QMap<QString, TileInfo> m_retainedTiles;
+    QSet<QString> m_pendingRequests;
+    QHash<QString, QNetworkReply*> m_pendingReplies;
+    QList<TileSourceLayer> m_tileLayers;
+    quint64 m_requestGeneration;
+    bool m_loadingEnabled;
+    // MBTiles reads still wanted (shared with the reader jobs) and their priority counter:
+    // newer requests run first.
+    std::shared_ptr<MbTilesRequestSet> m_wantedMbTiles;
+    int m_mbTilePriority;
+};
+
+#endif // TMSLOADER_H
