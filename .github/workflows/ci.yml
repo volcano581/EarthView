@@ -1,0 +1,364 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  # Run on demand from the Actions tab, so a Windows build can be produced without pushing
+  # (the windows job uploads a runnable folder as the earthview-win64 artifact).
+  workflow_dispatch:
+  # Weekly master run: restores (touches) the vcpkg cache so GitHub's 7-day-unused eviction
+  # never drops the osgEarth build. See the cache policy at the Windows cache steps.
+  schedule:
+    - cron: '0 3 * * 1'   # Monday 03:00 UTC (scheduled runs use the default branch)
+
+# Push and pull_request runs of one branch share a group, so a newer run replaces an older
+# one instead of building osgEarth twice in parallel (the partial vcpkg cache is kept).
+concurrency:
+  group: ci-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  linux:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Qt 6 and build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build qt6-base-dev libqt6opengl6-dev libgl1-mesa-dev zlib1g-dev xvfb gdal-bin
+      - name: Configure
+        run: cmake -S EarthView -B out -G Ninja -DEARTHVIEW_DEPLOY_QT=OFF
+      - name: Build
+        run: cmake --build out
+      - name: Test
+        run: ctest --test-dir out --output-on-failure
+        env:
+          QT_QPA_PLATFORM: offscreen
+      - name: Install earthview3d and build an external consumer (E7)
+        run: |
+          cmake --install out --prefix out/stage
+          cmake -S EarthView/tests/consumer -B out/consumer -G Ninja "-DCMAKE_PREFIX_PATH=$PWD/out/stage"
+          cmake --build out/consumer
+          out/consumer/consumer_core
+      - name: Snapshot smoke render
+        working-directory: out
+        env:
+          EARTHVIEW_FORCE_SOFTWARE_OPENGL: "1"
+        run: |
+          xvfb-run -a ./earthview_snapshot --mode mercator --lat 30 --lon 70 --zoom 3 -o snapshot-mercator.png
+          xvfb-run -a ./earthview_snapshot --mode orthographic --lat 30 --lon 70 --zoom 2 -o snapshot-orthographic.png
+      - name: Upload snapshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: snapshots
+          path: out/snapshot-*.png
+
+  # MSVC build of EarthView 2D + earthview3d (osgEarth from the repo vcpkg manifest).
+  # The first run builds osgEarth and its dependencies (1-3 h); later runs restore the
+  # vcpkg binary cache and take minutes. Visual checks stay human (no GPU on CI).
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 350
+    # The vcpkg binary cache is published to GitHub Packages, which the job's token writes to.
+    permissions:
+      contents: read
+      packages: write
+    env:
+      VCPKG_COMMIT: 2cfff9c458d9dcf642e9fa09ba624f9931bb5358   # = builtin-baseline in vcpkg.json
+      # Not VCPKG_ROOT: msvc-dev-cmd overwrites that with Visual Studio's bundled vcpkg.
+      EV_VCPKG_ROOT: C:\ev-vcpkg
+      VCPKG_CACHE: C:\ev-vcpkg-cache
+      # VCPKG_BINARY_SOURCES is composed by "Point the vcpkg binary cache at GitHub Packages"
+      # below; a job-level value here would shadow what that step writes to $GITHUB_ENV.
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Qt (msvc2022_64)
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.11.0'
+          arch: win64_msvc2022_64
+          cache: true
+          # aqtinstall 3.3.0 (latest release) cannot find Qt >= 6.11 on Windows (packages moved to
+          # per-compiler extension repositories); master has the fix (#1000). Drop once 3.4 ships.
+          aqtsource: 'git+https://github.com/miurahr/aqtinstall.git@076e1659807d0b362a3ed684d54c2e9c775eb9c7'
+
+      - name: MSVC developer environment
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Get vcpkg at the manifest baseline
+        shell: pwsh
+        run: |
+          git clone https://github.com/microsoft/vcpkg.git $env:EV_VCPKG_ROOT
+          git -C $env:EV_VCPKG_ROOT checkout $env:VCPKG_COMMIT
+          & "$env:EV_VCPKG_ROOT\bootstrap-vcpkg.bat" -disableMetrics
+          New-Item -ItemType Directory -Force -Path $env:VCPKG_CACHE | Out-Null
+
+      # A binary cache every branch shares, not just master (D-031). actions/cache is scoped to
+      # the branch that wrote it, so a cold osgEarth build on a PR was thrown away and master
+      # had to build it again after the merge. GitHub Packages is scoped to the repository:
+      # whatever any branch builds is pushed there and every later run restores it, master
+      # included. The files cache below stays as the fast local layer for a re-run of the same
+      # branch. A pull request from a fork gets a read-only token, so it reads the feed without
+      # writing; if the feed cannot be reached at all the build still works, from source.
+      - name: Point the vcpkg binary cache at GitHub Packages
+        shell: pwsh
+        env:
+          NUGET_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $sources = "clear;files,$env:VCPKG_CACHE,readwrite"
+          try {
+              $feed = "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json"
+              $nuget = (& "$env:EV_VCPKG_ROOT\vcpkg.exe" fetch nuget | Select-Object -Last 1).Trim()
+              & $nuget sources add -Source $feed -Name GitHubPackages -StorePasswordInClearText `
+                  -UserName "${{ github.repository_owner }}" -Password $env:NUGET_TOKEN
+              if ($LASTEXITCODE -ne 0) { throw "nuget sources add failed ($LASTEXITCODE)" }
+              & $nuget setapikey $env:NUGET_TOKEN -Source $feed
+              if ($LASTEXITCODE -ne 0) { throw "nuget setapikey failed ($LASTEXITCODE)" }
+              # Forks cannot write packages; asking them to would fail every restore.
+              $mode = if ("${{ github.event.pull_request.head.repo.fork }}" -eq "true") { "read" } else { "readwrite" }
+              $sources = "$sources;nuget,GitHubPackages,$mode"
+              Write-Host "vcpkg binary cache: GitHub Packages ($mode) + the branch cache"
+          }
+          catch {
+              Write-Warning "GitHub Packages unavailable; using the branch cache only: $_"
+          }
+          "VCPKG_BINARY_SOURCES=$sources" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      # Second cache layer (D-019, amended by D-031): every run restores this one, and only
+      # master saves it. GitHub scopes caches by branch, so a cache saved on a PR branch is
+      # invisible to master, and per-branch saves only duplicated the ~1 GB osgEarth cache
+      # against the repository's 10 GB limit. Master saves a complete cache when keyed by
+      # manifest, or a partial one when a run fails part-way, so an interrupted master build
+      # resumes instead of starting over. Sharing across branches is GitHub Packages' job
+      # (the step above); this layer is the faster local one and the fallback when the feed
+      # cannot be reached.
+      - name: Restore vcpkg binary cache
+        id: vcpkg-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: C:\ev-vcpkg-cache
+          key: vcpkg-win-x64-${{ env.VCPKG_COMMIT }}-${{ hashFiles('vcpkg.json') }}-full
+          restore-keys: |
+            vcpkg-win-x64-${{ env.VCPKG_COMMIT }}-${{ hashFiles('vcpkg.json') }}-partial-
+
+      - name: Configure (installs osgEarth via vcpkg)
+        shell: pwsh
+        env:
+          VCPKG_ROOT: C:\ev-vcpkg
+        run: >
+          cmake -S EarthView -B build-msvc -G Ninja
+          -DCMAKE_BUILD_TYPE=Release
+          "-DCMAKE_PREFIX_PATH=$env:QT_ROOT_DIR"
+          "-DCMAKE_TOOLCHAIN_FILE=$env:EV_VCPKG_ROOT\scripts\buildsystems\vcpkg.cmake"
+          "-DVCPKG_MANIFEST_DIR=${{ github.workspace }}"
+          -DVCPKG_TARGET_TRIPLET=x64-windows
+          -DVCPKG_INSTALL_OPTIONS=--clean-after-build
+          -DEARTHVIEW_DEPLOY_QT=OFF
+          -DEARTHVIEW_BUILD_3D=ON
+
+      - name: Save complete vcpkg cache
+        if: success() && github.ref == 'refs/heads/master' && steps.vcpkg-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: C:\ev-vcpkg-cache
+          key: vcpkg-win-x64-${{ env.VCPKG_COMMIT }}-${{ hashFiles('vcpkg.json') }}-full
+
+      - name: Save partial vcpkg cache
+        if: (failure() || cancelled()) && github.ref == 'refs/heads/master' && steps.vcpkg-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: C:\ev-vcpkg-cache
+          key: vcpkg-win-x64-${{ env.VCPKG_COMMIT }}-${{ hashFiles('vcpkg.json') }}-partial-${{ github.run_id }}
+
+      - name: Collect vcpkg logs
+        if: failure()
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path vcpkg-logs | Out-Null
+          Get-ChildItem "$env:EV_VCPKG_ROOT\buildtrees" -Recurse -Filter *.log -ErrorAction SilentlyContinue |
+            ForEach-Object { Copy-Item $_.FullName ("vcpkg-logs\" + $_.Directory.Name + "-" + $_.Name) }
+          Copy-Item build-msvc\vcpkg-manifest-install.log vcpkg-logs\ -ErrorAction SilentlyContinue
+
+      - name: Upload vcpkg logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vcpkg-logs
+          path: vcpkg-logs
+          if-no-files-found: ignore
+
+      - name: Build
+        run: cmake --build build-msvc --parallel
+
+      - name: Test
+        run: ctest --test-dir build-msvc --output-on-failure
+
+      # E7 acceptance: the installed package (find_package(earthview3d CONFIG)) builds an
+      # external project; earthview3d_deploy_runtime() makes it run without vcpkg on PATH.
+      - name: Install earthview3d and build an external consumer (E7)
+        shell: pwsh
+        env:
+          VCPKG_ROOT: C:\ev-vcpkg
+        run: |
+          cmake --install build-msvc --prefix "${{ github.workspace }}\stage"
+          cmake -S EarthView/tests/consumer -B consumer -G Ninja `
+            -DCMAKE_BUILD_TYPE=Release `
+            "-DCMAKE_PREFIX_PATH=${{ github.workspace }}\stage;$env:QT_ROOT_DIR" `
+            "-DCMAKE_TOOLCHAIN_FILE=$env:EV_VCPKG_ROOT\scripts\buildsystems\vcpkg.cmake" `
+            -DVCPKG_MANIFEST_MODE=OFF `
+            "-DVCPKG_INSTALLED_DIR=${{ github.workspace }}\build-msvc\vcpkg_installed" `
+            -DVCPKG_TARGET_TRIPLET=x64-windows
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          cmake --build consumer
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          cmake --install consumer --prefix "${{ github.workspace }}\consumer-deploy"   # Qt deploy needs an absolute prefix
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          consumer\consumer_core.exe
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          consumer\consumer_3d.exe
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          consumer-deploy\bin\consumer_3d.exe
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+
+      # Package a runnable folder so a Windows build can be downloaded without MSVC, Qt,
+      # vcpkg or osgEarth installed locally.
+      #
+      # earthview3d_deploy_runtime() (E7) has already placed the vcpkg DLLs, osgPlugins-*
+      # (including vdatum_egm96 and freetype) and share/gdal + share/proj next to the demo
+      # executable, and demo/CMakeLists.txt copies shaders/ there too. That directory is
+      # therefore already the deployed layout, so it is copied wholesale rather than
+      # rediscovering the vcpkg tree here. Qt is not part of the build-tree deploy (only the
+      # INSTALL form of that function adds it), so windeployqt still runs.
+      - name: Package Windows binaries
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $stage = Join-Path $env:GITHUB_WORKSPACE 'dist\earthview-win64'
+          New-Item -ItemType Directory -Force -Path (Split-Path $stage) | Out-Null
+
+          # 1. The demo's output directory, already deployed by E7. The vcpkg install tree
+          #    also lives under build-msvc, so exclude it.
+          $demo = Get-ChildItem build-msvc -Recurse -File -Filter 'earthview3d_demo.exe' |
+                  Where-Object { $_.FullName -notmatch '\\vcpkg_installed\\' } |
+                  Select-Object -First 1
+          if (-not $demo) { throw 'earthview3d_demo.exe not found under build-msvc' }
+          Copy-Item $demo.Directory.FullName $stage -Recurse -Force
+          Write-Host "Deployed layout copied from $($demo.Directory.FullName)"
+
+          # 2. What E7 deploys must actually be present: a package without the plugin folder
+          #    loads no fonts, and one without proj.db misprojects silently.
+          foreach ($need in 'share\gdal', 'share\proj', 'shaders') {
+            if (-not (Test-Path (Join-Path $stage $need))) {
+              throw "$need is missing from the deployed layout - check earthview3d_deploy_runtime()"
+            }
+          }
+          $plugins = Get-ChildItem $stage -Directory -Filter 'osgPlugins-*'
+          if (-not $plugins) { throw 'no osgPlugins-* in the deployed layout' }
+          Write-Host "OSG plugins: $(($plugins | ForEach-Object Name) -join ', ')"
+
+          # 3. The 2D executables, by name. Never glob *.exe: vcpkg installs its own tools
+          #    under build-msvc\vcpkg_installed, and windeployqt fails on the first one that
+          #    is not a Qt application.
+          $flat = @('EarthView.exe', 'earthview_snapshot.exe')
+          foreach ($name in $flat) {
+            $hit = Get-ChildItem build-msvc -Recurse -File -Filter $name |
+                   Where-Object { $_.FullName -notmatch '\\vcpkg_installed\\' } |
+                   Select-Object -First 1
+            if (-not $hit) { throw "built executable $name not found under build-msvc" }
+            Copy-Item $hit.FullName $stage -Force
+          }
+
+          # 4. Qt runtime plus the MSVC redistributable, for every executable here.
+          $windeployqt = Join-Path $env:QT_ROOT_DIR 'bin\windeployqt.exe'
+          if (-not (Test-Path $windeployqt)) { throw "windeployqt not found at $windeployqt" }
+          foreach ($exe in Get-ChildItem $stage -Filter *.exe) {
+            & $windeployqt --release --no-translations --compiler-runtime --dir $stage $exe.FullName
+            if ($LASTEXITCODE -ne 0) { throw "windeployqt failed for $($exe.Name)" }
+          }
+
+          # 5. Earth files, models and the committed world base imagery.
+          Copy-Item (Join-Path $env:GITHUB_WORKSPACE 'EarthView\Data') $stage -Recurse -Force
+
+          # 6. Launchers. E7's RuntimePaths::defaults() finds the deployed layout next to the
+          #    executable, so OSG_LIBRARY_PATH, GDAL_DATA and PROJ_DATA are no longer needed,
+          #    and since I-049 the demo finds Data next to the executable too
+          #    (MapConfig::discoverDataRoot), so the .exe runs on its own. The launchers are
+          #    kept as a convenience and still pass --data-root explicitly: it goes ahead of
+          #    %* so a --data-root the user passes wins, and it keeps working for anyone who
+          #    moved the exe out of the folder.
+          $template = @'
+          @echo off
+          rem Portable launcher. The 3D demo's --data-root default is an absolute path from the
+          rem machine that built this, so it is supplied here. The rest of the runtime is found
+          rem next to the executable by RuntimePaths::defaults() (E7).
+          setlocal
+          set "EV_HOME=%~dp0"
+          "%EV_HOME%__EXE__" __ARGS__ %*
+          '@
+          $extraArgs = @{ 'earthview3d_demo.exe' = '--data-root "%EV_HOME%Data"' }
+          foreach ($name in @('earthview3d_demo.exe') + $flat) {
+            $cmd = 'run-' + [IO.Path]::GetFileNameWithoutExtension($name) + '.cmd'
+            $withArgs = if ($extraArgs.ContainsKey($name)) { $extraArgs[$name] } else { '' }
+            $template.Replace('__EXE__', $name).Replace('__ARGS__', $withArgs) |
+              Set-Content -Path (Join-Path $stage $cmd) -Encoding ASCII
+            Write-Host "Launcher: $cmd"
+          }
+
+
+          $readme = @'
+          EarthView - Windows x64 build
+          =============================
+
+          Built by CI with MSVC, Qt 6.11 (msvc2022_64) and osgEarth 3.8.1 from the pinned vcpkg
+          manifest. Nothing needs to be installed: Qt, osgEarth, OSG, GDAL and PROJ are all here,
+          with the MSVC redistributable DLLs, the OSG plugin folder and share\gdal + share\proj.
+
+          Start it with one of the launchers:
+
+            run-earthview3d_demo.cmd     3D / stealth view demo host (osgEarth)
+            run-EarthView.cmd            2D map application
+            run-earthview_snapshot.cmd   offscreen snapshot tool
+
+          The runtime next to the executables is found automatically. The launcher exists for one
+          remaining reason: the 3D demo's --data-root is compiled in as an absolute path from the
+          machine that built this, so it is passed explicitly. Run earthview3d_demo.exe directly
+          and it exits immediately with "Data root ... does not exist". Any argument you add to a
+          launcher is forwarded, e.g.
+
+            run-earthview3d_demo.cmd --view stealth --entities 50
+
+          Offline map data
+          ----------------
+          Only the committed world base imagery (Data\imagery\world_base.tif) ships here, so the
+          default map is land/sea at low resolution. For the full offline map - AOI base map,
+          hillshade and place names - run EarthView\tools\offline_data\build_offline_data.py from
+          a checkout; it needs the GDAL command-line tools and is not run by CI.
+
+          TMS maps from your own tile server
+          ----------------------------------
+          Data\EarthFiles holds only a README and two .earth.sample files: the real layer-list
+          files carry your tile-server address and are deliberately kept out of the repository,
+          so nothing in this package points at your network. Keep them on your own machine and
+          pass the folder:
+
+            run-earthview3d_demo.cmd --earth-files D:\path\to\your\EarthFiles
+
+          Then --list-maps to see what was found, --map-name "<label>" to pick one, or use the Map
+          dropdown in the toolbar. Each source is converted to a standard osgEarth earth file
+          written next to the template (Data\maps\tms_<name>.earth), so keep this package
+          somewhere writable - not under Program Files.
+          '@
+          $readme | Set-Content -Path (Join-Path $stage 'README.txt') -Encoding ASCII
+
+          "{0:N1} MB packaged" -f ((Get-ChildItem $stage -Recurse -File |
+              Measure-Object -Property Length -Sum).Sum / 1MB)
+
+      - name: Upload Windows binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: earthview-win64
+          path: dist/earthview-win64
+          retention-days: 14
