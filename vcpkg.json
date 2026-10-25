@@ -1,0 +1,9 @@
+{
+  "name": "earthview",
+  "version-string": "0.1",
+  "description": "EarthView 3D (earthview3d): osgEarth and its dependencies. Qt comes from the Qt installer, not vcpkg.",
+  "builtin-baseline": "2cfff9c458d9dcf642e9fa09ba624f9931bb5358",
+  "dependencies": [
+    "osgearth"
+  ]
+}
