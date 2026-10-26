@@ -1,0 +1,5 @@
+﻿   Qt/MSBuild: 3.5.0.0
+  Reading Qt configuration (C:/Qt/6.11.0/msvc2022_64/bin/qmake)
+   Qt: 6.11.0
+  MapWidget.cpp
+  EarthView.vcxproj -> G:\Projects\EarthView\x64\Debug\EarthView.exe

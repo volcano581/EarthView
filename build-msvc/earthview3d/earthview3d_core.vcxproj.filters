@@ -1,0 +1,81 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="D:\Source\EarthView1\EarthView\earthview3d\src\CameraControl.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Source\EarthView1\EarthView\earthview3d\src\DtedMosaic.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Source\EarthView1\EarthView\earthview3d\src\EarthFileCatalog.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Source\EarthView1\EarthView\earthview3d\src\EntityDiff.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Source\EarthView1\EarthView\earthview3d\src\MapConfig.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Source\EarthView1\EarthView\earthview3d\src\ModelTable.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Source\EarthView1\EarthView\earthview3d\src\Picking.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Source\EarthView1\EarthView\earthview3d\src\RuntimePaths.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Source\EarthView1\EarthView\earthview3d\src\ScreenScale.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Source\EarthView1\EarthView\earthview3d\src\TerrainServices.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="D:\Source\EarthView1\EarthView\earthview3d\include\earthview3d\CameraControl.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Source\EarthView1\EarthView\earthview3d\include\earthview3d\DtedMosaic.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Source\EarthView1\EarthView\earthview3d\include\earthview3d\EarthFileCatalog.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Source\EarthView1\EarthView\earthview3d\include\earthview3d\EntityState3D.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Source\EarthView1\EarthView\earthview3d\include\earthview3d\EntityDiff.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Source\EarthView1\EarthView\earthview3d\include\earthview3d\MapConfig.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Source\EarthView1\EarthView\earthview3d\include\earthview3d\ModelTable.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Source\EarthView1\EarthView\earthview3d\include\earthview3d\Picking.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Source\EarthView1\EarthView\earthview3d\include\earthview3d\RuntimePaths.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Source\EarthView1\EarthView\earthview3d\include\earthview3d\ScreenScale.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Source\EarthView1\EarthView\earthview3d\include\earthview3d\TerrainServices.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="D:\Source\EarthView1\EarthView\earthview3d\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{9DC0E533-89DA-3E70-8F82-BAF1484169C1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{D0746B2B-4E92-3512-84A2-85FF3CFCC66B}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

@@ -1,0 +1,1 @@
+D:\Source\EarthView1\EarthView\build-msvc\mapcontrols\earthview_mapcontrols_resources_1.dir\Debug\earthview_mapcontrols_resources_1.lib

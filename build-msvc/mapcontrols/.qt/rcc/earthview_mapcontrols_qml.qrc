@@ -1,0 +1,21 @@
+<RCC>
+  <qresource prefix="/earthview/mapcontrols">
+    <file alias="MapSideBar.qml">D:/Source/EarthView1/EarthView/mapcontrols/qml/MapSideBar.qml</file>
+    <file alias="LayersButton.qml">D:/Source/EarthView1/EarthView/mapcontrols/qml/LayersButton.qml</file>
+    <file alias="LayerTile.qml">D:/Source/EarthView1/EarthView/mapcontrols/qml/LayerTile.qml</file>
+    <file alias="FeatureCard.qml">D:/Source/EarthView1/EarthView/mapcontrols/qml/FeatureCard.qml</file>
+    <file alias="icons/compass.svg">D:/Source/EarthView1/EarthView/mapcontrols/qml/icons/compass.svg</file>
+    <file alias="icons/globe3d.svg">D:/Source/EarthView1/EarthView/mapcontrols/qml/icons/globe3d.svg</file>
+    <file alias="icons/ruler.svg">D:/Source/EarthView1/EarthView/mapcontrols/qml/icons/ruler.svg</file>
+    <file alias="icons/settings.svg">D:/Source/EarthView1/EarthView/mapcontrols/qml/icons/settings.svg</file>
+    <file alias="icons/proj_mercator.svg">D:/Source/EarthView1/EarthView/mapcontrols/qml/icons/proj_mercator.svg</file>
+    <file alias="icons/proj_orthographic.svg">D:/Source/EarthView1/EarthView/mapcontrols/qml/icons/proj_orthographic.svg</file>
+    <file alias="icons/thumb_osm.svg">D:/Source/EarthView1/EarthView/mapcontrols/qml/icons/thumb_osm.svg</file>
+    <file alias="icons/thumb_imagery.svg">D:/Source/EarthView1/EarthView/mapcontrols/qml/icons/thumb_imagery.svg</file>
+    <file alias="icons/thumb_hillshade.svg">D:/Source/EarthView1/EarthView/mapcontrols/qml/icons/thumb_hillshade.svg</file>
+    <file alias="icons/thumb_topo.svg">D:/Source/EarthView1/EarthView/mapcontrols/qml/icons/thumb_topo.svg</file>
+    <file alias="icons/thumb_map.svg">D:/Source/EarthView1/EarthView/mapcontrols/qml/icons/thumb_map.svg</file>
+    <file alias="icons/overlay_grid.svg">D:/Source/EarthView1/EarthView/mapcontrols/qml/icons/overlay_grid.svg</file>
+  </qresource>
+</RCC>
+

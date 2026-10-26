@@ -1,0 +1,47 @@
+#pragma once
+#ifndef MAPVIEWWINDOW_H
+#define MAPVIEWWINDOW_H
+
+#include <QMainWindow>
+#include <QString>
+
+class Camera;
+class MapControlsModel;
+class MapControlsOverlay;
+class QLabel;
+class MapWidget;
+class QCloseEvent;
+class QShowEvent;
+
+class MapViewWindow : public QMainWindow
+{
+    Q_OBJECT
+
+public:
+    explicit MapViewWindow(const QString& title, QWidget* parent = nullptr);
+
+    MapWidget* mapWidget() const { return m_mapWidget; }
+    /// On-map controls of this window's map; nullptr when built without them.
+    MapControlsModel* mapControls() const;
+    MapControlsOverlay* mapControlsOverlay() const { return m_mapControlsOverlay; }
+
+signals:
+    void windowVisibilityChanged(bool visible);
+
+protected:
+    void closeEvent(QCloseEvent* event) override;
+    void showEvent(QShowEvent* event) override;
+
+private:
+    void setupToolbar();
+    void createStatusBar();
+    void updateStatus();
+
+private:
+    MapWidget* m_mapWidget;
+    MapControlsOverlay* m_mapControlsOverlay;
+    QLabel* m_coordLabel;
+    QLabel* m_zoomLabel;
+};
+
+#endif // MAPVIEWWINDOW_H

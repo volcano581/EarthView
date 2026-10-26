@@ -1,0 +1,93 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="D:\Source\EarthView1\EarthView\build-msvc\mapcontrols\earthview_mapcontrols_autogen\mocs_compilation_Debug.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Source\EarthView1\EarthView\mapcontrols\BaseMapSources.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Source\EarthView1\EarthView\mapcontrols\FeatureDetails.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Source\EarthView1\EarthView\mapcontrols\GeoMeasure.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Source\EarthView1\EarthView\mapcontrols\LayerImages.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Source\EarthView1\EarthView\mapcontrols\MapControlsModel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Source\EarthView1\EarthView\mapcontrols\MapControlsOverlay.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Source\EarthView1\EarthView\mapcontrols\MeasureModel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Source\EarthView1\EarthView\mapcontrols\SmoothNavigation.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Source\EarthView1\EarthView\mapcontrols\SmoothNavigator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Source\EarthView1\EarthView\build-msvc\mapcontrols\.qt\rcc\qrc_earthview_mapcontrols_qml.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Source\EarthView1\EarthView\build-msvc\mapcontrols\earthview_mapcontrols_autogen\mocs_compilation_Release.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Source\EarthView1\EarthView\build-msvc\mapcontrols\earthview_mapcontrols_autogen\mocs_compilation_MinSizeRel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Source\EarthView1\EarthView\build-msvc\mapcontrols\earthview_mapcontrols_autogen\mocs_compilation_RelWithDebInfo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="D:\Source\EarthView1\EarthView\mapcontrols\BaseMapSources.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Source\EarthView1\EarthView\mapcontrols\FeatureDetails.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Source\EarthView1\EarthView\mapcontrols\GeoMeasure.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Source\EarthView1\EarthView\mapcontrols\LayerImages.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Source\EarthView1\EarthView\mapcontrols\MapControlsModel.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Source\EarthView1\EarthView\mapcontrols\MapControlsOverlay.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Source\EarthView1\EarthView\mapcontrols\MeasureModel.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Source\EarthView1\EarthView\mapcontrols\SmoothNavigation.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Source\EarthView1\EarthView\mapcontrols\SmoothNavigator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="D:\Source\EarthView1\EarthView\build-msvc\CMakeFiles\b63b1d25ab8b0fa4e783c7d0d939dad3\qrc_earthview_mapcontrols_qml.cpp.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="D:\Source\EarthView1\EarthView\mapcontrols\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{E17036C2-A1C8-3111-A9BA-42F113F6BFE6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{9DC0E533-89DA-3E70-8F82-BAF1484169C1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{D0746B2B-4E92-3512-84A2-85FF3CFCC66B}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

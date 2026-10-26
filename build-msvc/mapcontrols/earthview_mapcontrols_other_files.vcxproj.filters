@@ -1,0 +1,27 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="D:\Source\EarthView1\EarthView\mapcontrols\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="D:\Source\EarthView1\EarthView\build-msvc\mapcontrols\.qt\rcc\earthview_mapcontrols_qml.qrc" />
+    <None Include="D:\Source\EarthView1\EarthView\mapcontrols\qml\MapSideBar.qml" />
+    <None Include="D:\Source\EarthView1\EarthView\mapcontrols\qml\LayersButton.qml" />
+    <None Include="D:\Source\EarthView1\EarthView\mapcontrols\qml\LayerTile.qml" />
+    <None Include="D:\Source\EarthView1\EarthView\mapcontrols\qml\FeatureCard.qml" />
+    <None Include="D:\Source\EarthView1\EarthView\mapcontrols\qml\icons\compass.svg" />
+    <None Include="D:\Source\EarthView1\EarthView\mapcontrols\qml\icons\globe3d.svg" />
+    <None Include="D:\Source\EarthView1\EarthView\mapcontrols\qml\icons\ruler.svg" />
+    <None Include="D:\Source\EarthView1\EarthView\mapcontrols\qml\icons\settings.svg" />
+    <None Include="D:\Source\EarthView1\EarthView\mapcontrols\qml\icons\proj_mercator.svg" />
+    <None Include="D:\Source\EarthView1\EarthView\mapcontrols\qml\icons\proj_orthographic.svg" />
+    <None Include="D:\Source\EarthView1\EarthView\mapcontrols\qml\icons\thumb_osm.svg" />
+    <None Include="D:\Source\EarthView1\EarthView\mapcontrols\qml\icons\thumb_imagery.svg" />
+    <None Include="D:\Source\EarthView1\EarthView\mapcontrols\qml\icons\thumb_hillshade.svg" />
+    <None Include="D:\Source\EarthView1\EarthView\mapcontrols\qml\icons\thumb_topo.svg" />
+    <None Include="D:\Source\EarthView1\EarthView\mapcontrols\qml\icons\thumb_map.svg" />
+    <None Include="D:\Source\EarthView1\EarthView\mapcontrols\qml\icons\overlay_grid.svg" />
+  </ItemGroup>
+  <ItemGroup>
+  </ItemGroup>
+</Project>

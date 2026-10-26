@@ -1,0 +1,20 @@
+^D:\SOURCE\EARTHVIEW1\EARTHVIEW\BUILD-MSVC\CMAKEFILES\B63B1D25AB8B0FA4E783C7D0D939DAD3\QRC_EARTHVIEW_MAPCONTROLS_QML.CPP.RULE
+setlocal
+C:\Qt\6.11.1\msvc2022_64\bin\rcc.exe --output D:/Source/EarthView1/EarthView/build-msvc/mapcontrols/.qt/rcc/qrc_earthview_mapcontrols_qml.cpp --name earthview_mapcontrols_qml D:/Source/EarthView1/EarthView/build-msvc/mapcontrols/.qt/rcc/earthview_mapcontrols_qml.qrc --no-zstd
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^D:\SOURCE\EARTHVIEW1\EARTHVIEW\MAPCONTROLS\CMAKELISTS.TXT
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SD:/Source/EarthView1/EarthView -BD:/Source/EarthView1/EarthView/build-msvc --check-stamp-file D:/Source/EarthView1/EarthView/build-msvc/mapcontrols/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

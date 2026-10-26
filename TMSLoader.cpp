@@ -1,0 +1,606 @@
+#include "TMSLoader.h"
+#include "TextureManager.h"
+#include "Camera.h"
+#include "MbTilesReader.h"
+#include "MercatorProjection.h"
+#include "Constants.h"
+#include <QFileInfo>
+#include <QMetaObject>
+#include <QNetworkRequest>
+#include <QNetworkReply>
+#include <QImage>
+#include <QPointer>
+#include <QThreadPool>
+#include <QDebug>
+#include <QtMath>
+#include <algorithm>
+#include <utility>
+
+namespace {
+// Cap on tiles of earlier views kept drawn while the current view loads.
+constexpr int kMaxRetainedTiles = 256;
+
+QString renderTileKey(int z, int x, int y, int layerIndex)
+{
+    return QString("%1_%2_%3_%4").arg(layerIndex).arg(z).arg(x).arg(y);
+}
+
+QString textureTileKey(int z, int x, int y, int layerIndex)
+{
+    return renderTileKey(z, MercatorProjection::wrapTileX(x, z), y, layerIndex);
+}
+}
+
+TmsLoader::TmsLoader(Camera* camera, QObject* parent)
+    : QObject(parent)
+    , m_camera(camera)
+    , m_networkManager(new QNetworkAccessManager(this))
+    , m_textureManager(new TextureManager(GIS::TEXTURE_CACHE_SIZE_MB))
+    , m_requestGeneration(0)
+    , m_loadingEnabled(true)
+    , m_wantedMbTiles(std::make_shared<MbTilesRequestSet>())
+    , m_mbTilePriority(0)
+{
+    TileSourceLayer defaultLayer;
+    defaultLayer.name = "OpenStreetMap";
+    defaultLayer.urlTemplate = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+    m_tileLayers.append(defaultLayer);
+
+    connect(m_camera, &Camera::cameraChanged, this, &TmsLoader::updateVisibleTiles);
+}
+
+TmsLoader::~TmsLoader()
+{
+    clearCache();
+    delete m_textureManager;
+}
+
+void TmsLoader::setTileUrl(const QString& urlTemplate)
+{
+    TileSourceLayer layer;
+    layer.name = "Tile source";
+    layer.urlTemplate = urlTemplate;
+    setTileSourceLayers({ layer });
+}
+
+void TmsLoader::setTileSourceLayers(const QList<TileSourceLayer>& layers)
+{
+    m_tileLayers = layers;
+    deriveDisplayZoomsFromTileResources();
+    clearCache();
+
+    if (m_loadingEnabled) {
+        updateVisibleTiles();
+    }
+}
+
+void TmsLoader::setLoadingEnabled(bool enabled)
+{
+    if (m_loadingEnabled == enabled)
+        return;
+
+    m_loadingEnabled = enabled;
+    if (!m_loadingEnabled) {
+        clearCache();
+        return;
+    }
+
+    updateVisibleTiles();
+}
+
+void TmsLoader::deriveDisplayZoomsFromTileResources()
+{
+    QList<int> indices;
+
+    for (int i = 0; i < m_tileLayers.size(); ++i) {
+        const TileSourceLayer& layer = m_tileLayers.at(i);
+        if (layer.maxTileZoom >= layer.minTileZoom) {
+            indices.append(i);
+        }
+    }
+
+    std::sort(indices.begin(), indices.end(), [this](int a, int b) {
+        const TileSourceLayer& la = m_tileLayers.at(a);
+        const TileSourceLayer& lb = m_tileLayers.at(b);
+
+        if (la.maxTileZoom != lb.maxTileZoom)
+            return la.maxTileZoom < lb.maxTileZoom;
+
+        if (la.minTileZoom != lb.minTileZoom)
+            return la.minTileZoom < lb.minTileZoom;
+
+        return la.name < lb.name;
+    });
+
+    int nextDisplayMinZoom = 0;
+    int pos = 0;
+
+    while (pos < indices.size()) {
+        const int groupMaxTileZoom = m_tileLayers.at(indices.at(pos)).maxTileZoom;
+
+        QList<int> group;
+        while (pos < indices.size()
+            && m_tileLayers.at(indices.at(pos)).maxTileZoom == groupMaxTileZoom) {
+            group.append(indices.at(pos));
+            ++pos;
+        }
+
+        const int displayMinZoom = qBound(0, nextDisplayMinZoom, GIS::MAX_TILE_ZOOM);
+        const int displayMaxZoom = qBound(displayMinZoom, groupMaxTileZoom, GIS::MAX_TILE_ZOOM);
+
+        for (int layerIndex : group) {
+            TileSourceLayer& layer = m_tileLayers[layerIndex];
+            layer.minZoom = displayMinZoom;
+            layer.maxZoom = displayMaxZoom;
+        }
+
+        nextDisplayMinZoom = displayMaxZoom + 1;
+    }
+
+    if (!indices.isEmpty()) {
+        const int lastMaxTileZoom = m_tileLayers.at(indices.last()).maxTileZoom;
+
+        for (int layerIndex : indices) {
+            TileSourceLayer& layer = m_tileLayers[layerIndex];
+            if (layer.maxTileZoom == lastMaxTileZoom) {
+                layer.maxZoom = GIS::MAX_TILE_ZOOM;
+            }
+        }
+    }
+
+    for (const TileSourceLayer& layer : m_tileLayers) {
+        qDebug() << "TMS layer:"
+                 << layer.name
+                 << "display zoom" << layer.minZoom << "-" << layer.maxZoom
+                 << "tile zoom" << layer.minTileZoom << "-" << layer.maxTileZoom;
+    }
+}
+
+void TmsLoader::updateVisibleTiles()
+{
+    if (!m_loadingEnabled)
+        return;
+
+    const int cameraZoomLevel = m_camera->getTileZoomLevel();
+    QList<int> layerIndices = layerIndicesForZoom(cameraZoomLevel);
+    if (layerIndices.isEmpty()) {
+        m_activeTiles.clear();
+        abortRequestsExcept(QSet<QString>());
+        return;
+    }
+
+    struct LayerTileRequest {
+        int layerIndex;
+        int tileZoomLevel;
+        QRect tileRange;
+    };
+
+    QList<LayerTileRequest> tileRequests;
+    tileRequests.reserve(layerIndices.size());
+
+    constexpr qint64 maxTilesPerUpdate = 2048;
+    for (int layerIndex : layerIndices) {
+        const int tileZoomLevel = tileZoomForLayer(cameraZoomLevel, layerIndex);
+        const QRect tileRange = m_camera->getTileRange(tileZoomLevel);
+        const qint64 requestedTileCount = static_cast<qint64>(tileRange.width()) * tileRange.height();
+        if (tileRange.width() <= 0 || tileRange.height() <= 0 || requestedTileCount > maxTilesPerUpdate) {
+            qWarning() << "Skipping tile update with excessive tile range"
+                       << tileRange
+                       << "at zoom" << tileZoomLevel
+                       << "for layer" << layerIndex
+                       << "count" << requestedTileCount;
+            m_activeTiles.clear();
+            abortRequestsExcept(QSet<QString>());
+            return;
+        }
+
+        tileRequests.append({ layerIndex, tileZoomLevel, tileRange });
+    }
+
+    QSet<QString> visibleKeys;
+    QSet<QString> visibleTextureKeys;
+
+    for (const LayerTileRequest& request : tileRequests) {
+        for (int x = request.tileRange.x(); x < request.tileRange.x() + request.tileRange.width(); ++x) {
+            for (int y = request.tileRange.y(); y < request.tileRange.y() + request.tileRange.height(); ++y) {
+                const QString renderKey = renderTileKey(request.tileZoomLevel, x, y, request.layerIndex);
+                visibleKeys.insert(renderKey);
+
+                auto activeIt = m_activeTiles.find(renderKey);
+                if (activeIt != m_activeTiles.end()) {
+                    visibleTextureKeys.insert(activeIt.value().textureCacheKey);
+                    continue;
+                }
+
+                QString cacheKey = textureTileKey(request.tileZoomLevel, x, y, request.layerIndex);
+                visibleTextureKeys.insert(cacheKey);
+
+                TileInfo tile;
+                tile.textureId = m_textureManager->getTexture(cacheKey);
+                tile.mercatorBounds = tileToMercatorBounds(request.tileZoomLevel, x, y);
+                tile.textureCacheKey = cacheKey;
+                tile.image = QImage();
+                tile.isLoading = tile.textureId == 0;
+                tile.layerIndex = request.layerIndex;
+                tile.tileZoomLevel = request.tileZoomLevel;
+                tile.fallbackLayerIndices.clear();
+                m_activeTiles[renderKey] = tile;
+
+                if (tile.textureId == 0 && !m_pendingRequests.contains(cacheKey)) {
+                    fetchTile(request.tileZoomLevel, x, y, request.layerIndex);
+                }
+            }
+        }
+    }
+
+    // Remove invisible tiles. While the new view is still loading, the ones already on screen
+    // (e.g. the zoom level just left) stay drawn underneath instead of leaving a hole.
+    bool viewLoading = false;
+    for (auto it = m_activeTiles.cbegin(); it != m_activeTiles.cend() && !viewLoading; ++it) {
+        viewLoading = visibleKeys.contains(it.key()) && (it->isLoading || it->textureId == 0);
+    }
+    QList<QString> toRemove;
+    for (auto it = m_activeTiles.begin(); it != m_activeTiles.end(); ++it) {
+        if (!visibleKeys.contains(it.key())) {
+            toRemove.append(it.key());
+        }
+    }
+
+    for (const QString& key : toRemove) {
+        const TileInfo tile = m_activeTiles.take(key);
+        if (viewLoading && tile.textureId != 0 && m_retainedTiles.size() < kMaxRetainedTiles)
+            m_retainedTiles.insert(key, tile);
+    }
+    for (const QString& key : visibleKeys)
+        m_retainedTiles.remove(key);
+
+    abortRequestsExcept(visibleTextureKeys);
+    releaseRetainedTilesWhenLoaded();
+}
+
+void TmsLoader::releaseRetainedTilesWhenLoaded()
+{
+    if (m_retainedTiles.isEmpty())
+        return;
+    for (const TileInfo& tile : std::as_const(m_activeTiles)) {
+        if (tile.isLoading || tile.textureId == 0)
+            return;
+    }
+    m_retainedTiles.clear();
+}
+
+void TmsLoader::clearCache()
+{
+    ++m_requestGeneration;
+    abortRequestsExcept(QSet<QString>());
+    m_activeTiles.clear();
+    m_retainedTiles.clear();
+    m_pendingRequests.clear();
+    m_wantedMbTiles->clear();
+    m_textureManager->clearCache();
+}
+
+void TmsLoader::fetchTile(int z, int x, int y, int layerIndex)
+{
+    if (!m_loadingEnabled)
+        return;
+    if (layerIndex < 0 || layerIndex >= m_tileLayers.size())
+        return;
+
+    const TileSourceLayer& layer = m_tileLayers.at(layerIndex);
+    if (layer.sourceType == TileSourceLayer::SourceType::VectorMbTiles)
+        return;
+
+    if (layer.sourceType == TileSourceLayer::SourceType::MbTiles) {
+        fetchMbTile(z, x, y, layerIndex);
+        return;
+    }
+
+    QString key = textureTileKey(z, x, y, layerIndex);
+
+    // Check cache
+    if (m_textureManager->hasTexture(key)) {
+        return;
+    }
+    if (m_pendingRequests.contains(key)) {
+        return;
+    }
+
+    // Download tile
+    QString url = tileToUrl(z, x, y, layerIndex);
+    if (url.isEmpty())
+        return;
+
+    QNetworkRequest request(url);
+    request.setHeader(QNetworkRequest::UserAgentHeader, "MilitaryGIS/1.0");
+
+    QNetworkReply* reply = m_networkManager->get(request);
+    m_pendingRequests.insert(key);
+    m_pendingReplies.insert(key, reply);
+
+    connect(reply, &QNetworkReply::finished, this, [this, reply, z, x, y, layerIndex]() {
+        onTileDownloaded(reply, z, x, y, layerIndex);
+        });
+}
+
+void TmsLoader::fetchMbTile(int z, int x, int y, int layerIndex)
+{
+    if (layerIndex < 0 || layerIndex >= m_tileLayers.size())
+        return;
+
+    const TileSourceLayer& layer = m_tileLayers.at(layerIndex);
+    const QString key = textureTileKey(z, x, y, layerIndex);
+    if (m_textureManager->hasTexture(key) || m_pendingRequests.contains(key))
+        return;
+
+    m_pendingRequests.insert(key);
+    m_wantedMbTiles->insert(key);
+    const std::shared_ptr<MbTilesRequestSet> wanted = m_wantedMbTiles;
+    const QString mbTilesPath = layer.mbTilesPath;
+    const QString mbTilesFormat = layer.mbTilesFormat;
+    const bool tmsYOrigin = layer.tmsYOrigin;
+    const int wrappedX = MercatorProjection::wrapTileX(x, z);
+    const quint64 generation = m_requestGeneration;
+    QPointer<TmsLoader> loader(this);
+
+    // Newest first: after a pan or zoom the tiles now in view are read before older ones, and
+    // jobs whose tile is no longer wanted return without touching the file.
+    MbTilesReader::threadPool()->start([loader, wanted, key, mbTilesPath, z, wrappedX, y, tmsYOrigin, mbTilesFormat, generation]() {
+        if (!wanted->contains(key))
+            return;
+        QString errorMessage;
+        QImage image = MbTilesReader::readTileImage(
+            mbTilesPath,
+            z,
+            wrappedX,
+            y,
+            tmsYOrigin,
+            mbTilesFormat,
+            &errorMessage);
+        // The texture's format: no conversion left for the UI thread.
+        if (!image.isNull())
+            image = image.convertToFormat(QImage::Format_RGBA8888);
+
+        if (!loader)
+            return;
+
+        QMetaObject::invokeMethod(
+            loader.data(),
+            [loader, key, image, errorMessage, z, wrappedX, y, generation]() {
+                if (!loader)
+                    return;
+                loader->completeMbTileRead(key, image, errorMessage, z, wrappedX, y, generation);
+            },
+            Qt::QueuedConnection);
+    }, ++m_mbTilePriority);
+}
+
+void TmsLoader::completeMbTileRead(
+    const QString& key,
+    const QImage& image,
+    const QString& errorMessage,
+    int z,
+    int x,
+    int y,
+    quint64 generation)
+{
+    if (generation != m_requestGeneration || !m_pendingRequests.contains(key))
+        return;
+
+    m_pendingRequests.remove(key);
+    m_wantedMbTiles->remove(key);
+
+    if (!image.isNull()) {
+        applyTileImage(key, image);
+        emit tileLoaded(key);
+        return;
+    }
+
+    if (!errorMessage.isEmpty()) {
+        qWarning() << errorMessage;
+    }
+    handleTileFailure(key, z, x, y);
+    emit tileFailed(key);
+}
+
+void TmsLoader::onTileDownloaded(QNetworkReply* reply, int z, int x, int y, int layerIndex)
+{
+    if (layerIndex < 0 || layerIndex >= m_tileLayers.size()) {
+        reply->deleteLater();
+        return;
+    }
+
+    QString key = textureTileKey(z, x, y, layerIndex);
+    m_pendingReplies.remove(key);
+    if (reply->error() != QNetworkReply::NoError) {
+        m_pendingRequests.remove(key);
+        handleTileFailure(key, z, x, y);
+        emit tileFailed(key);
+        reply->deleteLater();
+        return;
+    }
+
+    // PNG/JPEG decoding takes milliseconds per tile: done on the global pool, so a burst of
+    // tiles after a zoom does not stall the map. The key stays pending until the image is back
+    // (a tile that leaves the view meanwhile is dropped by abortRequestsExcept).
+    const QByteArray bytes = reply->readAll();
+    reply->deleteLater();
+    const quint64 generation = m_requestGeneration;
+    QPointer<TmsLoader> loader(this);
+    QThreadPool::globalInstance()->start([loader, key, bytes, z, x, y, generation]() {
+        QImage image;
+        QString errorMessage;
+        if (image.loadFromData(bytes))
+            image = image.convertToFormat(QImage::Format_RGBA8888);
+        else
+            errorMessage = QStringLiteral("Could not decode tile %1").arg(key);
+        if (!loader)
+            return;
+        QMetaObject::invokeMethod(
+            loader.data(),
+            [loader, key, image, errorMessage, z, x, y, generation]() {
+                if (!loader)
+                    return;
+                loader->completeMbTileRead(key, image, errorMessage, z, x, y, generation);
+            },
+            Qt::QueuedConnection);
+    });
+}
+
+void TmsLoader::applyTileImage(const QString& key, const QImage& image)
+{
+    for (auto it = m_activeTiles.begin(); it != m_activeTiles.end(); ++it) {
+        TileInfo& tile = it.value();
+        if (tile.textureCacheKey != key)
+            continue;
+
+        tile.textureId = 0;
+        tile.image = image;
+        tile.isLoading = false;
+    }
+}
+
+void TmsLoader::handleTileFailure(const QString& key, int z, int x, int y)
+{
+    QList<QString> failedKeys;
+    QSet<int> retryLayerIndices;
+    for (auto it = m_activeTiles.begin(); it != m_activeTiles.end(); ++it) {
+        TileInfo& tile = it.value();
+        if (tile.textureCacheKey != key)
+            continue;
+
+        bool retrying = false;
+        while (!tile.fallbackLayerIndices.isEmpty()) {
+            const int nextLayerIndex = tile.fallbackLayerIndices.takeFirst();
+            const QString nextCacheKey = textureTileKey(z, x, y, nextLayerIndex);
+            tile.layerIndex = nextLayerIndex;
+            tile.tileZoomLevel = z;
+            tile.textureCacheKey = nextCacheKey;
+            tile.textureId = m_textureManager->getTexture(nextCacheKey);
+            tile.image = QImage();
+            tile.isLoading = tile.textureId == 0;
+
+            if (tile.textureId == 0) {
+                retryLayerIndices.insert(nextLayerIndex);
+            }
+            retrying = true;
+            break;
+        }
+
+        if (!retrying) {
+            failedKeys.append(it.key());
+        }
+    }
+
+    for (const QString& failedKey : failedKeys) {
+        m_activeTiles.remove(failedKey);
+    }
+
+    for (const int retryLayerIndex : retryLayerIndices) {
+        fetchTile(z, x, y, retryLayerIndex);
+    }
+    releaseRetainedTilesWhenLoaded();
+}
+
+void TmsLoader::abortRequestsExcept(const QSet<QString>& keepKeys)
+{
+    QList<QString> keysToAbort;
+    for (auto it = m_pendingReplies.cbegin(); it != m_pendingReplies.cend(); ++it) {
+        if (!keepKeys.contains(it.key())) {
+            keysToAbort.append(it.key());
+        }
+    }
+
+    for (const QString& key : keysToAbort) {
+        QNetworkReply* reply = m_pendingReplies.take(key);
+        m_pendingRequests.remove(key);
+        if (!reply)
+            continue;
+
+        QObject::disconnect(reply, nullptr, this, nullptr);
+        reply->abort();
+        reply->deleteLater();
+    }
+
+    // MBTiles reads have no reply to abort: forget them so their jobs skip the read.
+    QList<QString> staleReads;
+    for (const QString& key : std::as_const(m_pendingRequests)) {
+        if (!keepKeys.contains(key))
+            staleReads.append(key);
+    }
+    for (const QString& key : staleReads) {
+        m_pendingRequests.remove(key);
+        m_wantedMbTiles->remove(key);
+    }
+}
+
+QList<int> TmsLoader::layerIndicesForZoom(int zoomLevel) const
+{
+    QList<int> matchingIndices;
+
+    for (int i = 0; i < m_tileLayers.size(); ++i) {
+        const TileSourceLayer& layer = m_tileLayers.at(i);
+        if (layer.sourceType == TileSourceLayer::SourceType::VectorMbTiles)
+            continue;
+
+        const bool displayZoomMatches = zoomLevel >= layer.minZoom && zoomLevel <= layer.maxZoom;
+        const bool canUseAsLowerResolutionUnderlay =
+            zoomLevel > layer.maxZoom
+            && zoomLevel > layer.maxTileZoom
+            && layer.maxTileZoom >= layer.minTileZoom;
+
+        if (displayZoomMatches || canUseAsLowerResolutionUnderlay) {
+            matchingIndices.append(i);
+        }
+    }
+
+    std::sort(matchingIndices.begin(), matchingIndices.end(), [this, zoomLevel](int a, int b) {
+        const int zoomA = tileZoomForLayer(zoomLevel, a);
+        const int zoomB = tileZoomForLayer(zoomLevel, b);
+        if (zoomA != zoomB)
+            return zoomA < zoomB;
+
+        return a < b;
+    });
+
+    return matchingIndices;
+}
+
+int TmsLoader::tileZoomForLayer(int zoomLevel, int layerIndex) const
+{
+    if (layerIndex < 0 || layerIndex >= m_tileLayers.size())
+        return zoomLevel;
+
+    const TileSourceLayer& layer = m_tileLayers.at(layerIndex);
+    int minTileZoom = qBound(0, layer.minTileZoom, GIS::MAX_TILE_ZOOM);
+    int maxTileZoom = qBound(0, layer.maxTileZoom, GIS::MAX_TILE_ZOOM);
+    if (minTileZoom > maxTileZoom) {
+        std::swap(minTileZoom, maxTileZoom);
+    }
+
+    return qBound(minTileZoom, zoomLevel, maxTileZoom);
+}
+
+QString TmsLoader::tileToUrl(int z, int x, int y, int layerIndex) const
+{
+    if (layerIndex < 0 || layerIndex >= m_tileLayers.size())
+        return QString();
+
+    const TileSourceLayer& layer = m_tileLayers.at(layerIndex);
+    if (layer.sourceType == TileSourceLayer::SourceType::MbTiles
+        || layer.sourceType == TileSourceLayer::SourceType::VectorMbTiles) {
+        return QString();
+    }
+
+    QString url = layer.urlTemplate;
+    const int tileY = layer.tmsYOrigin ? ((1 << z) - 1 - y) : y;
+    url.replace("{z}", QString::number(z));
+    url.replace("{x}", QString::number(MercatorProjection::wrapTileX(x, z)));
+    url.replace("{y}", QString::number(tileY));
+    return url;
+}
+
+QRectF TmsLoader::tileToMercatorBounds(int z, int x, int y) const
+{
+    return MercatorProjection::tileToMercatorBounds(z, x, y);
+}

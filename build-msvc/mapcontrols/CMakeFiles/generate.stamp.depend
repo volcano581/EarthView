@@ -1,0 +1,4 @@
+# CMake generation dependency list for this directory.
+C:/Qt/6.11.1/msvc2022_64/lib/cmake/Qt6Core/Qt6CoreConfigureFileTemplate.in
+C:/Qt/6.11.1/msvc2022_64/lib/cmake/Qt6Core/Qt6CoreResourceInit.in.cpp
+D:/Source/EarthView1/EarthView/mapcontrols/CMakeLists.txt
