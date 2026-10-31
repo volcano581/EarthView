@@ -150,6 +150,13 @@ the public API in §7. This keeps EarthView reusable and testable on its own (ex
 - CMake ≥ 4.x, generator `Visual Studio 18 2026` or Ninja from the VS developer prompt.
 - llvm-mingw remains supported for EarthView 2D until O10, so existing users are not broken
   mid-migration. `earthview3d` is only built when osgEarth is found.
+- **Cross-platform (D-031).** `earthview3d` is meant to run on **Windows, Linux and macOS**.
+  osgEarth and its dependencies are cross-platform and come from the same pinned vcpkg
+  manifest on every OS, and the library code stays portable (Qt/STL types, no compiler- or
+  OS-specific code; §3.3, §7). MSVC is required only because the Windows host (Doctrine) is
+  MSVC-built and osgEarth must share its ABI — it is not a portability limit. Today only the
+  Windows job compiles the osgEarth code in CI; a Linux/macOS vcpkg build is supported but
+  not yet a CI gate (I-017), so cloud agents (Linux) only `g++ -fsyntax-only` it.
 
 ### 4.2 vcpkg manifest (Doctrine root, O3)
 ```json

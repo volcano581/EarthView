@@ -9,6 +9,9 @@
 #include <earthview3d/MapConfig.h>
 #endif
 #include "MercatorProjection.h"
+#ifdef EARTHVIEW_HAS_MAP_CONTROLS
+#include "MapControlsOverlay.h"
+#endif
 #include <QAction>
 #include <QComboBox>
 #include <QCoreApplication>
@@ -78,6 +81,9 @@ void MainWindow::setupUI()
 
     setCentralWidget(m_mapWidget);
     m_mapWidget->setFocus(Qt::OtherFocusReason);
+#ifdef EARTHVIEW_HAS_MAP_CONTROLS
+    new MapControlsOverlay(m_mapWidget);
+#endif
 
     toolbar->addSeparator();
     toolbar->addWidget(new QLabel("Map Source:", this));
@@ -156,7 +162,7 @@ void MainWindow::setupUI()
 
     QAction* secondaryWindowAction = new QAction("Secondary Window", this);
     secondaryWindowAction->setCheckable(true);
-    secondaryWindowAction->setChecked(true);
+    secondaryWindowAction->setChecked(false);  // Opened only when the user asks for it.
     secondaryWindowAction->setToolTip("Show or hide the independent secondary map window.");
     toolbar->addAction(secondaryWindowAction);
 
@@ -166,10 +172,10 @@ void MainWindow::setupUI()
     toolbar->addSeparator();
     toolbar->addAction(wrapLongitudeAction);
 
+    // Projection lives in the on-map Settings panel; kept in the View menu only.
     QAction* globeViewAction = new QAction("Globe View", this);
     globeViewAction->setCheckable(true);
     globeViewAction->setToolTip("Switch between flat Mercator map and orthographic globe view.");
-    toolbar->addAction(globeViewAction);
 
     QMenu* fileMenu = menuBar()->addMenu("File");
     fileMenu->addAction(loadBordersAction);
@@ -284,7 +290,6 @@ void MainWindow::setupUI()
         m_zoomLabel->setText(QString("Zoom: %1")
             .arg(m_mapWidget->camera()->getZoomLevel(), 0, 'f', 1));
         });
-    m_secondaryWindow->show();
 }
 
 void MainWindow::createStatusBar()
