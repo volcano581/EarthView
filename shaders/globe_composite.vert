@@ -1,7 +1,7 @@
 #version 330 core
 
-// Full-screen pass that puts the globe texture (azimuthal equidistant) onto the orthographic
-// globe; see globe_composite.frag.
+// The pass that puts the globe texture (a Mercator image of the visible part of the world)
+// onto the orthographic globe; see globe_composite.frag.
 
 layout(location = 0) in vec2 a_position;   // screen px
 

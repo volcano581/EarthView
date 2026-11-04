@@ -119,8 +119,9 @@ manager's own network thread is left running into the process exit.
   current style and uploads them once. Lines are instanced quads (`vector_line.vert`) with round
   joins and dashes. A change of style restyles the loaded tiles on the reader threads; until a
   tile is done it keeps its previous look.
-- On the globe the same buffers are drawn into an offscreen texture in an azimuthal equidistant
-  projection around the view's centre, which is then mapped onto the sphere (`globe_composite.frag`).
+- On the globe the same buffers are drawn, unchanged, into an offscreen Mercator image of the
+  visible part of the world, cut into latitude bands that each have the resolution they need; the
+  image is then mapped onto the sphere (`globe_composite.frag`). See "Fix: globe speed" below.
 - `TextRenderer` paints halos (the text's outline stroked under its fill), rotated road names and
   POI markers into its atlas.
 - The panel's pictures come from `LayerImages`. `MapThumbnailer` reads a 2 × 2 block of tiles per
@@ -231,6 +232,79 @@ manager's own network thread is left running into the process exit.
 - On screen with an OSM file (styles, live pictures, globe, details card): **pending**. There is
   no vector MBTiles on the MSVC PC. The real planet file on the real web server: **pending
   (offline machine)**.
+
+### Fix: globe speed (2026-11-04)
+
+**What the user sees:** with the OSM map, turning the globe is about 1.6 times as fast and zooming
+it about twice as fast; the flat map is a little faster too. In the commit "commit the osm style renderer" the shaders and
+`VectorTileRenderer.cpp` did not match (the shaders already expected a Mercator texture, the C++
+still drew the azimuthal one), so the OSM map on the globe was drawn wrong; this fix makes them
+agree.
+
+**Why it was slow:** on the dev PC's Intel HD 4600 the time went into texture fill, not geometry.
+A Mercator image holds the equator at one texture pixel per screen pixel, but stretches high
+latitudes by 1 / cos(lat), and once a pole is in view it must hold every longitude. At world scale
+it was 4.2 megapixels for a globe of 0.5 megapixels on screen, and each frame cleared, filled and
+covered all of it. The azimuthal texture used before was smaller, but it cannot be drawn without
+cutting long edges into short pieces. It also fills inside out for far-side polygons that contain
+the point opposite the view's centre (seen at world scale, where far-side tiles are drawn too).
+
+**How it works now:**
+
+- The globe texture is a Mercator image cut into latitude bands (edges at 40°, 58°, 70°, 77° and
+  82° north and south), stacked in one texture. Each band is drawn at the resolution its lowest
+  visible latitude needs and spans only the longitudes on screen at its latitudes. At world scale
+  the texture drops from 4.2 to about 1.8 megapixels, with the same sharpness.
+- Which longitudes and latitudes are on screen is sampled on a 16 px grid over the screen (points
+  beyond the globe moved onto its rim), with a margin of one and a half sample steps. A pole on
+  screen gives its band every longitude.
+- Each band is drawn with the same buffers and shaders as the flat map (Mercator is linear in the
+  tile coordinates, so nothing is subdivided), and tiles outside the band are skipped. Line widths
+  and dashes are scaled per segment by the latitude, so they come out in screen pixels on the
+  globe.
+- The bands are cleared with the land colour instead of drawing each tile's background square;
+  beyond 85° (no Mercator data) the composite shows the sea colour.
+- The flat map and the globe both:
+  - draw each tile's background square directly instead of as a stencil area;
+  - cover each area colour only over the bounds of its own fans instead of the whole screen;
+  - no longer cut long edges into 0.6° pieces, so tiles hold fewer vertices.
+
+**Files changed:**
+
+| File | Change |
+|---|---|
+| `EarthView/VectorTileRenderer.h/.cpp` | Banded Mercator globe texture (`renderGlobe()`); `Projection` without the azimuthal fields, with `globeRadius` and `bounds`; per-tile background square (`TileMesh::backgroundCount`); fill ranges carry their fans' bounds (`DrawRange::bounds`) for the stencil covers; no edge subdivision; `m_screenProgram` removed |
+| `EarthView/shaders/globe_composite.frag` | Picks the band for each pixel and samples inside it; sea colour beyond 85° and outside the bands |
+| `EarthView/shaders/globe_composite.vert` | Comment |
+| `EarthView/shaders/vector_line.vert` | `u_globeRadius`: widths and dashes scaled by the latitude in the globe texture |
+| `EarthView/shaders/vector_geometry.vert` | Mercator only (already in the commit) |
+
+**Verification status** (dev PC, Intel HD 4600, llvm-mingw 17 / Qt 6.10.3, Release, 2026-11-04):
+
+- Build **OK**, no warnings; `ctest` **23/23 passed**; `windeployqt` run on
+  `build-mingw/EarthView.exe`; the app starts with no shader or QML errors.
+- Offscreen check with a generated OSM vector MBTiles served over HTTP range requests: the globe at
+  world scale and at zoom 5.5, imagery with details on the globe, the flat map in all three
+  styles. The globe looks the same as with one texture; no seams between bands.
+- Frame time on screen, 1100 × 720 window, no vsync, in ms (bands: average of two runs; one
+  texture: one run):
+
+  | View | One Mercator texture | Bands |
+  |---|---|---|
+  | Globe, OSM, turning (world scale) | 29.7 | 18.8 |
+  | Globe, OSM, zooming | 41.0 | 21.1 |
+  | Globe, every detail hidden | 24.5 | 15.4 |
+  | Globe, OSM, turning at zoom 5.5 | — | 15.5 |
+  | Globe without the vector map | 9.9 | 9.1 |
+  | Flat map, OSM, panning at zoom 3 | 12.6 | 9.6 |
+
+- The real planet file, and the offline machine's GPU: **pending (offline machine)**.
+
+**Known limitations:**
+
+- Zoomed in close to a pole (above about 80°), the polar band covers every longitude and can reach
+  the 4096-pixel texture limit, which lowers its sharpness there.
+- Where nothing has loaded yet, the globe shows the land colour (it showed the sea colour before).
 
 ---
 

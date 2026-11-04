@@ -22,6 +22,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <iterator>
 #include <limits>
 
 namespace {
@@ -37,11 +38,11 @@ constexpr int kMaxRetainedTiles = 384;
 // Pick tolerances (screen px).
 constexpr double kPickPointRadius = 10.0;
 constexpr double kPickLineDistance = 6.0;
-// Longest straight piece kept in Mercator units (about 0.6 degree): on the globe a piece is a
-// straight line in the azimuthal projection, so long ones (tile edges at low zoom) are split.
-constexpr double kMaxSegment = 0.01;
 // Largest globe texture side.
 constexpr int kMaxGlobeTexture = 4096;
+// Edges of the globe texture's latitude bands, north and south of the equator (degrees); the
+// last band ends at the Mercator limit. globe_composite.frag holds up to 12 bands.
+constexpr double kGlobeBandLatitudes[] = { 40.0, 58.0, 70.0, 77.0, 82.0 };
 
 bool nearlyEqual(const QPointF& a, const QPointF& b)
 {
@@ -95,16 +96,6 @@ bool outsideTileEdge(const QPointF& a, const QPointF& b)
         || (a.y() <= low && b.y() <= low) || (a.y() >= high && b.y() >= high);
 }
 
-/// Appends the points after @p a up to and including @p b, at most kMaxSegment apart.
-/// @p a is a copy: callers pass the last point of @p out, which appending may move.
-void appendSubdivided(QVector<QPointF>& out, const QPointF a, const QPointF b)
-{
-    const double length = std::hypot(b.x() - a.x(), b.y() - a.y());
-    const int pieces = qMax(1, int(std::ceil(length / kMaxSegment)));
-    for (int i = 1; i <= pieces; ++i)
-        out.append(a + (b - a) * (double(i) / pieces));
-}
-
 LineVertex coloredVertex(const QPointF& point, const QColor& color)
 {
     return LineBatchRenderer::vertex(point.x(), point.y(), color);
@@ -113,13 +104,24 @@ LineVertex coloredVertex(const QPointF& point, const QColor& color)
 /// Triangle fan around the ring's centre. The fans are not drawn directly: front/back stencil
 /// ops turn them into the non-zero winding fill, so concave rings and holes cancel (any origin
 /// gives the right fill; the centre keeps the triangles from overlapping much, which is what
-/// the GPU pays for).
-void appendWindingFan(QVector<LineVertex>& vertices, const QVector<QPointF>& ring, const QColor& color)
+/// the GPU pays for). @p bounds grows to hold the ring.
+void appendWindingFan(QVector<LineVertex>& vertices, QRectF* bounds, const QVector<QPointF>& ring, const QColor& color)
 {
     QPointF origin;
-    for (const QPointF& point : ring)
+    double left = ring.first().x();
+    double right = left;
+    double top = ring.first().y();
+    double bottom = top;
+    for (const QPointF& point : ring) {
         origin += point;
+        left = qMin(left, point.x());
+        right = qMax(right, point.x());
+        top = qMin(top, point.y());
+        bottom = qMax(bottom, point.y());
+    }
     origin /= qMax<qsizetype>(1, ring.size());
+    const QRectF ringBounds(QPointF(left, top), QPointF(right, bottom));
+    *bounds = bounds->isNull() ? ringBounds : bounds->united(ringBounds);
     for (int i = 0; i < ring.size(); ++i) {
         const QPointF& a = ring.at(i);
         const QPointF& b = ring.at((i + 1) % ring.size());
@@ -131,12 +133,13 @@ void appendWindingFan(QVector<LineVertex>& vertices, const QVector<QPointF>& rin
     }
 }
 
-QVector<LineVertex> coverVertices(float width, float height, const QColor& color)
+/// Two triangles over @p rect (Mercator).
+void appendRect(QVector<LineVertex>& vertices, const QRectF& rect, const QColor& color)
 {
-    return {
-        LineBatchRenderer::vertex(0.0, 0.0, color), LineBatchRenderer::vertex(width, 0.0, color),
-        LineBatchRenderer::vertex(width, height, color), LineBatchRenderer::vertex(0.0, 0.0, color),
-        LineBatchRenderer::vertex(width, height, color), LineBatchRenderer::vertex(0.0, height, color)
+    vertices += {
+        coloredVertex(rect.topLeft(), color), coloredVertex(rect.topRight(), color),
+        coloredVertex(rect.bottomRight(), color), coloredVertex(rect.topLeft(), color),
+        coloredVertex(rect.bottomRight(), color), coloredVertex(rect.bottomLeft(), color)
     };
 }
 
@@ -214,26 +217,20 @@ void appendLine(QVector<VectorTileRenderer::LineInstance>& out, const QVector<QP
         const QPointF b = path.at(i);
         const double length = std::hypot(b.x() - a.x(), b.y() - a.y());
         if (length > 0.0 && !outsideTileEdge(a, b)) {
-            const QPointF ma = tilePixelToMercator(a, bounds);
-            const QPointF mb = tilePixelToMercator(b, bounds);
-            const double mercatorLength = std::hypot(mb.x() - ma.x(), mb.y() - ma.y());
-            const int pieces = qMax(1, int(std::ceil(mercatorLength / kMaxSegment)));
-            for (int piece = 0; piece < pieces; ++piece) {
-                const QPointF from = ma + (mb - ma) * (double(piece) / pieces);
-                const QPointF to = ma + (mb - ma) * (double(piece + 1) / pieces);
-                VectorTileRenderer::LineInstance instance;
-                instance.segment[0] = float(from.x());
-                instance.segment[1] = float(from.y());
-                instance.segment[2] = float(to.x());
-                instance.segment[3] = float(to.y());
-                instance.width[0] = line.width * 0.5f;
-                instance.width[1] = line.growth;
-                instance.width[2] = float(distance + length * piece / pieces);
-                instance.dash[0] = line.dash;
-                instance.dash[1] = line.gap;
-                setInstanceColor(&instance, line.color);
-                out.append(instance);
-            }
+            const QPointF from = tilePixelToMercator(a, bounds);
+            const QPointF to = tilePixelToMercator(b, bounds);
+            VectorTileRenderer::LineInstance instance;
+            instance.segment[0] = float(from.x());
+            instance.segment[1] = float(from.y());
+            instance.segment[2] = float(to.x());
+            instance.segment[3] = float(to.y());
+            instance.width[0] = line.width * 0.5f;
+            instance.width[1] = line.growth;
+            instance.width[2] = float(distance);
+            instance.dash[0] = line.dash;
+            instance.dash[1] = line.gap;
+            setInstanceColor(&instance, line.color);
+            out.append(instance);
         }
         distance += length;
     }
@@ -374,8 +371,6 @@ void VectorTileRenderer::initializeGpuResources()
     QString errorMessage;
     if (!ShaderUtils::loadProgram(&m_geometryProgram, QStringLiteral("vector_geometry.vert"),
                                   QStringLiteral("colored_line.frag"), &errorMessage)
-        || !ShaderUtils::loadProgram(&m_screenProgram, QStringLiteral("colored_2d.vert"),
-                                     QStringLiteral("colored_line.frag"), &errorMessage)
         || !ShaderUtils::loadProgram(&m_lineProgram, QStringLiteral("vector_line.vert"),
                                      QStringLiteral("vector_line.frag"), &errorMessage)
         || !ShaderUtils::loadProgram(&m_compositeProgram, QStringLiteral("globe_composite.vert"),
@@ -637,27 +632,30 @@ void VectorTileRenderer::buildTileContent(CachedTile* cachedTile, Mode mode, con
     const bool overlay = mode == Mode::Overlay;
     const int zoomLevel = cachedTile->z + kVectorTileZoomOffset;
     const QRectF& bounds = cachedTile->mercatorBounds;
-    QMap<QPair<quint64, QString>, QVector<LineVertex>> fills;   // (draw order | colour, layer)
+    struct Fill {
+        QVector<LineVertex> vertices;
+        QRectF bounds;
+    };
+    QMap<QPair<quint64, QString>, Fill> fills;                 // (draw order | colour, layer)
     QMap<QString, QVector<LineVertex>> hairlines;              // layer
     QMap<QPair<int, QString>, QVector<LineInstance>> lines;    // (draw order, layer)
     auto labels = std::make_shared<QVector<LabelCandidate>>();
+    auto mesh = std::make_shared<TileMesh>();
 
     auto mercatorRing = [&bounds](const QVector<QPointF>& path, int size) {
         QVector<QPointF> ring;
-        ring.reserve(size + 4);
-        ring.append(tilePixelToMercator(path.at(0), bounds));
-        for (int i = 1; i <= size; ++i)
-            appendSubdivided(ring, ring.last(), tilePixelToMercator(path.at(i % size), bounds));
-        ring.removeLast();  // back at the first point
+        ring.reserve(size);
+        for (int i = 0; i < size; ++i)
+            ring.append(tilePixelToMercator(path.at(i), bounds));
         return ring;
     };
 
     if (!overlay) {
-        // The map's land under everything: the tile's square as an area, edges split for the globe.
-        const QVector<QPointF> square = { QPointF(0, 0), QPointF(GIS::TILE_SIZE, 0),
-                                          QPointF(GIS::TILE_SIZE, GIS::TILE_SIZE), QPointF(0, GIS::TILE_SIZE) };
-        appendWindingFan(fills[{ fillKey(0, theme.background()), QString() }], mercatorRing(square, 4),
-                         theme.background());
+        // The map's land under everything: the tile's square, drawn as it is (no stencil).
+        const QRectF square(tilePixelToMercator(QPointF(0, 0), bounds),
+                            tilePixelToMercator(QPointF(GIS::TILE_SIZE, GIS::TILE_SIZE), bounds));
+        appendRect(mesh->vertices, square, theme.background());
+        mesh->backgroundCount = int(mesh->vertices.size());
     }
 
     for (int layerIndex = 0; layerIndex < cachedTile->tile.layers.size(); ++layerIndex) {
@@ -720,12 +718,12 @@ void VectorTileRenderer::buildTileContent(CachedTile* cachedTile, Mode mode, con
 
             const MapTheme::FeatureStyle style = theme.featureStyle(layer.name, feature.tags, feature.type, zoomLevel, overlay);
             if (style.fill.alpha() > 0 && feature.type == 3) {
-                QVector<LineVertex>& vertices = fills[{ fillKey(style.fillOrder, style.fill), layer.name }];
+                Fill& fill = fills[{ fillKey(style.fillOrder, style.fill), layer.name }];
                 for (const QVector<QPointF>& path : feature.paths) {
                     const int pointCount = openRingSize(path);
                     if (pointCount < 3 || std::abs(signedRingArea(path, pointCount)) <= 1.0e-6)
                         continue;
-                    appendWindingFan(vertices, mercatorRing(path, pointCount), style.fill);
+                    appendWindingFan(fill.vertices, &fill.bounds, mercatorRing(path, pointCount), style.fill);
                 }
             }
             if (style.outline.alpha() > 0 && feature.type == 3) {
@@ -734,12 +732,8 @@ void VectorTileRenderer::buildTileContent(CachedTile* cachedTile, Mode mode, con
                     for (int i = 1; i < path.size(); ++i) {
                         if (outsideTileEdge(path.at(i - 1), path.at(i)))
                             continue;
-                        QVector<QPointF> pieces{ tilePixelToMercator(path.at(i - 1), bounds) };
-                        appendSubdivided(pieces, pieces.first(), tilePixelToMercator(path.at(i), bounds));
-                        for (int p = 1; p < pieces.size(); ++p) {
-                            vertices.append(coloredVertex(pieces.at(p - 1), style.outline));
-                            vertices.append(coloredVertex(pieces.at(p), style.outline));
-                        }
+                        vertices.append(coloredVertex(tilePixelToMercator(path.at(i - 1), bounds), style.outline));
+                        vertices.append(coloredVertex(tilePixelToMercator(path.at(i), bounds), style.outline));
                     }
                 }
             }
@@ -755,12 +749,15 @@ void VectorTileRenderer::buildTileContent(CachedTile* cachedTile, Mode mode, con
         }
     }
 
-    auto mesh = std::make_shared<TileMesh>();
     for (auto it = fills.cbegin(); it != fills.cend(); ++it) {
-        if (it.value().isEmpty())
+        if (it.value().vertices.isEmpty())
             continue;
-        mesh->fills.append({ it.key().first, it.key().second, int(mesh->vertices.size()), int(it.value().size()) });
-        mesh->vertices += it.value();
+        // The cover is drawn over these bounds: a margin keeps it over every fan pixel.
+        const QRectF& fanBounds = it.value().bounds;
+        const double margin = bounds.width() / 64.0;
+        mesh->fills.append({ it.key().first, it.key().second, int(mesh->vertices.size()), int(it.value().vertices.size()),
+                             fanBounds.adjusted(-margin, -margin, margin, margin) });
+        mesh->vertices += it.value().vertices;
     }
     for (auto it = hairlines.cbegin(); it != hairlines.cend(); ++it) {
         if (it.value().isEmpty())
@@ -895,11 +892,8 @@ void VectorTileRenderer::uploadMesh(TileMesh* mesh)
 void VectorTileRenderer::setProjectionUniforms(QOpenGLShaderProgram* program, const Projection& projection) const
 {
     program->setUniformValue("u_viewportSize", projection.viewport);
-    program->setUniformValue("u_projection", projection.mode);
     program->setUniformValue("u_centerMercator", projection.centerMercator);
     program->setUniformValue("u_pixelsPerMercator", projection.pixelsPerMercator);
-    program->setUniformValue("u_centerLatLon", projection.centerLatLon);
-    program->setUniformValue("u_aeBounds", projection.aeBounds);
 }
 
 void VectorTileRenderer::drawGeometry(const Projection& projection)
@@ -921,19 +915,34 @@ void VectorTileRenderer::drawGeometry(const Projection& projection)
         const auto it = m_tileCache.constFind(key);
         if (it == m_tileCache.cend() || !it->mesh)
             continue;
+        if (!projection.bounds.isNull()) {
+            // The tile with its buffer (geometry reaching into the neighbours).
+            const double margin = it->mercatorBounds.width() / 8.0;
+            if (!it->mercatorBounds.normalized().adjusted(-margin, -margin, margin, margin).intersects(projection.bounds))
+                continue;
+        }
         TileMesh* mesh = it->mesh.get();
         if (!mesh->uploaded)
             uploadMesh(mesh);
-        const QRectF& bounds = it->mercatorBounds;
-        double tileWidthPx = bounds.width() * projection.pixelsPerMercator;
-        if (projection.mode == 1) {
-            const double lat = std::atan(std::sinh(bounds.center().y()));
-            tileWidthPx = bounds.width() * std::cos(lat) * projection.aePixelsPerRadian;
-        }
+        const double tileWidthPx = it->mercatorBounds.width() * projection.pixelsPerMercator;
         draws.append({ mesh, float(cameraZoom - (it->z + kVectorTileZoomOffset)), float(tileWidthPx / GIS::TILE_SIZE) });
     }
 
-    // Areas: one stencil pass per colour over every tile, then one cover (non-zero winding).
+    // The base map's land: each tile's square, opaque, drawn as it is (the globe texture is
+    // cleared with it instead).
+    m_geometryProgram.bind();
+    setProjectionUniforms(&m_geometryProgram, projection);
+    for (const TileDraw& draw : std::as_const(draws)) {
+        if (draw.mesh->backgroundCount > 0 && projection.globeRadius <= 0.0f) {
+            f->glBindVertexArray(draw.mesh->vao);
+            f->glDrawArrays(GL_TRIANGLES, 0, draw.mesh->backgroundCount);
+            FrameProfiler::recordCount(QStringLiteral("draw.calls"));
+        }
+    }
+
+    // Areas: one stencil pass per colour over every tile, then a cover over the tiles' fans
+    // (non-zero winding). Covering only where the colour's fans are keeps the fill cost down:
+    // most colours are in a few tiles.
     QMap<quint64, QVector<QPair<const TileMesh*, const DrawRange*>>> batches;
     for (const TileDraw& draw : std::as_const(draws)) {
         for (const DrawRange& range : draw.mesh->fills) {
@@ -943,9 +952,15 @@ void VectorTileRenderer::drawGeometry(const Projection& projection)
     }
     if (!batches.isEmpty() && context->format().stencilBufferSize() > 0) {
         QVector<LineVertex> covers;
-        covers.reserve(batches.size() * 6);
-        for (auto it = batches.cbegin(); it != batches.cend(); ++it)
-            covers += coverVertices(projection.viewport.x(), projection.viewport.y(), colorOfKey(it.key()));
+        QVector<QPair<int, int>> coverRanges;  // first vertex, count; per batch
+        coverRanges.reserve(batches.size());
+        for (auto it = batches.cbegin(); it != batches.cend(); ++it) {
+            const int first = int(covers.size());
+            const QColor color = colorOfKey(it.key());
+            for (const auto& part : it.value())
+                appendRect(covers, part.second->bounds, color);
+            coverRanges.append({ first, int(covers.size()) - first });
+        }
         const StreamingBuffer::UploadResult upload = m_coverBuffer.upload(
             covers.constData(), covers.size() * static_cast<qsizetype>(sizeof(LineVertex)), GL_STREAM_DRAW);
         f->glBindVertexArray(m_coverVao);
@@ -958,7 +973,8 @@ void VectorTileRenderer::drawGeometry(const Projection& projection)
 
         if (upload.ok) {
             // The stencil starts at zero (the frame's clear) and each cover puts back zero
-            // where it drew, so no clear between colours.
+            // where it drew, so no clear between colours, and overlapping covers of one colour
+            // blend once.
             glEnable(GL_STENCIL_TEST);
             glStencilMask(0xff);
             int coverIndex = 0;
@@ -968,9 +984,6 @@ void VectorTileRenderer::drawGeometry(const Projection& projection)
                 // Non-zero winding fill: front faces add, back faces subtract.
                 glStencilOpSeparate(GL_FRONT, GL_KEEP, GL_KEEP, GL_INCR_WRAP);
                 glStencilOpSeparate(GL_BACK, GL_KEEP, GL_KEEP, GL_DECR_WRAP);
-
-                m_geometryProgram.bind();
-                setProjectionUniforms(&m_geometryProgram, projection);
                 for (const auto& part : it.value()) {
                     f->glBindVertexArray(part.first->vao);
                     f->glDrawArrays(GL_TRIANGLES, part.second->first, part.second->count);
@@ -980,16 +993,13 @@ void VectorTileRenderer::drawGeometry(const Projection& projection)
                 glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
                 glStencilFunc(GL_NOTEQUAL, 0, 0xff);
                 glStencilOp(GL_ZERO, GL_ZERO, GL_ZERO);
-                m_screenProgram.bind();
-                m_screenProgram.setUniformValue("u_viewportSize", projection.viewport);
                 f->glBindVertexArray(m_coverVao);
-                f->glDrawArrays(GL_TRIANGLES, coverIndex * 6, 6);
+                f->glDrawArrays(GL_TRIANGLES, coverRanges.at(coverIndex).first, coverRanges.at(coverIndex).second);
                 FrameProfiler::recordCount(QStringLiteral("draw.calls"));
             }
             glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
             glDisable(GL_STENCIL_TEST);
             glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-            m_screenProgram.release();
         }
     }
     else if (!batches.isEmpty()) {
@@ -1026,6 +1036,7 @@ void VectorTileRenderer::drawGeometry(const Projection& projection)
     if (!lineBatches.isEmpty()) {
         m_lineProgram.bind();
         setProjectionUniforms(&m_lineProgram, projection);
+        m_lineProgram.setUniformValue("u_globeRadius", projection.globeRadius);
         const int zoomDeltaLocation = m_lineProgram.uniformLocation("u_zoomDelta");
         const int tileScaleLocation = m_lineProgram.uniformLocation("u_tilePixelScale");
         for (auto it = lineBatches.cbegin(); it != lineBatches.cend(); ++it) {
@@ -1067,58 +1078,176 @@ void VectorTileRenderer::renderGlobe()
     if (radius <= 0.0 || width <= 0.0 || height <= 0.0)
         return;
 
-    // The part of the globe on screen, in orthographic unit coordinates, then the extent of
-    // that part in the azimuthal equidistant projection (the texture to draw).
-    const double u0 = qMax(-1.0, -width * 0.5 / radius);
-    const double u1 = qMin(1.0, width * 0.5 / radius);
-    const double v0 = qMax(-1.0, -height * 0.5 / radius);
-    const double v1 = qMin(1.0, height * 0.5 / radius);
-    double ax0 = std::numeric_limits<double>::max();
-    double ay0 = ax0;
-    double ax1 = -ax0;
-    double ay1 = -ax0;
-    auto include = [&](double u, double v) {
-        double rho = std::hypot(u, v);
+    // The globe texture is a Mercator image of the part of the world on screen, cut into
+    // latitude bands stacked one above the other. Mercator stretches the world by 1 / cos(lat),
+    // so a single image at the equator's scale would hold several texture pixels per screen
+    // pixel at high latitudes (and every longitude once a pole is in view). Each band gets the
+    // resolution its lowest latitude needs instead: the texture fill, which is what the GPU pays
+    // for here, drops to about a third at world scale.
+    struct Band {
+        double edge0 = 0.0;  // Mercator y of the band's edges (absolute)
+        double edge1 = 0.0;
+        bool seen = false;   // a screen sample fell in the band
+        double seenX0 = 0.0; // longitude offsets from the centre seen in the band
+        double seenX1 = 0.0;
+        double lowestLat = M_PI_2;
+        // Drawn: the extent relative to the view centre, its scale, its rows in the texture.
+        double x0 = 0.0;
+        double x1 = 0.0;
+        double y0 = 0.0;
+        double y1 = 0.0;
+        double pixelsPerMercator = 0.0;
+        int width = 0;
+        int height = 0;
+        int row = 0;
+    };
+    auto mercatorY = [](double latDegrees) { return std::atanh(std::sin(qDegreesToRadians(latDegrees))); };
+    QVector<Band> bands;
+    QVector<double> edges{ -M_PI };
+    for (int i = int(std::size(kGlobeBandLatitudes)) - 1; i >= 0; --i)
+        edges.append(-mercatorY(kGlobeBandLatitudes[i]));
+    edges.append(0.0);
+    for (double latitude : kGlobeBandLatitudes)
+        edges.append(mercatorY(latitude));
+    edges.append(M_PI);
+    for (int i = 1; i < edges.size(); ++i) {
+        Band band;
+        band.edge0 = edges.at(i - 1);
+        band.edge1 = edges.at(i);
+        bands.append(band);
+    }
+
+    // Where the screen shows the world: a grid of samples over the screen, as (longitude offset
+    // from the centre, Mercator y); samples beyond the globe are moved onto its rim.
+    const QPointF centerMercator = m_camera->getCenterMercator();
+    const double centerLat = std::atan(std::sinh(centerMercator.y()));
+    const double sin0 = std::sin(centerLat);
+    const double cos0 = std::cos(centerLat);
+    double minY = centerMercator.y();
+    double maxY = minY;
+    auto include = [&](double screenX, double screenY) {
+        double u = (screenX - width * 0.5) / radius;
+        double v = (height * 0.5 - screenY) / radius;
+        const double rho = std::hypot(u, v);
         if (rho > 1.0) {
             u /= rho;
             v /= rho;
-            rho = 1.0;
         }
-        const double k = rho > 1e-12 ? std::asin(rho) / rho : 1.0;
-        ax0 = qMin(ax0, u * k);
-        ax1 = qMax(ax1, u * k);
-        ay0 = qMin(ay0, v * k);
-        ay1 = qMax(ay1, v * k);
+        const double cosC = std::sqrt(qMax(0.0, 1.0 - u * u - v * v));
+        const double sinLat = qBound(-1.0, cosC * sin0 + v * cos0, 1.0);
+        const double y = qBound(-M_PI, std::atanh(sinLat), M_PI);
+        const double dLon = std::atan2(u, cos0 * cosC - v * sin0);
+        minY = qMin(minY, y);
+        maxY = qMax(maxY, y);
+        Band* band = bands.data();
+        while (band != &bands.last() && y > band->edge1)
+            ++band;
+        band->seenX0 = band->seen ? qMin(band->seenX0, dLon) : dLon;
+        band->seenX1 = band->seen ? qMax(band->seenX1, dLon) : dLon;
+        band->lowestLat = qMin(band->lowestLat, std::abs(std::asin(sinLat)));
+        band->seen = true;
     };
-    constexpr int samples = 32;
-    for (int i = 0; i <= samples; ++i) {
-        const double t = double(i) / samples;
-        include(u0 + (u1 - u0) * t, v0);
-        include(u0 + (u1 - u0) * t, v1);
-        include(u0, v0 + (v1 - v0) * t);
-        include(u1, v0 + (v1 - v0) * t);
+    constexpr double kSampleStep = 16.0;  // screen px
+    const int columns = qMax(2, int(std::ceil(width / kSampleStep)));
+    const int rows = qMax(2, int(std::ceil(height / kSampleStep)));
+    for (int row = 0; row <= rows; ++row) {
+        for (int column = 0; column <= columns; ++column)
+            include(width * column / columns, height * row / rows);
     }
-    // The texture must hold the whole visible area: where the rim of the globe is on screen,
-    // the extremes lie on the rim between the samples.
-    const double padX = (ax1 - ax0) * 0.02;
-    const double padY = (ay1 - ay0) * 0.02;
-    ax0 -= padX;
-    ax1 += padX;
-    ay0 -= padY;
-    ay1 += padY;
+    // A pole on screen: every longitude around it, up to the end of the Mercator data.
+    const double poleOffset = radius * cos0;
+    const bool northPole = centerLat >= 0.0 && height * 0.5 - poleOffset >= 0.0;
+    const bool southPole = centerLat <= 0.0 && height * 0.5 + poleOffset <= height;
+    // Between two samples the view moves at most kSampleStep / radius radians on the sphere:
+    // dy = dlat * cosh(y) in Mercator, dlon = dlat * cosh(y) in longitude.
+    const double sampleAngle = 1.5 * kSampleStep / radius;
+    minY = southPole ? -M_PI : qMax(-M_PI, minY - sampleAngle * std::cosh(minY));
+    maxY = northPole ? M_PI : qMin(M_PI, maxY + sampleAngle * std::cosh(maxY));
 
-    // About one texture pixel per screen pixel at the centre.
     const int limit = qMin<int>(kMaxGlobeTexture, m_maxTextureSize);
-    const int neededWidth = qBound(16, int(std::ceil((ax1 - ax0) * radius)), limit);
-    const int neededHeight = qBound(16, int(std::ceil((ay1 - ay0) * radius)), limit);
-    if (!m_globeTarget || m_globeTarget->width() < neededWidth || m_globeTarget->height() < neededHeight
-        || m_globeTarget->width() > 2 * neededWidth + 512 || m_globeTarget->height() > 2 * neededHeight + 512) {
+    constexpr int kGutter = 2;  // rows between bands, so filtering never reads the next band
+    QVector<Band> drawn;
+    for (int i = 0; i < bands.size(); ++i) {
+        Band band = bands.at(i);
+        if (band.edge1 <= minY || band.edge0 >= maxY)
+            continue;
+        const double outerCosh = qMax(std::cosh(band.edge0), std::cosh(band.edge1));
+        const double padX = sampleAngle * outerCosh;
+        if (band.seen) {
+            band.x0 = band.seenX0 - padX;
+            band.x1 = band.seenX1 + padX;
+        }
+        else {
+            // A band thinner than the samples' spacing: its neighbours' longitudes.
+            band.x0 = M_PI;
+            band.x1 = -M_PI;
+            for (int j : { i - 1, i + 1 }) {
+                if (j >= 0 && j < bands.size() && bands.at(j).seen) {
+                    band.x0 = qMin(band.x0, bands.at(j).seenX0 - padX);
+                    band.x1 = qMax(band.x1, bands.at(j).seenX1 + padX);
+                }
+            }
+            if (band.x0 > band.x1) {
+                band.x0 = -M_PI;
+                band.x1 = M_PI;
+            }
+        }
+        if ((northPole && band.edge1 >= M_PI) || (southPole && band.edge0 <= -M_PI) || band.x1 - band.x0 > 1.8 * M_PI) {
+            band.x0 = -M_PI;
+            band.x1 = M_PI;
+        }
+        band.x0 = qMax(-M_PI, band.x0);
+        band.x1 = qMin(M_PI, band.x1);
+        band.y0 = qMax(band.edge0, minY) - centerMercator.y();
+        band.y1 = qMin(band.edge1, maxY) - centerMercator.y();
+
+        // A Mercator unit at latitude L is radius * cos(L) screen pixels at most.
+        const double edgeLat = std::atan(std::sinh(qMin(std::abs(band.edge0), std::abs(band.edge1))));
+        const double lowestLat = (band.edge0 < 0.0 && band.edge1 > 0.0) ? 0.0
+            : band.seen ? qMax(edgeLat, band.lowestLat - sampleAngle) : edgeLat;
+        band.pixelsPerMercator = radius * std::cos(lowestLat);
+        drawn.append(band);
+    }
+    if (drawn.isEmpty())
+        return;
+
+    // Sizes; scaled down together if the stack would not fit in a texture.
+    double scale = 1.0;
+    int textureWidth = 0;
+    int textureHeight = 0;
+    for (int attempt = 0; attempt < 6; ++attempt) {
+        textureWidth = 1;
+        textureHeight = 0;
+        for (Band& band : drawn) {
+            const double ppm = qMin(band.pixelsPerMercator * scale,
+                                    limit / qMax(band.x1 - band.x0, band.y1 - band.y0));
+            band.width = qBound(1, int(std::ceil((band.x1 - band.x0) * ppm)), limit);
+            band.height = qBound(1, int(std::ceil((band.y1 - band.y0) * ppm)), limit);
+            band.row = textureHeight;
+            textureWidth = qMax(textureWidth, band.width);
+            textureHeight += band.height + kGutter;
+        }
+        if (textureHeight <= limit)
+            break;
+        scale *= 0.95 * limit / textureHeight;
+    }
+    textureHeight = qMin(textureHeight, limit);
+    for (Band& band : drawn) {
+        band.pixelsPerMercator = qMin(band.pixelsPerMercator * scale,
+                                      limit / qMax(band.x1 - band.x0, band.y1 - band.y0));
+        // The extent drawn, to whole texture pixels.
+        band.x1 = band.x0 + band.width / band.pixelsPerMercator;
+        band.y1 = band.y0 + band.height / band.pixelsPerMercator;
+    }
+
+    if (!m_globeTarget || m_globeTarget->width() < textureWidth || m_globeTarget->height() < textureHeight
+        || m_globeTarget->width() > 2 * textureWidth + 512 || m_globeTarget->height() > 2 * textureHeight + 512) {
         delete m_globeTarget;
         QOpenGLFramebufferObjectFormat format;
         format.setAttachment(QOpenGLFramebufferObject::CombinedDepthStencil);
         format.setInternalTextureFormat(GL_RGBA8);
-        const int allocWidth = qMin(limit, (neededWidth + 255) / 256 * 256);
-        const int allocHeight = qMin(limit, (neededHeight + 255) / 256 * 256);
+        const int allocWidth = qMin(limit, (textureWidth + 255) / 256 * 256);
+        const int allocHeight = qMin(limit, (textureHeight + 255) / 256 * 256);
         m_globeTarget = new QOpenGLFramebufferObject(allocWidth, allocHeight, format);
         f->glBindTexture(GL_TEXTURE_2D, m_globeTarget->texture());
         f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -1130,32 +1259,37 @@ void VectorTileRenderer::renderGlobe()
     if (!m_globeTarget->isValid())
         return;
 
-    const QPointF centerLatLon = MercatorProjection::mercatorToLatLon(
-        m_camera->getCenterMercator().x(), m_camera->getCenterMercator().y());
-    Projection projection;
-    projection.mode = 1;
-    projection.viewport = QVector2D(neededWidth, neededHeight);
-    projection.centerLatLon = QVector2D(float(qDegreesToRadians(centerLatLon.x())), float(qDegreesToRadians(centerLatLon.y())));
-    projection.aeBounds = QVector4D(float(ax0), float(ay0), float(ax1), float(ay1));
-    projection.aePixelsPerRadian = neededWidth / (ax1 - ax0);
-
-    // Draw the map into the texture: premultiplied colour, so it composites exactly. Cleared
-    // with glClearBuffer (no clear-colour state to save) and no glGet: on threaded drivers a
-    // glGet waits for the GPU queue to drain. The base map's texture starts as water: the
-    // Mercator data stops at 85 degrees, beyond is the polar sea.
+    // Draw each band into its rows: premultiplied colour, so it composites exactly. Cleared with
+    // glClearBuffer (no clear-colour state to save) and no glGet: on threaded drivers a glGet
+    // waits for the GPU queue to drain. The base map's bands start as land, as the tiles'
+    // background would have drawn them; beyond the Mercator data (85 degrees) is polar sea.
+    const MapTheme& theme = MapTheme::theme(m_theme);
+    const bool baseMap = m_mode == Mode::BaseMap;
+    const QColor land = theme.background();
+    const QColor water = theme.water();
+    const GLfloat clearColor[4] = { baseMap ? float(land.redF()) : 0.0f, baseMap ? float(land.greenF()) : 0.0f,
+                                    baseMap ? float(land.blueF()) : 0.0f, baseMap ? 1.0f : 0.0f };
     m_globeTarget->bind();
-    glViewport(0, 0, neededWidth, neededHeight);
-    const QColor water = MapTheme::theme(m_theme).water();
-    const GLfloat clearColor[4] = { m_mode == Mode::BaseMap ? float(water.redF()) : 0.0f,
-                                    m_mode == Mode::BaseMap ? float(water.greenF()) : 0.0f,
-                                    m_mode == Mode::BaseMap ? float(water.blueF()) : 0.0f,
-                                    m_mode == Mode::BaseMap ? 1.0f : 0.0f };
+    glEnable(GL_SCISSOR_TEST);
     glStencilMask(0xff);
-    f->glClearBufferfv(GL_COLOR, 0, clearColor);
-    f->glClearBufferfi(GL_DEPTH_STENCIL, 0, 1.0f, 0);
     glEnable(GL_BLEND);
     f->glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-    drawGeometry(projection);
+    for (const Band& band : std::as_const(drawn)) {
+        glViewport(0, band.row, band.width, band.height);
+        glScissor(0, band.row, band.width, band.height);
+        f->glClearBufferfv(GL_COLOR, 0, clearColor);
+        f->glClearBufferfi(GL_DEPTH_STENCIL, 0, 1.0f, 0);
+        Projection projection;
+        projection.viewport = QVector2D(band.width, band.height);
+        projection.centerMercator = QVector2D(float(centerMercator.x() + (band.x0 + band.x1) * 0.5),
+                                              float(centerMercator.y() + (band.y0 + band.y1) * 0.5));
+        projection.pixelsPerMercator = float(band.pixelsPerMercator);
+        projection.globeRadius = float(radius);
+        projection.bounds = QRectF(QPointF(centerMercator.x() + band.x0, centerMercator.y() + band.y0),
+                                   QPointF(centerMercator.x() + band.x1, centerMercator.y() + band.y1));
+        drawGeometry(projection);
+    }
+    glDisable(GL_SCISSOR_TEST);
     f->glBindFramebuffer(GL_FRAMEBUFFER, context->defaultFramebufferObject());
     glViewport(0, 0, m_targetSize.width(), m_targetSize.height());
 
@@ -1175,13 +1309,30 @@ void VectorTileRenderer::renderGlobe()
     f->glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), nullptr);
     f->glBindBuffer(GL_ARRAY_BUFFER, 0);
 
+    const float textureW = float(m_globeTarget->width());
+    const float textureH = float(m_globeTarget->height());
+    QVector<GLfloat> bandTops;
+    QVector<QVector4D> bandExtents;
+    QVector<QVector4D> bandRects;
+    for (const Band& band : std::as_const(drawn)) {
+        bandTops.append(float(band.edge1 - centerMercator.y()));
+        bandExtents.append(QVector4D(float(band.x0), float(band.y0), float(band.x1), float(band.y1)));
+        bandRects.append(QVector4D(0.0f, band.row / textureH, band.width / textureW, (band.row + band.height) / textureH));
+    }
+    const GLfloat outside[4] = { baseMap ? float(water.redF()) : 0.0f, baseMap ? float(water.greenF()) : 0.0f,
+                                 baseMap ? float(water.blueF()) : 0.0f, baseMap ? 1.0f : 0.0f };
+
     m_compositeProgram.bind();
     m_compositeProgram.setUniformValue("u_viewportSize", QVector2D(float(width), float(height)));
     m_compositeProgram.setUniformValue("u_globeCenter", QVector2D(cx, cy));
     m_compositeProgram.setUniformValue("u_radius", r);
-    m_compositeProgram.setUniformValue("u_aeBounds", projection.aeBounds);
-    m_compositeProgram.setUniformValue("u_texScale",
-        QVector2D(float(neededWidth) / m_globeTarget->width(), float(neededHeight) / m_globeTarget->height()));
+    m_compositeProgram.setUniformValue("u_centerLatLon", QVector2D(float(centerLat), float(centerMercator.x())));
+    m_compositeProgram.setUniformValue("u_bandCount", int(drawn.size()));
+    m_compositeProgram.setUniformValueArray("u_bandTop", bandTops.constData(), int(bandTops.size()), 1);
+    m_compositeProgram.setUniformValueArray("u_bandExtent", bandExtents.constData(), int(bandExtents.size()));
+    m_compositeProgram.setUniformValueArray("u_bandRect", bandRects.constData(), int(bandRects.size()));
+    m_compositeProgram.setUniformValue("u_texelSize", QVector2D(1.0f / textureW, 1.0f / textureH));
+    m_compositeProgram.setUniformValue("u_outsideColor", QVector4D(outside[0], outside[1], outside[2], outside[3]));
     m_compositeProgram.setUniformValue("u_texture", 0);
     f->glActiveTexture(GL_TEXTURE0);
     f->glBindTexture(GL_TEXTURE_2D, m_globeTarget->texture());
@@ -1216,7 +1367,6 @@ void VectorTileRenderer::render()
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     Projection projection;
-    projection.mode = 0;
     projection.viewport = QVector2D(float(m_camera->getViewportWidth()), float(m_camera->getViewportHeight()));
     projection.centerMercator = QVector2D(float(m_camera->getCenterMercator().x()), float(m_camera->getCenterMercator().y()));
     projection.pixelsPerMercator = float(GIS::EARTH_RADIUS / m_camera->getResolution());

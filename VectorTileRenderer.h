@@ -43,11 +43,11 @@ class QOpenGLFramebufferObject;
  * candidates are built there too and uploaded once into the tile's own buffers. Lines are
  * drawn as instanced quads (vector_line.vert) with round joins and dashes, widths in pixels.
  *
- * The orthographic globe: the same buffers are drawn into an offscreen texture in an
- * azimuthal equidistant projection on the GPU, then mapped onto the globe
- * (globe_composite.frag). Nothing is re-projected on the CPU while the globe turns, and areas
- * crossing the horizon fill correctly (the orthographic projection folds the far side onto the
- * near one; the azimuthal equidistant one does not).
+ * The orthographic globe: the same buffers are drawn, exactly as on the flat map, into an
+ * offscreen Mercator image of the visible part of the world, which globe_composite.frag maps
+ * onto the globe. Nothing is re-projected or subdivided on the CPU while the globe turns, and
+ * areas crossing the horizon fill correctly (projecting them straight onto the globe would fold
+ * the far side onto the near one).
  *
  * pick() finds the feature under a screen point for the details card.
  */
@@ -115,14 +115,16 @@ public:
 
     struct DrawRange {
         quint64 key = 0;  ///< fills: draw order << 32 | rgba; lines: draw order
-        QString layer;    ///< empty: the map background, always drawn
+        QString layer;
         int first = 0;
         int count = 0;
+        QRectF bounds;    ///< fills: Mercator bounds of the fans (the stencil cover drawn over them)
     };
 
     /// One tile's geometry in Mercator, built off the UI thread.
     struct TileMesh {
-        QVector<LineBatchRenderer::LineVertex> vertices;  ///< fill fans, then hairlines
+        QVector<LineBatchRenderer::LineVertex> vertices;  ///< the background square, fill fans, then hairlines
+        int backgroundCount = 0;                           ///< vertices of the base map's background square
         QVector<DrawRange> fills;
         QVector<DrawRange> hairlines;
         QVector<LineInstance> lines;
@@ -171,14 +173,15 @@ private:
         int featureIndex = -1;
     };
 
+    /// Where Mercator lands: the screen, or one band of the globe texture (also Mercator, around
+    /// its own centre). globeRadius is the globe's radius on screen, 0 on the flat map: line
+    /// widths are screen pixels, so in the texture they grow with the latitude.
     struct Projection {
-        int mode = 0;  ///< 0 Mercator screen, 1 azimuthal equidistant texture
         QVector2D viewport;
         QVector2D centerMercator;
         float pixelsPerMercator = 1.0f;
-        QVector2D centerLatLon;
-        QVector4D aeBounds;
-        double aePixelsPerRadian = 1.0;
+        float globeRadius = 0.0f;
+        QRectF bounds;  ///< Mercator area drawn, for skipping tiles; null: every tile
     };
 
     static void buildTileContent(CachedTile* cachedTile, Mode mode, const QString& themeId);
@@ -228,11 +231,10 @@ private:
     QHash<quint64, QFont> m_fonts;
 
     QOpenGLShaderProgram m_geometryProgram;   // vector_geometry.vert + colored_line.frag
-    QOpenGLShaderProgram m_screenProgram;     // colored_2d.vert: the stencil cover quads
     QOpenGLShaderProgram m_lineProgram;       // vector_line.vert / .frag
     QOpenGLShaderProgram m_compositeProgram;  // globe_composite.vert / .frag
     GLuint m_quadVbo;                         // the 6 corners of a line quad
-    StreamingBuffer m_coverBuffer;            // stencil cover quads
+    StreamingBuffer m_coverBuffer;            // stencil cover quads (Mercator)
     GLuint m_coverVao;
     StreamingBuffer m_compositeBuffer;
     GLuint m_compositeVao;
