@@ -11,6 +11,8 @@
 #include "TerrainRenderer.h"
 #include "Constants.h"
 #include "FrameProfiler.h"
+#include "MapFeatures.h"
+#include "MapTheme.h"
 #include "OpenGLRuntime.h"
 #include "ShaderUtils.h"
 #include <QCoreApplication>
@@ -202,6 +204,7 @@ MapWidget::MapWidget(QWidget* parent)
     , m_gridRenderer(nullptr)
     , m_cityRenderer(nullptr)
     , m_vectorTileRenderer(nullptr)
+    , m_featureRenderer(nullptr)
     , m_demLoader(new DemLoader(m_camera, this))
     , m_terrainRenderer(nullptr)
     , m_lineBatchRenderer(nullptr)
@@ -214,6 +217,8 @@ MapWidget::MapWidget(QWidget* parent)
     , m_gridVisible(true)
     , m_citiesVisible(true)
     , m_terrainVisible(true)
+    , m_mapTheme(QStringLiteral("standard"))
+    , m_bordersLoaded(false)
     , m_solidProgram(nullptr)
     , m_shapeVbo(0)
     , m_shapeVao(0)
@@ -254,6 +259,7 @@ MapWidget::~MapWidget()
     delete m_gridRenderer;
     delete m_cityRenderer;
     delete m_vectorTileRenderer;
+    delete m_featureRenderer;
     delete m_terrainRenderer;
     delete m_lineBatchRenderer;
     delete m_textRenderer;
@@ -301,6 +307,7 @@ void MapWidget::setTileSourceLayers(const QList<TmsLoader::TileSourceLayer>& lay
     if (m_vectorTileRenderer) {
         m_vectorTileRenderer->setTileSourceLayers(layers);
     }
+    updateFeatureOverlay();
 
     if (hasContext) {
         doneCurrent();
@@ -308,6 +315,109 @@ void MapWidget::setTileSourceLayers(const QList<TmsLoader::TileSourceLayer>& lay
     invalidateLineBatch();
     invalidateMapLabels();
     update();
+    emit featureSourceChanged();
+}
+
+void MapWidget::setFeatureLayers(const QList<TmsLoader::TileSourceLayer>& layers)
+{
+    m_featureLayers.clear();
+    for (const TmsLoader::TileSourceLayer& layer : layers) {
+        if (layer.sourceType == TmsLoader::TileSourceLayer::SourceType::VectorMbTiles)
+            m_featureLayers.append(layer);
+    }
+    const bool hasContext = context() && isValid();
+    if (hasContext)
+        makeCurrent();
+    if (m_featureRenderer)
+        m_featureRenderer->setTileSourceLayers(m_featureLayers);
+    updateFeatureOverlay();
+    if (hasContext)
+        doneCurrent();
+    invalidateMapLabels();
+    update();
+    emit featureSourceChanged();
+}
+
+void MapWidget::setHiddenFeatureLayers(const QStringList& layers)
+{
+    if (m_hiddenFeatureLayers == layers)
+        return;
+    m_hiddenFeatureLayers = layers;
+    if (m_vectorTileRenderer)
+        m_vectorTileRenderer->setHiddenLayers(layers);
+    if (m_featureRenderer)
+        m_featureRenderer->setHiddenLayers(layers);
+    updateFeatureOverlay();
+    invalidateMapLabels();
+    update();
+}
+
+void MapWidget::setMapTheme(const QString& themeId)
+{
+    const QString id = MapTheme::theme(themeId).id();
+    if (m_mapTheme == id)
+        return;
+    m_mapTheme = id;
+    if (m_vectorTileRenderer)
+        m_vectorTileRenderer->setTheme(id);
+    if (m_featureRenderer)
+        m_featureRenderer->setTheme(id);
+    invalidateMapLabels();
+    update();
+}
+
+QStringList MapWidget::featureLayerNames() const
+{
+    const bool base = baseHasVectorLayers();
+    QStringList names;
+    for (const TmsLoader::TileSourceLayer& layer : base ? m_tileSourceLayers : m_featureLayers) {
+        if (layer.sourceType == TmsLoader::TileSourceLayer::SourceType::VectorMbTiles)
+            names += layer.vectorLayers;
+    }
+    // Files that do not list their layers: the ones met in the tiles so far.
+    const VectorTileRenderer* renderer = base ? m_vectorTileRenderer : m_featureRenderer;
+    if (renderer)
+        names += renderer->seenLayers();
+    return MapFeatures::sortedLayers(names);
+}
+
+bool MapWidget::baseHasVectorLayers() const
+{
+    for (const TmsLoader::TileSourceLayer& layer : m_tileSourceLayers) {
+        if (layer.sourceType == TmsLoader::TileSourceLayer::SourceType::VectorMbTiles)
+            return true;
+    }
+    return false;
+}
+
+bool MapWidget::hasFeatureSource() const
+{
+    return baseHasVectorLayers() || !m_featureLayers.isEmpty();
+}
+
+void MapWidget::updateFeatureOverlay()
+{
+    // A vector base map draws its own details; the overlay is for every other base map, and
+    // only reads tiles while some of its layers are shown.
+    bool anyShown = m_featureLayers.isEmpty() ? false : true;
+    const QStringList names = featureLayerNames();
+    if (!names.isEmpty()) {
+        anyShown = false;
+        for (const QString& name : names)
+            anyShown = anyShown || !m_hiddenFeatureLayers.contains(name);
+    }
+    if (m_featureRenderer)
+        m_featureRenderer->setEnabled(!baseHasVectorLayers() && !m_featureLayers.isEmpty() && anyShown);
+}
+
+VectorTileRenderer::PickedFeature MapWidget::pickFeature(const QPointF& screenPos) const
+{
+    if (baseHasVectorLayers()) {
+        if (m_vectorTileRenderer && m_texturesVisible)
+            return m_vectorTileRenderer->pick(screenPos);
+        return {};
+    }
+    return m_featureRenderer ? m_featureRenderer->pick(screenPos) : VectorTileRenderer::PickedFeature();
 }
 
 bool MapWidget::loadWorldBorders()
@@ -326,6 +436,7 @@ bool MapWidget::loadBorderShapefile(const QString& filePath, QString* errorMessa
     }
 
     bool loaded = m_borderRenderer->loadShapefile(filePath, errorMessage);
+    m_bordersLoaded = true;
     if (loaded) {
         invalidateLineBatch();
         update();
@@ -381,6 +492,12 @@ void MapWidget::setBordersVisible(bool visible)
         return;
 
     m_bordersVisible = visible;
+    if (visible && !m_bordersLoaded && m_borderRenderer && context() && isValid()) {
+        // The shapefile is read only once borders are shown.
+        makeCurrent();
+        loadBorderShapefile(m_pendingBorderFilePath.isEmpty() ? defaultBorderShapefilePath() : m_pendingBorderFilePath);
+        doneCurrent();
+    }
     invalidateLineBatch();
     update();
 }
@@ -475,10 +592,20 @@ void MapWidget::initializeGL()
     m_gridRenderer = new GridRenderer(m_camera, this);
     m_cityRenderer = new CityRenderer(m_camera, this);
     m_vectorTileRenderer = new VectorTileRenderer(m_camera, this);
+    m_featureRenderer = new VectorTileRenderer(m_camera, this, VectorTileRenderer::Mode::Overlay);
     m_terrainRenderer = new TerrainRenderer(m_camera, m_demLoader, this);
     m_terrainRenderer->setEnabled(m_terrainVisible);
+    for (VectorTileRenderer* renderer : { m_vectorTileRenderer, m_featureRenderer }) {
+        renderer->setHiddenLayers(m_hiddenFeatureLayers);
+        renderer->setTheme(m_mapTheme);
+        // New tiles bring new names: lay the labels out again.
+        connect(renderer, &VectorTileRenderer::contentChanged, this, &MapWidget::invalidateMapLabels);
+        connect(renderer, &VectorTileRenderer::layersDiscovered, this, &MapWidget::featureSourceChanged);
+    }
     m_vectorTileRenderer->setTileSourceLayers(m_tileSourceLayers);
     m_vectorTileRenderer->setEnabled(m_texturesVisible);
+    m_featureRenderer->setTileSourceLayers(m_featureLayers);
+    updateFeatureOverlay();
     m_lineBatchRenderer = new LineBatchRenderer(m_camera, this);
     m_textRenderer = new TextRenderer(m_camera, this);
     if (m_pendingBorderFilePath.isEmpty()) {
@@ -487,8 +614,12 @@ void MapWidget::initializeGL()
     if (m_pendingCitiesDirectoryPath.isEmpty()) {
         m_pendingCitiesDirectoryPath = defaultCitiesDirectoryPath();
     }
-    QString borderError;
-    m_borderRenderer->loadShapefile(m_pendingBorderFilePath, &borderError);
+    // The shapefile only when borders are shown (hosts that switch them off never read it).
+    if (m_bordersVisible) {
+        QString borderError;
+        m_borderRenderer->loadShapefile(m_pendingBorderFilePath, &borderError);
+        m_bordersLoaded = true;
+    }
     QString citiesError;
     m_cityRenderer->loadDirectory(m_pendingCitiesDirectoryPath, &citiesError);
     m_tileLoader->setLoadingEnabled(m_texturesVisible);
@@ -537,9 +668,16 @@ void MapWidget::paintGL()
         FrameProfiler::Scope drawScope(QStringLiteral("draw.terrain"));
         m_terrainRenderer->render();
     }
+    const QSize deviceSize(qRound(width() * devicePixelRatioF()), qRound(height() * devicePixelRatioF()));
     if (m_texturesVisible && m_vectorTileRenderer) {
         FrameProfiler::Scope drawScope(QStringLiteral("draw.vectorTiles"));
+        m_vectorTileRenderer->setTargetSize(deviceSize);
         m_vectorTileRenderer->render();
+    }
+    if (m_featureRenderer) {
+        FrameProfiler::Scope drawScope(QStringLiteral("draw.featureOverlay"));
+        m_featureRenderer->setTargetSize(deviceSize);
+        m_featureRenderer->render();
     }
 
     if (m_bordersVisible && m_borderRenderer) {
@@ -736,6 +874,9 @@ void MapWidget::rebuildMapLabelsIfNeeded()
     }
     if (m_texturesVisible && m_vectorTileRenderer) {
         m_vectorTileRenderer->appendLabels(m_cachedMapLabels);
+    }
+    if (m_featureRenderer) {
+        m_featureRenderer->appendLabels(m_cachedMapLabels);
     }
     if (m_citiesVisible && m_cityRenderer) {
         m_cityRenderer->appendLabels(m_cachedMapLabels);

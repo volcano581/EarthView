@@ -9,6 +9,7 @@
 #include <QList>
 #include <QMap>
 #include <QSet>
+#include <QStringList>
 #include <QImage>
 #include <memory>
 #include "Constants.h"
@@ -60,6 +61,8 @@ public:
         int minTileZoom = 0;
         int maxTileZoom = GIS::MAX_TILE_ZOOM;
         bool tmsYOrigin = false;
+        /// Vector layers: the ids of the file's layers when its metadata lists them.
+        QStringList vectorLayers;
     };
 
     explicit TmsLoader(Camera* camera, QObject* parent = nullptr);
@@ -74,10 +77,16 @@ public:
     // Tile management
     void updateVisibleTiles();
     void clearCache();
+    /// Drops the retained tiles once every active tile is drawable (TileRenderer calls it after
+    /// uploading textures).
+    void releaseRetainedTilesWhenLoaded();
 
     // Accessors
     QMap<QString, TileInfo>& getActiveTiles() { return m_activeTiles; }
     const QMap<QString, TileInfo>& getActiveTiles() const { return m_activeTiles; }
+    /// Tiles of the previous view (e.g. the zoom level just left) that stay drawn under the
+    /// active ones until those have loaded, so zooming never shows an empty map.
+    const QMap<QString, TileInfo>& getRetainedTiles() const { return m_retainedTiles; }
     TextureManager* getTextureManager() { return m_textureManager; }
     const QList<TileSourceLayer>& getTileSourceLayers() const { return m_tileLayers; }
 
@@ -113,6 +122,7 @@ private:
     QNetworkAccessManager* m_networkManager;
     TextureManager* m_textureManager;
     QMap<QString, TileInfo> m_activeTiles;
+    QMap<QString, TileInfo> m_retainedTiles;
     QSet<QString> m_pendingRequests;
     QHash<QString, QNetworkReply*> m_pendingReplies;
     QList<TileSourceLayer> m_tileLayers;

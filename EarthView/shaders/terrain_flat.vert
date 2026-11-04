@@ -15,9 +15,13 @@ uniform float u_worldOffset;      // horizontal wrap: repeat of the world, in Me
 uniform sampler2D u_heightTexture;
 uniform float u_minHeight;
 uniform float u_maxHeight;
+uniform int u_projection;         // 0 Mercator, 1 orthographic globe
+uniform vec2 u_centerLatLon;      // globe: radians
+uniform float u_radius;           // globe: px
 
 out float v_heightMix;
 out float v_heightMeters;
+out float v_facing;
 
 void main()
 {
@@ -30,6 +34,20 @@ void main()
     vec2 screen = vec2(
         u_viewportSize.x * 0.5 + (mercator.x - u_centerMercator.x) * u_pixelsPerMercator,
         u_viewportSize.y * 0.5 - (mercator.y - u_centerMercator.y) * u_pixelsPerMercator);
+    v_facing = 1.0;
+    if (u_projection == 1) {
+        float lat = atan(sinh(mercator.y));
+        float dLon = mercator.x - u_centerLatLon.y;
+        float sinLat = sin(lat);
+        float cosLat = cos(lat);
+        float sin0 = sin(u_centerLatLon.x);
+        float cos0 = cos(u_centerLatLon.x);
+        float cosDLon = cos(dLon);
+        screen = vec2(
+            u_viewportSize.x * 0.5 + cosLat * sin(dLon) * u_radius,
+            u_viewportSize.y * 0.5 - (cos0 * sinLat - sin0 * cosLat * cosDLon) * u_radius);
+        v_facing = sin0 * sinLat + cos0 * cosLat * cosDLon;
+    }
 
     vec2 ndc = vec2(
         screen.x * (2.0 / u_viewportSize.x) - 1.0,

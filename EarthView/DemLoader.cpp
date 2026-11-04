@@ -7,10 +7,13 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QMetaObject>
 #include <QNetworkReply>
 #include <QNetworkRequest>
+#include <QPointer>
 #include <QRegularExpression>
 #include <QStringList>
+#include <QThreadPool>
 #include <QtMath>
 #include <algorithm>
 #include <cmath>
@@ -998,29 +1001,22 @@ void DemLoader::requestMetadata(const QString& key)
         it->metadataLoading = true;
         m_pendingMetadata.insert(key);
 
-        QFile file(sourceUrl.toLocalFile());
-        if (file.open(QIODevice::ReadOnly)) {
-            const GeoTiffMetadata metadata = parseGeoTiffMetadata(file.readAll());
-            if (metadata.valid) {
-                it->geographicBounds = metadata.geographicBounds;
-                it->mercatorBounds = geographicToMercatorBounds(metadata.geographicBounds);
-                it->metadataReady = true;
-                qDebug() << "DEM metadata loaded from local mirror" << sourceUrl.toLocalFile()
-                         << metadata.geographicBounds;
-                updateVisibleTiles();
-            }
-            else {
-                qWarning() << "Could not read GeoTIFF bounds from local DEM" << sourceUrl.toLocalFile();
-                emit demTileFailed(key);
-            }
-        }
-        else {
-            qWarning() << "Could not open local DEM metadata" << sourceUrl.toLocalFile() << file.errorString();
-            emit demTileFailed(key);
-        }
-
-        it->metadataLoading = false;
-        m_pendingMetadata.remove(key);
+        // Read and parsed on the pool: a mirror holds many large files.
+        const QString path = sourceUrl.toLocalFile();
+        const int generation = m_catalogGeneration;
+        QPointer<DemLoader> loader(this);
+        QThreadPool::globalInstance()->start([loader, key, path, generation]() {
+            QFile file(path);
+            GeoTiffMetadata metadata;
+            if (file.open(QIODevice::ReadOnly))
+                metadata = parseGeoTiffMetadata(file.readAll());
+            if (!loader)
+                return;
+            QMetaObject::invokeMethod(loader.data(), [loader, key, metadata, path, generation]() {
+                if (loader)
+                    loader->completeLocalMetadata(key, metadata.geographicBounds, metadata.valid, path, generation);
+            }, Qt::QueuedConnection);
+        });
         return;
     }
 
@@ -1116,45 +1112,7 @@ void DemLoader::requestImage(const QString& key)
     if (sourceUrl.isLocalFile()) {
         it->imageLoading = true;
         m_pendingImages.insert(key);
-
-        QFile file(sourceUrl.toLocalFile());
-        if (file.open(QIODevice::ReadOnly)) {
-            const QByteArray bytes = file.readAll();
-            const GeoTiffRaster raster = parseGeoTiffRaster(bytes);
-            if (raster.valid) {
-                it->elevationSamples = raster.samples;
-                it->elevationWidth = raster.width;
-                it->elevationHeight = raster.height;
-                it->minElevation = raster.minElevation;
-                it->maxElevation = raster.maxElevation;
-            }
-            else {
-                QImage image;
-                if (image.loadFromData(bytes)) {
-                    it->image = image;
-                }
-                else {
-                    qWarning() << "Could not decode local DEM TIFF image" << sourceUrl.toLocalFile();
-                    emit demTileFailed(key);
-                    it->imageLoading = false;
-                    m_pendingImages.remove(key);
-                    return;
-                }
-            }
-
-            it->imageReady = true;
-            qDebug() << "DEM image loaded from local mirror" << sourceUrl.toLocalFile()
-                     << QSize(it->elevationWidth, it->elevationHeight)
-                     << "elevation range" << it->minElevation << it->maxElevation;
-            emit demTileLoaded(key);
-        }
-        else {
-            qWarning() << "Could not open local DEM TIFF image" << sourceUrl.toLocalFile() << file.errorString();
-            emit demTileFailed(key);
-        }
-
-        it->imageLoading = false;
-        m_pendingImages.remove(key);
+        decodeImageAsync(key, QByteArray(), sourceUrl.toLocalFile());
         return;
     }
 
@@ -1170,44 +1128,104 @@ void DemLoader::requestImage(const QString& key)
 
 void DemLoader::onImageDownloaded(QNetworkReply* reply, const QString& key)
 {
-    m_pendingImages.remove(key);
     auto it = m_tiles.find(key);
     if (it == m_tiles.end()) {
+        m_pendingImages.remove(key);
         reply->deleteLater();
         return;
     }
 
-    it->imageLoading = false;
     if (reply->error() == QNetworkReply::NoError) {
-        const QByteArray bytes = reply->readAll();
-        const GeoTiffRaster raster = parseGeoTiffRaster(bytes);
-        if (raster.valid) {
-            it->elevationSamples = raster.samples;
-            it->elevationWidth = raster.width;
-            it->elevationHeight = raster.height;
-            it->minElevation = raster.minElevation;
-            it->maxElevation = raster.maxElevation;
-            it->imageReady = true;
-            emit demTileLoaded(key);
-        }
-        else {
-        QImage image;
-        if (image.loadFromData(bytes)) {
-            it->image = image;
-            it->imageReady = true;
-            emit demTileLoaded(key);
-        }
-        else {
-            qWarning() << "Could not decode DEM TIFF image" << key;
-            emit demTileFailed(key);
-        }
-        }
+        // Still loading until the parse on the pool is back.
+        decodeImageAsync(key, reply->readAll(), QString());
     }
     else {
+        m_pendingImages.remove(key);
+        it->imageLoading = false;
         qWarning() << "DEM image request failed for" << key << reply->errorString();
         emit demTileFailed(key);
     }
     reply->deleteLater();
+}
+
+void DemLoader::decodeImageAsync(const QString& key, const QByteArray& bytes, const QString& localFile)
+{
+    const int generation = m_catalogGeneration;
+    QPointer<DemLoader> loader(this);
+    QThreadPool::globalInstance()->start([loader, key, bytes, localFile, generation]() {
+        QByteArray data = bytes;
+        if (!localFile.isEmpty()) {
+            QFile file(localFile);
+            if (file.open(QIODevice::ReadOnly))
+                data = file.readAll();
+        }
+        const GeoTiffRaster raster = parseGeoTiffRaster(data);
+        QImage image;
+        if (!raster.valid && !data.isEmpty())
+            image.loadFromData(data);
+        if (!loader)
+            return;
+        const QString source = localFile.isEmpty() ? key : localFile;
+        QMetaObject::invokeMethod(loader.data(), [loader, key, raster, image, source, generation]() {
+            if (!loader)
+                return;
+            loader->completeImageDecode(key, raster.samples, raster.width, raster.height,
+                                        raster.minElevation, raster.maxElevation, image, source, generation);
+        }, Qt::QueuedConnection);
+    });
+}
+
+void DemLoader::completeImageDecode(const QString& key, const QVector<float>& samples, int width, int height,
+                                    float minElevation, float maxElevation, const QImage& image,
+                                    const QString& source, int generation)
+{
+    if (generation != m_catalogGeneration)
+        return;
+    m_pendingImages.remove(key);
+    auto it = m_tiles.find(key);
+    if (it == m_tiles.end())
+        return;
+
+    it->imageLoading = false;
+    if (!samples.isEmpty()) {
+        it->elevationSamples = samples;
+        it->elevationWidth = width;
+        it->elevationHeight = height;
+        it->minElevation = minElevation;
+        it->maxElevation = maxElevation;
+    }
+    else if (!image.isNull()) {
+        it->image = image;
+    }
+    else {
+        qWarning() << "Could not decode DEM TIFF image" << source;
+        emit demTileFailed(key);
+        return;
+    }
+    it->imageReady = true;
+    emit demTileLoaded(key);
+}
+
+void DemLoader::completeLocalMetadata(const QString& key, const QRectF& geographicBounds, bool valid,
+                                      const QString& source, int generation)
+{
+    if (generation != m_catalogGeneration)
+        return;
+    m_pendingMetadata.remove(key);
+    auto it = m_tiles.find(key);
+    if (it == m_tiles.end())
+        return;
+
+    it->metadataLoading = false;
+    if (!valid) {
+        qWarning() << "Could not read GeoTIFF bounds from local DEM" << source;
+        emit demTileFailed(key);
+        return;
+    }
+    it->geographicBounds = geographicBounds;
+    it->mercatorBounds = geographicToMercatorBounds(geographicBounds);
+    it->metadataReady = true;
+    updateVisibleTiles();
 }
 
 bool DemLoader::visibleIntersects(const QRectF& mercatorBounds) const
@@ -1231,6 +1249,8 @@ void DemLoader::updateVisibleTiles()
 
     int metadataRequests = 0;
     int imageRequests = 0;
+    // Once per update, not once per catalog entry (the catalog can hold thousands).
+    const QRectF visible = m_camera->getVisibleMercatorExtent();
     for (auto it = m_tiles.begin(); it != m_tiles.end(); ++it) {
         if (!it->metadataReady && !it->metadataLoading && metadataRequests < kMaxMetadataRequestsPerUpdate) {
             requestMetadata(it.key());
@@ -1239,7 +1259,8 @@ void DemLoader::updateVisibleTiles()
         }
 
         if (it->metadataReady
-            && visibleIntersects(it->mercatorBounds)
+            && !it->mercatorBounds.isNull()
+            && mercatorBoundsIntersects(visible, it->mercatorBounds)
             && !it->imageReady
             && !it->imageLoading
             && imageRequests < kMaxImageRequestsPerUpdate) {

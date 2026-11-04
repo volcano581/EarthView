@@ -1,9 +1,13 @@
 #include "TileRenderer.h"
 #include "Camera.h"
 #include "FrameProfiler.h"
+#include "MercatorProjection.h"
 #include "ShaderUtils.h"
 #include "TMSLoader.h"
 #include <QDebug>
+#include <QElapsedTimer>
+#include <QVector4D>
+#include <QtMath>
 #include <QList>
 #include <QOpenGLContext>
 #include <QOpenGLExtraFunctions>
@@ -12,6 +16,10 @@
 #include <cstddef>
 
 namespace {
+// New textures per frame stop after this much time; the rest go up next frame, so a burst of
+// tiles never costs one long frame.
+constexpr qint64 kUploadBudgetNs = 4 * 1000 * 1000;
+
 struct TileVertex {
     float position[2];
     float texCoord[2];
@@ -49,6 +57,9 @@ TileRenderer::TileRenderer(Camera* camera, TmsLoader* tileLoader, QObject* paren
     : QObject(parent)
     , m_camera(camera)
     , m_tileLoader(tileLoader)
+    , m_gridVao(0)
+    , m_gridVbo(0)
+    , m_gridVertexCount(0)
     , m_vao(0)
     , m_gpuResourcesInitialized(false)
 {
@@ -67,6 +78,10 @@ TileRenderer::~TileRenderer()
         if (m_vao) {
             f->glDeleteVertexArrays(1, &m_vao);
         }
+        if (m_gridVbo)
+            f->glDeleteBuffers(1, &m_gridVbo);
+        if (m_gridVao)
+            f->glDeleteVertexArrays(1, &m_gridVao);
     }
 }
 
@@ -85,6 +100,14 @@ void TileRenderer::initializeGpuResources()
         return;
     }
 
+    if (!ShaderUtils::loadProgram(
+            &m_globeProgram,
+            QStringLiteral("textured_globe.vert"),
+            QStringLiteral("textured_globe.frag"),
+            &errorMessage)) {
+        qWarning() << errorMessage;
+    }
+
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
     f->initializeOpenGLFunctions();
     f->glGenVertexArrays(1, &m_vao);
@@ -92,6 +115,31 @@ void TileRenderer::initializeGpuResources()
         return;
 
     setupVertexArray();
+
+    // The globe grid: kGlobeGridCells^2 quads over the unit tile, built once.
+    constexpr int kGlobeGridCells = 24;
+    QVector<float> grid;
+    grid.reserve(kGlobeGridCells * kGlobeGridCells * 12);
+    for (int y = 0; y < kGlobeGridCells; ++y) {
+        for (int x = 0; x < kGlobeGridCells; ++x) {
+            const float u0 = float(x) / kGlobeGridCells;
+            const float u1 = float(x + 1) / kGlobeGridCells;
+            const float v0 = float(y) / kGlobeGridCells;
+            const float v1 = float(y + 1) / kGlobeGridCells;
+            grid << u0 << v0 << u1 << v0 << u1 << v1 << u0 << v0 << u1 << v1 << u0 << v1;
+        }
+    }
+    m_gridVertexCount = GLsizei(grid.size() / 2);
+    f->glGenVertexArrays(1, &m_gridVao);
+    f->glGenBuffers(1, &m_gridVbo);
+    f->glBindVertexArray(m_gridVao);
+    f->glBindBuffer(GL_ARRAY_BUFFER, m_gridVbo);
+    f->glBufferData(GL_ARRAY_BUFFER, grid.size() * qsizetype(sizeof(float)), grid.constData(), GL_STATIC_DRAW);
+    f->glEnableVertexAttribArray(0);
+    f->glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), nullptr);
+    f->glBindBuffer(GL_ARRAY_BUFFER, 0);
+    f->glBindVertexArray(0);
+
     m_gpuResourcesInitialized = true;
 }
 
@@ -145,121 +193,117 @@ void TileRenderer::render()
             static_cast<float>(m_camera->getViewportHeight())));
     m_tileProgram.setUniformValue("u_texture", 0);
 
-    auto& tiles = m_tileLoader->getActiveTiles();
-    QList<QString> renderKeys = tiles.keys();
-    const auto& sortedTiles = tiles;
-    std::sort(renderKeys.begin(), renderKeys.end(), [&sortedTiles](const QString& a, const QString& b) {
-        const auto tileAIt = sortedTiles.constFind(a);
-        const auto tileBIt = sortedTiles.constFind(b);
-        if (tileAIt == sortedTiles.cend() || tileBIt == sortedTiles.cend())
+    auto byZoomThenLayer = [](const QMap<QString, TmsLoader::TileInfo>& tiles) {
+        QList<QString> keys = tiles.keys();
+        std::sort(keys.begin(), keys.end(), [&tiles](const QString& a, const QString& b) {
+            const auto& tileA = tiles.find(a).value();
+            const auto& tileB = tiles.find(b).value();
+            if (tileA.tileZoomLevel != tileB.tileZoomLevel)
+                return tileA.tileZoomLevel < tileB.tileZoomLevel;
+            if (tileA.layerIndex != tileB.layerIndex)
+                return tileA.layerIndex < tileB.layerIndex;
             return a < b;
+        });
+        return keys;
+    };
 
-        const auto& tileA = tileAIt.value();
-        const auto& tileB = tileBIt.value();
-        if (tileA.tileZoomLevel != tileB.tileZoomLevel)
-            return tileA.tileZoomLevel < tileB.tileZoomLevel;
-        if (tileA.layerIndex != tileB.layerIndex)
-            return tileA.layerIndex < tileB.layerIndex;
-
-        return a < b;
-    });
-
-    for (const QString& key : renderKeys) {
-        auto it = tiles.find(key);
-        if (it == tiles.end())
+    // The previous view's tiles first, under the current ones that have loaded.
+    TextureManager* textures = m_tileLoader->getTextureManager();
+    struct DrawItem {
+        GLuint textureId;
+        QRectF mercatorBounds;
+    };
+    QVector<DrawItem> drawItems;
+    const QMap<QString, TmsLoader::TileInfo>& retained = m_tileLoader->getRetainedTiles();
+    for (const QString& key : byZoomThenLayer(retained)) {
+        const TmsLoader::TileInfo& tile = retained.find(key).value();
+        // Evicted meanwhile: its id may belong to another tile now.
+        if (textures->getTexture(tile.textureCacheKey) != tile.textureId)
             continue;
+        drawItems.append({ tile.textureId, tile.mercatorBounds });
+    }
 
-        auto& tile = it.value();
+    auto& tiles = m_tileLoader->getActiveTiles();
+    QElapsedTimer uploadClock;
+    uploadClock.start();
+    bool uploaded = false;
+    for (const QString& key : byZoomThenLayer(tiles)) {
+        auto& tile = tiles.find(key).value();
         if (tile.isLoading)
             continue;
 
         const QString cacheKey = tile.textureCacheKey.isEmpty() ? key : tile.textureCacheKey;
 
-        if (tile.textureId == 0 && m_tileLoader->getTextureManager()->hasTexture(cacheKey)) {
-            tile.textureId = m_tileLoader->getTextureManager()->getTexture(cacheKey);
+        if (tile.textureId != 0 && textures->getTexture(cacheKey) != tile.textureId)
+            tile.textureId = 0;  // Evicted: take it from the cache again or wait for a reload.
+        if (tile.textureId == 0 && textures->hasTexture(cacheKey)) {
+            tile.textureId = textures->getTexture(cacheKey);
         }
 
-        if (tile.textureId == 0 && !tile.image.isNull()) {
-            tile.textureId = m_tileLoader->getTextureManager()->createTexture(tile.image, cacheKey);
+        if (tile.textureId == 0 && !tile.image.isNull() && uploadClock.nsecsElapsed() < kUploadBudgetNs) {
+            FrameProfiler::Scope uploadScope(QStringLiteral("upload.rasterTile"));
+            tile.textureId = textures->createTexture(tile.image, cacheKey);
             tile.image = QImage();
+            uploaded = true;
         }
 
         if (tile.textureId == 0)
             continue;
+        textures->touch(cacheKey);
+        drawItems.append({ tile.textureId, tile.mercatorBounds });
+    }
+    if (uploaded)
+        m_tileLoader->releaseRetainedTilesWhenLoaded();
 
+    if (m_camera->isOrthographic()) {
+        // Globe: the shared grid projected on the GPU, one draw per tile, no per-frame CPU work.
+        m_tileProgram.release();
+        if (!m_globeProgram.isLinked()) {
+            f->glBindVertexArray(0);
+            return;
+        }
+        const QPointF centerLatLon = MercatorProjection::mercatorToLatLon(
+            m_camera->getCenterMercator().x(), m_camera->getCenterMercator().y());
+        m_globeProgram.bind();
+        m_globeProgram.setUniformValue("u_viewportSize",
+            QVector2D(float(m_camera->getViewportWidth()), float(m_camera->getViewportHeight())));
+        m_globeProgram.setUniformValue("u_centerLatLon",
+            QVector2D(float(qDegreesToRadians(centerLatLon.x())), float(qDegreesToRadians(centerLatLon.y()))));
+        m_globeProgram.setUniformValue("u_radius", float(m_camera->getOrthographicRadius()));
+        m_globeProgram.setUniformValue("u_texture", 0);
+        f->glBindVertexArray(m_gridVao);
+        for (const DrawItem& tile : std::as_const(drawItems)) {
+            glBindTexture(GL_TEXTURE_2D, tile.textureId);
+            m_globeProgram.setUniformValue("u_tileBounds",
+                QVector4D(float(tile.mercatorBounds.left()), float(tile.mercatorBounds.top()),
+                          float(tile.mercatorBounds.right()), float(tile.mercatorBounds.bottom())));
+            f->glDrawArrays(GL_TRIANGLES, 0, m_gridVertexCount);
+            FrameProfiler::recordCount(QStringLiteral("draw.calls"));
+            FrameProfiler::recordCount(QStringLiteral("draw.rasterTiles.tiles"));
+        }
+        m_globeProgram.release();
+        f->glBindVertexArray(0);
+        glBindTexture(GL_TEXTURE_2D, 0);
+        glDisable(GL_BLEND);
+        return;
+    }
+
+    for (const DrawItem& tile : std::as_const(drawItems)) {
         glBindTexture(GL_TEXTURE_2D, tile.textureId);
         QVector<TileVertex> vertices;
-
-        if (!m_camera->isOrthographic()) {
-            QPointF topLeft;
-            QPointF topRight;
-            QPointF bottomRight;
-            QPointF bottomLeft;
-            {
-                topLeft = m_camera->mercatorToScreen(tile.mercatorBounds.topLeft());
-                bottomRight = m_camera->mercatorToScreen(tile.mercatorBounds.bottomRight());
-                topRight = QPointF(bottomRight.x(), topLeft.y());
-                bottomLeft = QPointF(topLeft.x(), bottomRight.y());
-            }
-            vertices.reserve(6);
-            appendQuad(
-                vertices,
-                topLeft,
-                topRight,
-                bottomRight,
-                bottomLeft,
-                0.0f,
-                0.0f,
-                1.0f,
-                1.0f);
-        }
-        else {
-            const int subdivisions = 24;
-            const double left = tile.mercatorBounds.left();
-            const double right = tile.mercatorBounds.right();
-            const double top = tile.mercatorBounds.top();
-            const double bottom = tile.mercatorBounds.bottom();
-
-            vertices.reserve(subdivisions * subdivisions * 6);
-            for (int y = 0; y < subdivisions; ++y) {
-                const double v0 = y / static_cast<double>(subdivisions);
-                const double v1 = (y + 1) / static_cast<double>(subdivisions);
-                const double mercatorY0 = top + (bottom - top) * v0;
-                const double mercatorY1 = top + (bottom - top) * v1;
-
-                for (int x = 0; x < subdivisions; ++x) {
-                    const double u0 = x / static_cast<double>(subdivisions);
-                    const double u1 = (x + 1) / static_cast<double>(subdivisions);
-                    const double mercatorX0 = left + (right - left) * u0;
-                    const double mercatorX1 = left + (right - left) * u1;
-
-                    QPointF p00;
-                    QPointF p10;
-                    QPointF p11;
-                    QPointF p01;
-                    if (!m_camera->projectMercatorToScreen(QPointF(mercatorX0, mercatorY0), &p00)
-                        || !m_camera->projectMercatorToScreen(QPointF(mercatorX1, mercatorY0), &p10)
-                        || !m_camera->projectMercatorToScreen(QPointF(mercatorX1, mercatorY1), &p11)
-                        || !m_camera->projectMercatorToScreen(QPointF(mercatorX0, mercatorY1), &p01)) {
-                        continue;
-                    }
-
-                    appendQuad(
-                        vertices,
-                        p00,
-                        p10,
-                        p11,
-                        p01,
-                        static_cast<float>(u0),
-                        static_cast<float>(v0),
-                        static_cast<float>(u1),
-                        static_cast<float>(v1));
-                }
-            }
-        }
-
-        if (vertices.isEmpty())
-            continue;
+        const QPointF topLeft = m_camera->mercatorToScreen(tile.mercatorBounds.topLeft());
+        const QPointF bottomRight = m_camera->mercatorToScreen(tile.mercatorBounds.bottomRight());
+        vertices.reserve(6);
+        appendQuad(
+            vertices,
+            topLeft,
+            QPointF(bottomRight.x(), topLeft.y()),
+            bottomRight,
+            QPointF(topLeft.x(), bottomRight.y()),
+            0.0f,
+            0.0f,
+            1.0f,
+            1.0f);
 
         const StreamingBuffer::UploadResult upload = m_vertexBuffer.upload(
             vertices.constData(),

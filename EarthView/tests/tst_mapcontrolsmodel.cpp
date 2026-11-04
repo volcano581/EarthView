@@ -3,6 +3,7 @@
 
 #include "Camera.h"
 #include "MapControlsModel.h"
+#include "MapFeatures.h"
 
 /**
  * @brief Tests MapControlsModel: projection sync with Camera, bearing, panel state.
@@ -24,7 +25,81 @@ private slots:
     void baseMapIndexFollowsList();
     void measurePanelRules();
     void layerTogglesNotifyOnce();
+    void featureLayers();
+    void themesAndThumbnails();
+    void selectedFeature();
 };
+
+void TestMapControlsModel::featureLayers()
+{
+    MapControlsModel model;
+    QVERIFY(!model.areFeatureLayersAvailable());
+    QVERIFY(model.hiddenFeatureLayers().isEmpty());
+
+    // Every layer of the source, in panel order, with its display name.
+    QSignalSpy layersSpy(&model, &MapControlsModel::featureLayersChanged);
+    model.setFeatureLayerIds({ "poi", "water", "transportation", "place", "ski_area" });
+    model.setFeatureLayerIds({ "poi", "water", "transportation", "place", "ski_area" });
+    QCOMPARE(layersSpy.count(), 1);
+    QVERIFY(model.areFeatureLayersAvailable());
+    const QVariantList layers = model.featureLayers();
+    QCOMPARE(layers.size(), 5);
+    QCOMPARE(layers.at(0).toMap().value("id").toString(), QString("place"));
+    QCOMPARE(layers.at(0).toMap().value("label").toString(), QString("Places"));
+    QCOMPARE(layers.at(3).toMap().value("label").toString(), QString("POIs"));
+    QCOMPARE(layers.at(4).toMap().value("label").toString(), QString("Ski area"));
+
+    QSignalSpy hiddenSpy(&model, &MapControlsModel::hiddenFeatureLayersChanged);
+    model.toggleFeatureLayer("transportation");
+    QVERIFY(!model.isFeatureLayerVisible("transportation"));
+    QVERIFY(model.isFeatureLayerVisible("water"));
+    model.toggleFeatureLayer("water");
+    QCOMPARE(model.hiddenFeatureLayers(), QStringList({ "transportation", "water" }));
+    model.toggleFeatureLayer("transportation");
+    QCOMPARE(model.hiddenFeatureLayers(), QStringList({ "water" }));
+    model.setHiddenFeatureLayers({ "water", "water" });
+    QCOMPARE(hiddenSpy.count(), 3);
+
+    model.setFeatureLayerIds({});
+    QVERIFY(!model.areFeatureLayersAvailable());
+}
+
+void TestMapControlsModel::themesAndThumbnails()
+{
+    MapControlsModel model;
+    QCOMPARE(model.currentTheme(), QString("standard"));
+    QCOMPARE(MapControlsModel::themes().size(), 3);
+    QCOMPARE(MapControlsModel::themes().at(1).toMap().value("label").toString(), QString("Positron"));
+    QSignalSpy themeSpy(&model, &MapControlsModel::currentThemeChanged);
+    model.setCurrentTheme("dark");
+    model.setCurrentTheme("no such theme");
+    QCOMPARE(model.currentTheme(), QString("dark"));
+    QCOMPARE(themeSpy.count(), 1);
+
+    QSignalSpy revisionSpy(&model, &MapControlsModel::thumbnailRevisionChanged);
+    const int before = model.thumbnailRevision();
+    model.bumpThumbnailRevision();
+    QCOMPARE(model.thumbnailRevision(), before + 1);
+    QCOMPARE(revisionSpy.count(), 1);
+
+    model.setPanelMaxHeight(20);
+    QCOMPARE(model.panelMaxHeight(), 120);  // never smaller than a section
+}
+
+void TestMapControlsModel::selectedFeature()
+{
+    MapControlsModel model;
+    QVERIFY(!model.isFeatureSelected());
+    QSignalSpy spy(&model, &MapControlsModel::selectedFeatureChanged);
+    const QVariantMap feature{ { "title", "Rawal Lake" }, { "subtitle", "Lake" } };
+    model.setSelectedFeature(feature);
+    model.setSelectedFeature(feature);
+    QVERIFY(model.isFeatureSelected());
+    QCOMPARE(model.selectedFeature().value("title").toString(), QString("Rawal Lake"));
+    model.clearSelectedFeature();
+    QVERIFY(!model.isFeatureSelected());
+    QCOMPARE(spy.count(), 2);
+}
 
 void TestMapControlsModel::defaultsMatchFirstRelease()
 {

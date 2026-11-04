@@ -90,9 +90,16 @@ void MainWindow::setupUI()
         m_mapWidget->setTileServerUrl("https://tile.openstreetmap.org/{z}/{x}/{y}.png");
         m_secondaryWindow->mapWidget()->setTileServerUrl("https://tile.openstreetmap.org/{z}/{x}/{y}.png");
     }
+    // The OSM (vector MBTiles) map's details can be drawn over every other base map.
+    const QList<TmsLoader::TileSourceLayer> featureLayers = MapSourceCatalog::featureLayers(mapSources);
+    m_mapWidget->setFeatureLayers(featureLayers);
+    m_secondaryWindow->mapWidget()->setFeatureLayers(featureLayers);
+#ifndef EARTHVIEW_HAS_MAP_CONTROLS
+    // With the on-map controls the boundaries come from the OSM map: no border shapefile.
     m_mapWidget->loadWorldBorders();
-    m_mapWidget->loadCities();
     m_secondaryWindow->mapWidget()->loadWorldBorders();
+#endif
+    m_mapWidget->loadCities();
     m_secondaryWindow->mapWidget()->loadCities();
 
     setCentralWidget(m_mapWidget);
@@ -100,6 +107,10 @@ void MainWindow::setupUI()
 #ifdef EARTHVIEW_HAS_MAP_CONTROLS
     m_mapControlsOverlay = new MapControlsOverlay(m_mapWidget);
     MapControlsModel* mapControls = m_mapControlsOverlay->model();
+    // Live thumbnails of the map types come from the sources themselves.
+    m_mapControlsOverlay->setMapSources(mapSources);
+    if (m_secondaryWindow->mapControlsOverlay())
+        m_secondaryWindow->mapControlsOverlay()->setMapSources(mapSources);
     // Base map choice is shared by both windows, as the Map Source dropdown is.
     QList<MapControlsModel*> baseMapModels{ mapControls };
     if (m_secondaryWindow->mapControls())
@@ -178,7 +189,9 @@ void MainWindow::setupUI()
 
     QAction* loadBordersAction = new QAction("Load Borders...", this);
     toolbar->addSeparator();
+#ifndef EARTHVIEW_HAS_MAP_CONTROLS  // Boundaries come from the OSM map there.
     toolbar->addAction(loadBordersAction);
+#endif
 
     QAction* texturesVisibleAction = new QAction("Textures", this);
     texturesVisibleAction->setCheckable(true);
@@ -206,8 +219,13 @@ void MainWindow::setupUI()
 
     QAction* citiesVisibleAction = new QAction("Cities", this);
     citiesVisibleAction->setCheckable(true);
+#ifdef EARTHVIEW_HAS_MAP_CONTROLS
+    // Off with the on-map controls: place names come from the OSM map's Places detail.
+    citiesVisibleAction->setChecked(mapControls->areCitiesVisible());
+#else
     citiesVisibleAction->setChecked(true);
-    citiesVisibleAction->setToolTip("Show or hide city and settlement labels.");
+#endif
+    citiesVisibleAction->setToolTip("Show or hide city and settlement labels (world cities data).");
 #ifndef EARTHVIEW_HAS_MAP_CONTROLS
     toolbar->addAction(citiesVisibleAction);
 #endif
@@ -237,12 +255,16 @@ void MainWindow::setupUI()
     globeViewAction->setCheckable(true);
     globeViewAction->setToolTip("Switch between flat Mercator map and orthographic globe view.");
 
+#ifndef EARTHVIEW_HAS_MAP_CONTROLS
     QMenu* fileMenu = menuBar()->addMenu("File");
     fileMenu->addAction(loadBordersAction);
+#endif
 
     QMenu* viewMenu = menuBar()->addMenu("View");
     viewMenu->addAction(texturesVisibleAction);
+#ifndef EARTHVIEW_HAS_MAP_CONTROLS
     viewMenu->addAction(bordersVisibleAction);
+#endif
     viewMenu->addAction(gridVisibleAction);
     viewMenu->addAction(citiesVisibleAction);
     viewMenu->addAction(terrainVisibleAction);
@@ -341,8 +363,6 @@ void MainWindow::setupUI()
         &MapControlsModel::setHillshadeVisible, &MapControlsModel::hillshadeVisibleChanged);
     bindLayerAction(citiesVisibleAction, mapControls,
         &MapControlsModel::setCitiesVisible, &MapControlsModel::citiesVisibleChanged);
-    bindLayerAction(bordersVisibleAction, mapControls,
-        &MapControlsModel::setBordersVisible, &MapControlsModel::bordersVisibleChanged);
     bindLayerAction(gridVisibleAction, mapControls,
         &MapControlsModel::setGridVisible, &MapControlsModel::gridVisibleChanged);
 #endif

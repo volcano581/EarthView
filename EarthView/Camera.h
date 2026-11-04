@@ -87,6 +87,7 @@ private:
     void updateMatrices();
     void clampCenter();
     double calculateResolution() const;
+    QRectF computeVisibleMercatorExtent() const;
 
 private:
     QPointF m_centerMercator;
@@ -98,6 +99,10 @@ private:
     ProjectionMode m_projectionMode;
     mutable double m_cachedResolution;
     mutable bool m_cacheValid;
+    // getVisibleMercatorExtent() samples hundreds of points on the globe and is asked for by
+    // every loader each frame: kept until the view changes (updateMatrices()).
+    mutable QRectF m_cachedExtent;
+    mutable bool m_extentValid = false;
 
     QMatrix4x4 m_projectionMatrix;
     QMatrix4x4 m_viewMatrix;

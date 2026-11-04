@@ -3,6 +3,7 @@
 #include "Constants.h"
 #include "DemLoader.h"
 #include "FrameProfiler.h"
+#include "MercatorProjection.h"
 #include "ShaderUtils.h"
 
 #include <QDebug>
@@ -343,6 +344,13 @@ void TerrainRenderer::render()
     m_program.setUniformValue("u_worldOffset", 0.0f);
     m_program.setUniformValue("u_heightTexture", 0);
     m_program.setUniformValue("u_opacity", 1.0f);
+    // On the globe the mesh is projected in the shader (it used to be drawn flat).
+    const QPointF centerLatLon = MercatorProjection::mercatorToLatLon(
+        m_camera->getCenterMercator().x(), m_camera->getCenterMercator().y());
+    m_program.setUniformValue("u_projection", m_camera->isOrthographic() ? 1 : 0);
+    m_program.setUniformValue("u_centerLatLon",
+        QVector2D(float(qDegreesToRadians(centerLatLon.x())), float(qDegreesToRadians(centerLatLon.y()))));
+    m_program.setUniformValue("u_radius", float(m_camera->getOrthographicRadius()));
 
     f->glActiveTexture(GL_TEXTURE0);
     for (auto it = m_demLoader->activeTiles().begin(); it != m_demLoader->activeTiles().end(); ++it) {

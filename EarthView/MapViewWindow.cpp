@@ -92,7 +92,9 @@ void MapViewWindow::setupToolbar()
 
     QAction* loadBordersAction = new QAction("Load Borders...", this);
     toolbar->addSeparator();
+#ifndef EARTHVIEW_HAS_MAP_CONTROLS  // Boundaries come from the OSM map there.
     toolbar->addAction(loadBordersAction);
+#endif
 
     QAction* texturesVisibleAction = new QAction("Textures", this);
     texturesVisibleAction->setCheckable(true);
@@ -117,7 +119,7 @@ void MapViewWindow::setupToolbar()
 
     QAction* citiesVisibleAction = new QAction("Cities", this);
     citiesVisibleAction->setCheckable(true);
-    citiesVisibleAction->setChecked(true);
+    citiesVisibleAction->setChecked(m_mapWidget->areCitiesVisible());
 #ifndef EARTHVIEW_HAS_MAP_CONTROLS  // In the layers panel instead.
     toolbar->addAction(citiesVisibleAction);
 #endif

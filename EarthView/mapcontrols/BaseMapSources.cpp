@@ -57,15 +57,20 @@ QString BaseMapSources::labelFor(const MapSourceCatalog::Source& source,
 
 QVariantList BaseMapSources::entries(const QList<MapSourceCatalog::Source>& sources)
 {
+    // "thumbnail": the live picture of the source (image://maplayers/base/<i>), "icon" the drawn
+    // one shown until it is there.
     QVariantList list;
     if (sources.isEmpty()) {
         list.append(QVariantMap{ { "label", QStringLiteral("OSM (online)") },
-                                 { "icon", QStringLiteral("thumb_osm") } });
+                                 { "icon", QStringLiteral("thumb_osm") },
+                                 { "thumbnail", QStringLiteral("base/0") } });
         return list;
     }
-    for (const MapSourceCatalog::Source& source : sources) {
+    for (int i = 0; i < sources.size(); ++i) {
+        const MapSourceCatalog::Source& source = sources.at(i);
         list.append(QVariantMap{ { "label", labelFor(source, sources) },
-                                 { "icon", iconFor(source) } });
+                                 { "icon", iconFor(source) },
+                                 { "thumbnail", QStringLiteral("base/%1").arg(i) } });
     }
     return list;
 }

@@ -10,6 +10,7 @@
 #include <QTimer>
 
 class Camera;
+class QOpenGLWidget;
 
 /**
  * @brief Smooth (eased) zoom and inertial pan for a 2D Camera.
@@ -25,6 +26,11 @@ class SmoothNavigator : public QObject
 
 public:
     explicit SmoothNavigator(Camera* camera, QObject* parent = nullptr);
+
+    /// Steps the animation once per frame @p widget presents, instead of on a timer that beats
+    /// against the display refresh (two steps in one frame, one in the next: judder). The
+    /// timer stays as a slow fallback for when no frames come (hidden map). Null: timer only.
+    void setFrameSource(QOpenGLWidget* widget);
 
     /// Adds @p levels to the zoom target, anchored at @p anchor (screen px; null = centre).
     void zoomBy(double levels, const QPointF& anchor = QPointF());
@@ -43,10 +49,13 @@ public:
 
 private:
     void tick();
+    void onTimer();
     void ensureRunning();
 
 private:
     QPointer<Camera> m_camera;
+    QPointer<QOpenGLWidget> m_frameSource;
+    QMetaObject::Connection m_frameConnection;
     QTimer m_timer;
     QElapsedTimer m_clock;
     qint64 m_lastTickMs;

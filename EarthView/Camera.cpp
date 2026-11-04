@@ -232,6 +232,15 @@ double Camera::getOrthographicRadius() const
 
 QRectF Camera::getVisibleMercatorExtent() const
 {
+    if (m_extentValid)
+        return m_cachedExtent;
+    m_cachedExtent = computeVisibleMercatorExtent();
+    m_extentValid = true;
+    return m_cachedExtent;
+}
+
+QRectF Camera::computeVisibleMercatorExtent() const
+{
     if (isOrthographic()) {
         const int samplesPerAxis = 16;
         const int perimeterSamples = 128;
@@ -350,6 +359,8 @@ double Camera::getResolution() const
 
 void Camera::updateMatrices()
 {
+    // Every change of the view comes through here.
+    m_extentValid = false;
     m_projectionMatrix.setToIdentity();
     m_projectionMatrix.ortho(
         0.0f,

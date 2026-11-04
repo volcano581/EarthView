@@ -36,6 +36,11 @@ private:
     Camera* m_camera;
     TmsLoader* m_tileLoader;
     QOpenGLShaderProgram m_tileProgram;
+    // Orthographic globe: one grid over a tile, projected per tile in textured_globe.vert.
+    QOpenGLShaderProgram m_globeProgram;
+    GLuint m_gridVao;
+    GLuint m_gridVbo;
+    GLsizei m_gridVertexCount;
     StreamingBuffer m_vertexBuffer;
     GLuint m_vao;
     bool m_gpuResourcesInitialized;

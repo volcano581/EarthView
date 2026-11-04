@@ -8,6 +8,7 @@
 #include <QSet>
 #include <QPointF>
 #include <QString>
+#include <QStringList>
 #include <QVariant>
 #include <QVector>
 
@@ -20,9 +21,13 @@ struct MbTilesMetadata {
     QString scheme = "tms";
     int minZoom = 0;
     int maxZoom = 0;
+    /// Vector files: the layer ids of the `json` metadata row's "vector_layers" (water,
+    /// transportation, place, ...). Empty when the file does not list them.
+    QStringList vectorLayers;
 };
 
 struct MbTilesVectorFeature {
+    quint64 id = 0;    ///< MVT feature id (0 = none); the same object in neighbouring tiles shares it
     int type = 0;
     QHash<QString, QVariant> tags;
     QVector<QVector<QPointF>> paths;
@@ -59,7 +64,7 @@ private:
 };
 
 /**
- * @brief Reads MBTiles (SQLite) files, local or on a network share.
+ * @brief Reads MBTiles (SQLite) files, local, on a network share or on a web server.
  *
  * Tile reads keep one read-only connection per thread and file open for the thread's
  * lifetime, so a large file (tens of GB, e.g. on a share served by the imagery server) is not
@@ -67,6 +72,10 @@ private:
  * them in its page cache. The file is opened `immutable` (no locking round trips over SMB).
  * Run reads on threadPool(), whose threads live as long as the process, so the connections
  * are reused.
+ *
+ * An http(s) URL instead of a path is read with range requests (RemoteMbTiles): the same
+ * calls, the same results. Vector tiles can also come straight from a tile server
+ * (readVectorTileFromUrl()).
  */
 class MbTilesReader
 {
@@ -77,6 +86,8 @@ public:
     static QString immutableUri(const QString& filePath);
 
     static bool isVectorFormat(const QString& format);
+    /// Layer ids of a TileJSON / MBTiles `json` document's "vector_layers".
+    static QStringList vectorLayerIds(const QByteArray& json);
     static MbTilesMetadata readMetadata(const QString& filePath, QString* errorMessage = nullptr);
     static MbTilesVectorTile readVectorTile(
         const QString& filePath,
@@ -85,6 +96,17 @@ public:
         int y,
         bool tmsYOrigin,
         QString* errorMessage = nullptr);
+    /// Vector tile from a tile server: @p urlTemplate with {z}/{x}/{y}. A missing tile (404,
+    /// 204) is an empty tile, not an error.
+    static MbTilesVectorTile readVectorTileFromUrl(
+        const QString& urlTemplate,
+        int z,
+        int x,
+        int y,
+        bool tmsYOrigin,
+        QString* errorMessage = nullptr);
+    /// Decodes a Mapbox Vector Tile (gzip or plain protobuf).
+    static MbTilesVectorTile decodeVectorTile(const QByteArray& data, QString* errorMessage = nullptr);
     static QImage readTileImage(
         const QString& filePath,
         int z,

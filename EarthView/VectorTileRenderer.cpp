@@ -2,453 +2,60 @@
 #include "Camera.h"
 #include "Constants.h"
 #include "FrameProfiler.h"
+#include "MapFeatures.h"
 #include "MercatorProjection.h"
 #include "ShaderUtils.h"
 
 #include <QApplication>
 #include <QColor>
 #include <QDebug>
-#include <QFont>
-#include <QFontMetrics>
+#include <QFontMetricsF>
 #include <QMetaObject>
 #include <QOpenGLContext>
 #include <QOpenGLExtraFunctions>
+#include <QOpenGLFramebufferObject>
 #include <QPointer>
 #include <QStringList>
 #include <QThreadPool>
 #include <QtGlobal>
-#include <QVector2D>
 #include <QtMath>
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <limits>
 
 namespace {
 
-    bool nearlyEqual(const QPointF& a, const QPointF& b)
-{
-    constexpr double epsilon = 1.0e-6;
-    return std::abs(a.x() - b.x()) <= epsilon
-        && std::abs(a.y() - b.y()) <= epsilon;
-}
+using LineVertex = LineBatchRenderer::LineVertex;
 
-    struct UnitVec3 {
-    double x = 0.0;
-    double y = 0.0;
-    double z = 0.0;
-};
+// Vector tiles are made for 512 px display (OpenMapTiles), so reading one zoom level coarser
+// than the 256 px raster grid keeps the same detail with a quarter of the tiles to read and
+// decode. Styling uses the displayed zoom (tile zoom + this offset).
+constexpr int kVectorTileZoomOffset = 1;
+// Cap on tiles kept from earlier views while new ones load.
+constexpr int kMaxRetainedTiles = 384;
+// Pick tolerances (screen px).
+constexpr double kPickPointRadius = 10.0;
+constexpr double kPickLineDistance = 6.0;
+// Longest straight piece kept in Mercator units (about 0.6 degree): on the globe a piece is a
+// straight line in the azimuthal projection, so long ones (tile edges at low zoom) are split.
+constexpr double kMaxSegment = 0.01;
+// Largest globe texture side.
+constexpr int kMaxGlobeTexture = 4096;
+
+bool nearlyEqual(const QPointF& a, const QPointF& b)
+{
+    constexpr double epsilon = 1.0e-9;
+    return std::abs(a.x() - b.x()) <= epsilon && std::abs(a.y() - b.y()) <= epsilon;
+}
 
 int openRingSize(const QVector<QPointF>& path)
 {
     int size = path.size();
-    while (size > 1 && nearlyEqual(path.at(size - 1), path.first())) {
+    while (size > 1 && nearlyEqual(path.at(size - 1), path.first()))
         --size;
-    }
     return size;
 }
-
-UnitVec3 latLonToUnitVec(double latDeg, double lonDeg)
-{
-    const double lat = qDegreesToRadians(latDeg);
-    const double lon = qDegreesToRadians(lonDeg);
-    const double cosLat = std::cos(lat);
-
-    return {
-        cosLat * std::cos(lon),
-        cosLat * std::sin(lon),
-        std::sin(lat)
-    };
-}
-
-double dot(const UnitVec3& a, const UnitVec3& b)
-{
-    return a.x * b.x + a.y * b.y + a.z * b.z;
-}
-
-UnitVec3 normalize(const UnitVec3& v)
-{
-    const double len = std::sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
-    if (len <= 0.0)
-        return {};
-    return { v.x / len, v.y / len, v.z / len };
-}
-
-UnitVec3 mercatorToUnitVec(const QPointF& mercator)
-{
-    const QPointF latLon = MercatorProjection::mercatorToLatLon(
-        mercator.x(),
-        mercator.y());
-
-    return latLonToUnitVec(latLon.x(), latLon.y());
-}
-
-QPointF unitVecToMercator(const UnitVec3& v)
-{
-    const UnitVec3 n = normalize(v);
-
-    const double lat = std::asin(qBound(-1.0, n.z, 1.0));
-    const double lon = std::atan2(n.y, n.x);
-
-    return MercatorProjection::latLonToMercator(
-        qRadiansToDegrees(lat),
-        qRadiansToDegrees(lon));
-}
-
-QPointF horizonIntersectionMercator(
-    const QPointF& aMercator,
-    const QPointF& bMercator,
-    const UnitVec3& viewCenter)
-{
-    const UnitVec3 a = mercatorToUnitVec(aMercator);
-    const UnitVec3 b = mercatorToUnitVec(bMercator);
-
-    const double da = dot(viewCenter, a);
-    const double db = dot(viewCenter, b);
-    const double denom = da - db;
-
-    if (std::abs(denom) <= 1.0e-12)
-        return aMercator;
-
-    const double t = qBound(0.0, da / denom, 1.0);
-
-    UnitVec3 p {
-        a.x + (b.x - a.x) * t,
-        a.y + (b.y - a.y) * t,
-        a.z + (b.z - a.z) * t
-    };
-
-    return unitVecToMercator(p);
-}
-
-QVector<QPointF> clipRingToVisibleHemisphere(
-    const QVector<QPointF>& ring,
-    const Camera* camera)
-{
-    QVector<QPointF> clipped;
-
-    if (!camera || ring.size() < 3)
-        return clipped;
-
-    const QPointF centerLatLon = MercatorProjection::mercatorToLatLon(
-        camera->getCenterMercator().x(),
-        camera->getCenterMercator().y());
-
-    const UnitVec3 viewCenter = latLonToUnitVec(
-        centerLatLon.x(),
-        centerLatLon.y());
-
-    const int ringSize = openRingSize(ring);
-    if (ringSize < 3)
-        return clipped;
-
-    constexpr double epsilon = 1.0e-10;
-
-    for (int i = 0; i < ringSize; ++i) {
-        const QPointF current = ring.at(i);
-        const QPointF next = ring.at((i + 1) % ringSize);
-
-        const double currentDot = dot(viewCenter, mercatorToUnitVec(current));
-        const double nextDot = dot(viewCenter, mercatorToUnitVec(next));
-
-        const bool currentVisible = currentDot >= -epsilon;
-        const bool nextVisible = nextDot >= -epsilon;
-
-        if (currentVisible && nextVisible) {
-            if (clipped.isEmpty() || !nearlyEqual(clipped.last(), next))
-                clipped.append(next);
-        }
-        else if (currentVisible && !nextVisible) {
-            const QPointF intersection =
-                horizonIntersectionMercator(current, next, viewCenter);
-
-            if (clipped.isEmpty() || !nearlyEqual(clipped.last(), intersection))
-                clipped.append(intersection);
-        }
-        else if (!currentVisible && nextVisible) {
-            const QPointF intersection =
-                horizonIntersectionMercator(current, next, viewCenter);
-
-            if (clipped.isEmpty() || !nearlyEqual(clipped.last(), intersection))
-                clipped.append(intersection);
-
-            if (!nearlyEqual(clipped.last(), next))
-                clipped.append(next);
-        }
-    }
-
-    while (clipped.size() > 1 && nearlyEqual(clipped.last(), clipped.first())) {
-        clipped.removeLast();
-    }
-
-    return clipped;
-}
-using CoordinateMode = LineBatchRenderer::CoordinateMode;
-
-// Vector tiles are made for 512 px display (OpenMapTiles), so reading one zoom level coarser
-// than the 256 px raster grid keeps the same detail with a quarter of the tiles to read and
-// decode. Styling still uses the displayed zoom (tile zoom + this offset).
-constexpr int kVectorTileZoomOffset = 1;
-// Cap on tiles kept from earlier views while new ones load.
-constexpr int kMaxRetainedTiles = 384;
-
-QString tagString(const MbTilesVectorFeature& feature, const QString& key)
-{
-    return feature.tags.value(key).toString();
-}
-
-QColor landColor(const QString& layerName, const MbTilesVectorFeature& feature)
-{
-    const QString klass = tagString(feature, QStringLiteral("class"));
-    if (layerName == QStringLiteral("park") || klass == QStringLiteral("park")
-        || klass == QStringLiteral("wood") || klass == QStringLiteral("forest")) {
-        return QColor(199, 224, 188, 210);
-    }
-    if (klass == QStringLiteral("grass") || klass == QStringLiteral("meadow")) {
-        return QColor(213, 232, 202, 210);
-    }
-    if (klass == QStringLiteral("industrial")) {
-        return QColor(231, 222, 217, 210);
-    }
-    return QColor(226, 229, 210, 205);
-}
-
-QColor baseLandColor()
-{
-    return QColor(226, 229, 210, 255);
-}
-
-QColor roadColor(const MbTilesVectorFeature& feature)
-{
-    const QString klass = tagString(feature, QStringLiteral("class"));
-    if (klass == QStringLiteral("motorway") || klass == QStringLiteral("trunk")) {
-        return QColor(232, 146, 83, 235);
-    }
-    if (klass == QStringLiteral("primary")) {
-        return QColor(238, 183, 92, 235);
-    }
-    if (klass == QStringLiteral("secondary") || klass == QStringLiteral("tertiary")) {
-        return QColor(245, 219, 132, 230);
-    }
-    if (klass == QStringLiteral("path") || klass == QStringLiteral("track")) {
-        return QColor(210, 205, 184, 220);
-    }
-    if (klass == QStringLiteral("rail")) {
-        return QColor(150, 145, 145, 210);
-    }
-    return QColor(250, 248, 235, 225);
-}
-
-QColor fillColorForFeature(const QString& layerName, const MbTilesVectorFeature& feature, int zoomLevel)
-{
-    if (feature.type != 3)
-        return QColor(0, 0, 0, 0);
-
-    if (layerName == QStringLiteral("water")) {
-        return QColor(91, 150, 190, 220);
-    }
-    if (layerName == QStringLiteral("landcover")
-        || layerName == QStringLiteral("landuse")
-        || layerName == QStringLiteral("park")) {
-        return landColor(layerName, feature);
-    }
-    if (layerName == QStringLiteral("building") && zoomLevel >= 13) {
-        return QColor(214, 205, 196, 190);
-    }
-    if (layerName == QStringLiteral("aeroway")) {
-        return QColor(220, 220, 216, 175);
-    }
-
-    return QColor(0, 0, 0, 0);
-}
-
-int fillDrawOrderForLayer(const QString& layerName)
-{
-    if (layerName == QStringLiteral("landcover")
-        || layerName == QStringLiteral("landuse")
-        || layerName == QStringLiteral("park")) {
-        return 10;
-    }
-    if (layerName == QStringLiteral("aeroway")) {
-        return 15;
-    }
-    if (layerName == QStringLiteral("water")) {
-        return 20;
-    }
-    if (layerName == QStringLiteral("building")) {
-        return 30;
-    }
-    return 25;
-}
-
-QColor lineColorForFeature(const QString& layerName, const MbTilesVectorFeature& feature, int zoomLevel)
-{
-    if (layerName == QStringLiteral("transportation")
-        || layerName == QStringLiteral("transportation_name")) {
-        return roadColor(feature);
-    }
-    if (layerName == QStringLiteral("waterway")) {
-        return QColor(86, 151, 192, 220);
-    }
-    if (layerName == QStringLiteral("boundary")) {
-        return QColor(130, 120, 120, 150);
-    }
-    if (layerName == QStringLiteral("building") && zoomLevel >= 14) {
-        return QColor(160, 150, 145, 130);
-    }
-    if (layerName == QStringLiteral("water")) {
-        return QColor(54, 116, 165, 135);
-    }
-    if (feature.type == 2) {
-        return QColor(150, 150, 140, 180);
-    }
-
-    return QColor(0, 0, 0, 0);
-}
-
-QString featureLabel(const MbTilesVectorFeature& feature)
-{
-    const QStringList keys = {
-        QStringLiteral("name"),
-        QStringLiteral("name:en"),
-        QStringLiteral("name_int"),
-        QStringLiteral("ref"),
-        QStringLiteral("housenumber")
-    };
-
-    for (const QString& key : keys) {
-        const QString text = tagString(feature, key).trimmed();
-        if (!text.isEmpty()) {
-            return text;
-        }
-    }
-
-    return QString();
-}
-
-bool labelLayerVisible(const QString& layerName, int zoomLevel)
-{
-    if (layerName == QStringLiteral("place"))
-        return zoomLevel >= 5;
-    if (layerName == QStringLiteral("transportation_name"))
-        return zoomLevel >= 12;
-    if (layerName == QStringLiteral("poi"))
-        return zoomLevel >= 15;
-
-    return false;
-}
-
-int maxVectorLabelsForZoom(int zoomLevel)
-{
-    if (zoomLevel < 8)
-        return 120;
-    if (zoomLevel < 12)
-        return 260;
-    if (zoomLevel < 15)
-        return 420;
-    return 650;
-}
-
-LineBatchRenderer::LineVertex coloredVertex(const QPointF& point, const QColor& color)
-{
-    return LineBatchRenderer::vertex(point.x(), point.y(), color);
-}
-
-void appendColoredQuad(
-    QVector<LineBatchRenderer::LineVertex>& vertices,
-    const QPointF& p00,
-    const QPointF& p10,
-    const QPointF& p11,
-    const QPointF& p01,
-    const QColor& color)
-{
-    vertices.append(coloredVertex(p00, color));
-    vertices.append(coloredVertex(p10, color));
-    vertices.append(coloredVertex(p11, color));
-    vertices.append(coloredVertex(p00, color));
-    vertices.append(coloredVertex(p11, color));
-    vertices.append(coloredVertex(p01, color));
-}
-
-void appendProjectedSegment(
-    QVector<LineBatchRenderer::LineVertex>& vertices,
-    const Camera* camera,
-    const QPointF& a,
-    const QPointF& b,
-    const QColor& color,
-    CoordinateMode mode)
-{
-    if (mode == CoordinateMode::Mercator) {
-        LineBatchRenderer::appendSegment(vertices, a, b, color);
-        return;
-    }
-
-    QPointF screenA;
-    QPointF screenB;
-    if (!camera
-        || !camera->projectMercatorToScreen(a, &screenA)
-        || !camera->projectMercatorToScreen(b, &screenB)) {
-        return;
-    }
-
-    LineBatchRenderer::appendSegment(vertices, screenA, screenB, color);
-}
-
-void appendProjectedTileBackground(
-    QVector<LineBatchRenderer::LineVertex>& vertices,
-    const Camera* camera,
-    const QRectF& bounds,
-    const QColor& color,
-    CoordinateMode mode)
-{
-    if (mode == CoordinateMode::Mercator) {
-        appendColoredQuad(
-            vertices,
-            bounds.topLeft(),
-            QPointF(bounds.right(), bounds.top()),
-            bounds.bottomRight(),
-            QPointF(bounds.left(), bounds.bottom()),
-            color);
-        return;
-    }
-
-    if (!camera)
-        return;
-
-    constexpr int subdivisions = 16;
-    const double left = bounds.left();
-    const double right = bounds.right();
-    const double top = bounds.top();
-    const double bottom = bounds.bottom();
-    for (int y = 0; y < subdivisions; ++y) {
-        const double v0 = y / static_cast<double>(subdivisions);
-        const double v1 = (y + 1) / static_cast<double>(subdivisions);
-        const double mercatorY0 = top + (bottom - top) * v0;
-        const double mercatorY1 = top + (bottom - top) * v1;
-
-        for (int x = 0; x < subdivisions; ++x) {
-            const double u0 = x / static_cast<double>(subdivisions);
-            const double u1 = (x + 1) / static_cast<double>(subdivisions);
-            const double mercatorX0 = left + (right - left) * u0;
-            const double mercatorX1 = left + (right - left) * u1;
-
-            QPointF p00;
-            QPointF p10;
-            QPointF p11;
-            QPointF p01;
-            if (!camera->projectMercatorToScreen(QPointF(mercatorX0, mercatorY0), &p00)
-                || !camera->projectMercatorToScreen(QPointF(mercatorX1, mercatorY0), &p10)
-                || !camera->projectMercatorToScreen(QPointF(mercatorX1, mercatorY1), &p11)
-                || !camera->projectMercatorToScreen(QPointF(mercatorX0, mercatorY1), &p01)) {
-                continue;
-            }
-
-            appendColoredQuad(vertices, p00, p10, p11, p01, color);
-        }
-    }
-}
-
-
-
 
 double signedRingArea(const QVector<QPointF>& path, int size)
 {
@@ -461,157 +68,190 @@ double signedRingArea(const QVector<QPointF>& path, int size)
     return area * 0.5;
 }
 
-// void appendProjectedWindingPath(
-//     QVector<LineBatchRenderer::LineVertex>& vertices,
-//     const Camera* camera,
-//     const QVector<QPointF>& mercatorPath,
-//     const QColor& color,
-//     CoordinateMode mode)
-// {
-//     const int ringSize = openRingSize(mercatorPath);
-//     if (ringSize < 3)
-//         return;
-
-//     // These edge fans are not drawn directly; front/back stencil ops turn them
-//     // into the MVT winding fill, so concave rings and holes cancel correctly.
-//     if (mode == CoordinateMode::Mercator) {
-//         const QPointF origin = mercatorPath.first();
-//         for (int i = 0; i < ringSize; ++i) {
-//             const QPointF& a = mercatorPath.at(i);
-//             const QPointF& b = mercatorPath.at((i + 1) % ringSize);
-//             if (nearlyEqual(a, b))
-//                 continue;
-
-//             vertices.append(coloredVertex(origin, color));
-//             vertices.append(coloredVertex(a, color));
-//             vertices.append(coloredVertex(b, color));
-//         }
-//         return;
-//     }
-
-//     if (!camera)
-//         return;
-
-//     const QPointF origin(
-//         camera->getViewportWidth() * 0.5,
-//         camera->getViewportHeight() * 0.5);
-//     for (int i = 0; i < ringSize; ++i) {
-//         QPointF a;
-//         QPointF b;
-//         if (!camera->projectMercatorToScreen(mercatorPath.at(i), &a)
-//             || !camera->projectMercatorToScreen(mercatorPath.at((i + 1) % ringSize), &b)
-//             || nearlyEqual(a, b)) {
-//             continue;
-//         }
-
-//         vertices.append(coloredVertex(origin, color));
-//         vertices.append(coloredVertex(a, color));
-//         vertices.append(coloredVertex(b, color));
-//     }
-// }
-
-void appendProjectedWindingPath(
-    QVector<LineBatchRenderer::LineVertex>& vertices,
-    const Camera* camera,
-    const QVector<QPointF>& mercatorPath,
-    const QColor& color,
-    CoordinateMode mode)
+QPointF tilePixelToMercator(const QPointF& point, const QRectF& bounds)
 {
-    const int ringSize = openRingSize(mercatorPath);
-    if (ringSize < 3)
-        return;
+    const double u = point.x() / static_cast<double>(GIS::TILE_SIZE);
+    const double v = point.y() / static_cast<double>(GIS::TILE_SIZE);
+    return QPointF(
+        bounds.left() + (bounds.right() - bounds.left()) * u,
+        bounds.top() + (bounds.bottom() - bounds.top()) * v);
+}
 
-    if (mode == CoordinateMode::Mercator) {
-        const QPointF origin = mercatorPath.first();
-        for (int i = 0; i < ringSize; ++i) {
-            const QPointF& a = mercatorPath.at(i);
-            const QPointF& b = mercatorPath.at((i + 1) % ringSize);
-            if (nearlyEqual(a, b))
-                continue;
+QPointF mercatorToTilePixel(const QPointF& mercator, const QRectF& bounds)
+{
+    return QPointF(
+        (mercator.x() - bounds.left()) / (bounds.right() - bounds.left()) * GIS::TILE_SIZE,
+        (mercator.y() - bounds.top()) / (bounds.bottom() - bounds.top()) * GIS::TILE_SIZE);
+}
 
-            vertices.append(coloredVertex(origin, color));
-            vertices.append(coloredVertex(a, color));
-            vertices.append(coloredVertex(b, color));
+/// True for a segment (tile pixels) that lies on or beyond one edge of the tile: a polygon's
+/// clip edge or the tile's buffer. The neighbouring tile draws its own part, and outlining clip
+/// edges would draw the tile grid across lakes and seas.
+bool outsideTileEdge(const QPointF& a, const QPointF& b)
+{
+    constexpr double low = 0.5;
+    constexpr double high = GIS::TILE_SIZE - 0.5;
+    return (a.x() <= low && b.x() <= low) || (a.x() >= high && b.x() >= high)
+        || (a.y() <= low && b.y() <= low) || (a.y() >= high && b.y() >= high);
+}
+
+/// Appends the points after @p a up to and including @p b, at most kMaxSegment apart.
+/// @p a is a copy: callers pass the last point of @p out, which appending may move.
+void appendSubdivided(QVector<QPointF>& out, const QPointF a, const QPointF b)
+{
+    const double length = std::hypot(b.x() - a.x(), b.y() - a.y());
+    const int pieces = qMax(1, int(std::ceil(length / kMaxSegment)));
+    for (int i = 1; i <= pieces; ++i)
+        out.append(a + (b - a) * (double(i) / pieces));
+}
+
+LineVertex coloredVertex(const QPointF& point, const QColor& color)
+{
+    return LineBatchRenderer::vertex(point.x(), point.y(), color);
+}
+
+/// Triangle fan around the ring's centre. The fans are not drawn directly: front/back stencil
+/// ops turn them into the non-zero winding fill, so concave rings and holes cancel (any origin
+/// gives the right fill; the centre keeps the triangles from overlapping much, which is what
+/// the GPU pays for).
+void appendWindingFan(QVector<LineVertex>& vertices, const QVector<QPointF>& ring, const QColor& color)
+{
+    QPointF origin;
+    for (const QPointF& point : ring)
+        origin += point;
+    origin /= qMax<qsizetype>(1, ring.size());
+    for (int i = 0; i < ring.size(); ++i) {
+        const QPointF& a = ring.at(i);
+        const QPointF& b = ring.at((i + 1) % ring.size());
+        if (nearlyEqual(a, b))
+            continue;
+        vertices.append(coloredVertex(origin, color));
+        vertices.append(coloredVertex(a, color));
+        vertices.append(coloredVertex(b, color));
+    }
+}
+
+QVector<LineVertex> coverVertices(float width, float height, const QColor& color)
+{
+    return {
+        LineBatchRenderer::vertex(0.0, 0.0, color), LineBatchRenderer::vertex(width, 0.0, color),
+        LineBatchRenderer::vertex(width, height, color), LineBatchRenderer::vertex(0.0, 0.0, color),
+        LineBatchRenderer::vertex(width, height, color), LineBatchRenderer::vertex(0.0, height, color)
+    };
+}
+
+quint64 fillKey(int drawOrder, const QColor& color)
+{
+    return (static_cast<quint64>(static_cast<quint32>(drawOrder)) << 32) | color.rgba();
+}
+
+QColor colorOfKey(quint64 key)
+{
+    return QColor::fromRgba(static_cast<QRgb>(key & 0xffffffffu));
+}
+
+QString tagString(const MbTilesVectorFeature& feature, const char* key)
+{
+    return feature.tags.value(QLatin1String(key)).toString();
+}
+
+QString featureLabel(const QString& layer, const MbTilesVectorFeature& feature)
+{
+    if (layer == QLatin1String("housenumber"))
+        return tagString(feature, "housenumber").trimmed();
+    static const char* kKeys[] = { "name", "name:en", "name_en", "name_int", "name:latin" };
+    for (const char* key : kKeys) {
+        const QString text = tagString(feature, key).trimmed();
+        if (!text.isEmpty())
+            return text;
+    }
+    return QString();
+}
+
+double distanceToSegment(const QPointF& p, const QPointF& a, const QPointF& b)
+{
+    const QPointF ab = b - a;
+    const double lengthSquared = QPointF::dotProduct(ab, ab);
+    double t = lengthSquared > 0.0 ? QPointF::dotProduct(p - a, ab) / lengthSquared : 0.0;
+    t = qBound(0.0, t, 1.0);
+    const QPointF closest = a + ab * t;
+    return std::hypot(p.x() - closest.x(), p.y() - closest.y());
+}
+
+/// Even-odd over every ring, so holes and multipolygons count right.
+bool insidePolygon(const QPointF& p, const QVector<QVector<QPointF>>& rings)
+{
+    bool inside = false;
+    for (const QVector<QPointF>& ring : rings) {
+        const int n = ring.size();
+        for (int i = 0, j = n - 1; i < n; j = i++) {
+            const QPointF& a = ring.at(i);
+            const QPointF& b = ring.at(j);
+            if ((a.y() > p.y()) != (b.y() > p.y())
+                && p.x() < (b.x() - a.x()) * (p.y() - a.y()) / (b.y() - a.y()) + a.x()) {
+                inside = !inside;
+            }
         }
-        return;
     }
-
-    if (!camera)
-    return;
-
-QVector<QPointF> clippedMercatorPath =
-    clipRingToVisibleHemisphere(mercatorPath, camera);
-
-const int clippedSize = openRingSize(clippedMercatorPath);
-if (clippedSize < 3)
-    return;
-
-QVector<QPointF> screenPath;
-screenPath.reserve(clippedSize);
-
-for (int i = 0; i < clippedSize; ++i) {
-    QPointF screenPoint;
-    if (!camera->projectMercatorToScreen(clippedMercatorPath.at(i), &screenPoint))
-        continue;
-
-    if (screenPath.isEmpty() || !nearlyEqual(screenPath.last(), screenPoint)) {
-        screenPath.append(screenPoint);
-    }
+    return inside;
 }
 
-const int screenSize = openRingSize(screenPath);
-if (screenSize < 3)
-    return;
-
-const QPointF origin = screenPath.first();
-
-for (int i = 0; i < screenSize; ++i) {
-    const QPointF& a = screenPath.at(i);
-    const QPointF& b = screenPath.at((i + 1) % screenSize);
-
-    if (nearlyEqual(a, b))
-        continue;
-
-    vertices.append(coloredVertex(origin, color));
-    vertices.append(coloredVertex(a, color));
-    vertices.append(coloredVertex(b, color));
-}
-}
-
-QVector<LineBatchRenderer::LineVertex> fillCoverVertices(int width, int height, const QColor& color)
+void setInstanceColor(VectorTileRenderer::LineInstance* instance, const QColor& color)
 {
-    QVector<LineBatchRenderer::LineVertex> vertices;
-    vertices.reserve(6);
-    vertices.append(LineBatchRenderer::vertex(0.0, 0.0, color));
-    vertices.append(LineBatchRenderer::vertex(width, 0.0, color));
-    vertices.append(LineBatchRenderer::vertex(width, height, color));
-    vertices.append(LineBatchRenderer::vertex(0.0, 0.0, color));
-    vertices.append(LineBatchRenderer::vertex(width, height, color));
-    vertices.append(LineBatchRenderer::vertex(0.0, height, color));
-    return vertices;
+    instance->color[0] = quint8(color.red());
+    instance->color[1] = quint8(color.green());
+    instance->color[2] = quint8(color.blue());
+    instance->color[3] = quint8(color.alpha());
 }
 
+/// Thick-line instances for one styled line along @p path (tile pixels).
+void appendLine(QVector<VectorTileRenderer::LineInstance>& out, const QVector<QPointF>& path, const QRectF& bounds,
+                const MapTheme::Line& line)
+{
+    double distance = 0.0;
+    for (int i = 1; i < path.size(); ++i) {
+        const QPointF a = path.at(i - 1);
+        const QPointF b = path.at(i);
+        const double length = std::hypot(b.x() - a.x(), b.y() - a.y());
+        if (length > 0.0 && !outsideTileEdge(a, b)) {
+            const QPointF ma = tilePixelToMercator(a, bounds);
+            const QPointF mb = tilePixelToMercator(b, bounds);
+            const double mercatorLength = std::hypot(mb.x() - ma.x(), mb.y() - ma.y());
+            const int pieces = qMax(1, int(std::ceil(mercatorLength / kMaxSegment)));
+            for (int piece = 0; piece < pieces; ++piece) {
+                const QPointF from = ma + (mb - ma) * (double(piece) / pieces);
+                const QPointF to = ma + (mb - ma) * (double(piece + 1) / pieces);
+                VectorTileRenderer::LineInstance instance;
+                instance.segment[0] = float(from.x());
+                instance.segment[1] = float(from.y());
+                instance.segment[2] = float(to.x());
+                instance.segment[3] = float(to.y());
+                instance.width[0] = line.width * 0.5f;
+                instance.width[1] = line.growth;
+                instance.width[2] = float(distance + length * piece / pieces);
+                instance.dash[0] = line.dash;
+                instance.dash[1] = line.gap;
+                setInstanceColor(&instance, line.color);
+                out.append(instance);
+            }
+        }
+        distance += length;
+    }
 }
 
-VectorTileRenderer::VectorTileRenderer(Camera* camera, QObject* parent)
+} // namespace
+
+VectorTileRenderer::VectorTileRenderer(Camera* camera, QObject* parent, Mode mode)
     : QObject(parent)
     , m_camera(camera)
-    , m_lineRenderer(new LineBatchRenderer(camera, this))
-    , m_fillVao(0)
-    , m_backgroundQuadVbo(0)
-    , m_backgroundVao(0)
-    , m_backgroundFirst(0)
-    , m_backgroundCount(0)
-    , m_fillViewportWidth(0)
-    , m_fillViewportHeight(0)
-    , m_batchResolution(0.0)
-    , m_coordinateMode(CoordinateMode::Mercator)
+    , m_mode(mode)
+    , m_theme(QStringLiteral("standard"))
+    , m_themeGeneration(0)
+    , m_quadVbo(0)
+    , m_coverVao(0)
+    , m_compositeVao(0)
+    , m_globeTarget(nullptr)
     , m_gpuResourcesInitialized(false)
-    , m_batchesDirty(true)
-    , m_fillBufferDirty(true)
-    , m_backgroundInstanceBufferDirty(true)
-    , m_hasBatchCameraState(false)
-    , m_batchWasOrthographic(false)
     , m_enabled(true)
     , m_requestGeneration(0)
 {
@@ -628,17 +268,18 @@ VectorTileRenderer::~VectorTileRenderer()
     if (!f)
         return;
 
-    m_fillBuffer.destroy();
-    if (m_fillVao) {
-        f->glDeleteVertexArrays(1, &m_fillVao);
-    }
-    if (m_backgroundQuadVbo) {
-        f->glDeleteBuffers(1, &m_backgroundQuadVbo);
-    }
-    m_backgroundInstanceBuffer.destroy();
-    if (m_backgroundVao) {
-        f->glDeleteVertexArrays(1, &m_backgroundVao);
-    }
+    for (const CachedTile& tile : std::as_const(m_tileCache))
+        releaseMesh(tile.mesh);
+    deleteReleasedMeshes();
+    m_coverBuffer.destroy();
+    m_compositeBuffer.destroy();
+    if (m_coverVao)
+        f->glDeleteVertexArrays(1, &m_coverVao);
+    if (m_compositeVao)
+        f->glDeleteVertexArrays(1, &m_compositeVao);
+    if (m_quadVbo)
+        f->glDeleteBuffers(1, &m_quadVbo);
+    delete m_globeTarget;
 }
 
 void VectorTileRenderer::setTileSourceLayers(const QList<TmsLoader::TileSourceLayer>& layers)
@@ -653,17 +294,74 @@ void VectorTileRenderer::setEnabled(bool enabled)
         return;
 
     m_enabled = enabled;
-    if (!m_enabled) {
+    if (!m_enabled)
         clearCache();
+}
+
+void VectorTileRenderer::setHiddenLayers(const QStringList& layers)
+{
+    const QSet<QString> hidden(layers.cbegin(), layers.cend());
+    if (hidden == m_hiddenLayers)
+        return;
+    m_hiddenLayers = hidden;
+    emit contentChanged();
+}
+
+void VectorTileRenderer::setTheme(const QString& themeId)
+{
+    const QString id = MapTheme::theme(themeId).id();
+    if (id == m_theme)
+        return;
+    m_theme = id;
+    ++m_themeGeneration;
+
+    // Restyle what is loaded from the decoded tiles, on the reader threads.
+    for (const QString& key : m_tileCache.keys())
+        restyleTile(key);
+    emit contentChanged();
+}
+
+void VectorTileRenderer::completeRestyle(const QString& key, const CachedTile& tile, quint64 themeGeneration)
+{
+    if (themeGeneration != m_themeGeneration)
+        return;
+    auto it = m_tileCache.find(key);
+    if (it == m_tileCache.end())
+        return;
+    releaseMesh(it->mesh);
+    it->mesh = tile.mesh;
+    it->labels = tile.labels;
+    emit contentChanged();
+}
+
+QStringList VectorTileRenderer::seenLayers() const
+{
+    return QStringList(m_seenLayers.cbegin(), m_seenLayers.cend());
+}
+
+void VectorTileRenderer::noteLayers(const MbTilesVectorTile& tile)
+{
+    bool grew = false;
+    for (const MbTilesVectorLayer& layer : tile.layers) {
+        if (!m_seenLayers.contains(layer.name)) {
+            m_seenLayers.insert(layer.name);
+            grew = true;
+        }
     }
+    if (grew)
+        emit layersDiscovered();
+}
+
+bool VectorTileRenderer::isLayerDrawn(const QString& layer) const
+{
+    return layer.isEmpty() || !m_hiddenLayers.contains(layer);
 }
 
 bool VectorTileRenderer::hasVectorLayers() const
 {
     for (const TmsLoader::TileSourceLayer& layer : m_layers) {
-        if (layer.sourceType == TmsLoader::TileSourceLayer::SourceType::VectorMbTiles) {
+        if (layer.sourceType == TmsLoader::TileSourceLayer::SourceType::VectorMbTiles)
             return true;
-        }
     }
     return false;
 }
@@ -674,135 +372,80 @@ void VectorTileRenderer::initializeGpuResources()
         return;
 
     QString errorMessage;
-    if (!ShaderUtils::loadProgram(
-            &m_screenFillProgram,
-            QStringLiteral("colored_2d.vert"),
-            QStringLiteral("colored_line.frag"),
-            &errorMessage)) {
-        qWarning() << errorMessage;
-        return;
-    }
-
-    if (!ShaderUtils::loadProgram(
-            &m_mercatorFillProgram,
-            QStringLiteral("colored_mercator.vert"),
-            QStringLiteral("colored_line.frag"),
-            &errorMessage)) {
-        qWarning() << errorMessage;
-        return;
-    }
-
-    if (!ShaderUtils::loadProgram(
-            &m_mercatorBackgroundProgram,
-            QStringLiteral("instanced_rect_mercator.vert"),
-            QStringLiteral("colored_line.frag"),
-            &errorMessage)) {
+    if (!ShaderUtils::loadProgram(&m_geometryProgram, QStringLiteral("vector_geometry.vert"),
+                                  QStringLiteral("colored_line.frag"), &errorMessage)
+        || !ShaderUtils::loadProgram(&m_screenProgram, QStringLiteral("colored_2d.vert"),
+                                     QStringLiteral("colored_line.frag"), &errorMessage)
+        || !ShaderUtils::loadProgram(&m_lineProgram, QStringLiteral("vector_line.vert"),
+                                     QStringLiteral("vector_line.frag"), &errorMessage)
+        || !ShaderUtils::loadProgram(&m_compositeProgram, QStringLiteral("globe_composite.vert"),
+                                     QStringLiteral("globe_composite.frag"), &errorMessage)) {
         qWarning() << errorMessage;
         return;
     }
 
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
     f->initializeOpenGLFunctions();
-    f->glGenVertexArrays(1, &m_fillVao);
-    if (!m_fillBuffer.initialize(GL_ARRAY_BUFFER))
+    f->glGetIntegerv(GL_MAX_TEXTURE_SIZE, &m_maxTextureSize);
+
+    static constexpr float quadCorners[] = { 0, -1, 1, -1, 1, 1, 0, -1, 1, 1, 0, 1 };
+    f->glGenBuffers(1, &m_quadVbo);
+    f->glBindBuffer(GL_ARRAY_BUFFER, m_quadVbo);
+    f->glBufferData(GL_ARRAY_BUFFER, sizeof(quadCorners), quadCorners, GL_STATIC_DRAW);
+    f->glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    if (!m_coverBuffer.initialize(GL_ARRAY_BUFFER) || !m_compositeBuffer.initialize(GL_ARRAY_BUFFER))
         return;
-    setupFillVertexArray();
-    f->glGenVertexArrays(1, &m_backgroundVao);
-    f->glGenBuffers(1, &m_backgroundQuadVbo);
-    if (!m_backgroundInstanceBuffer.initialize(GL_ARRAY_BUFFER))
-        return;
-    setupBackgroundInstanceArray();
+    f->glGenVertexArrays(1, &m_coverVao);
+    f->glGenVertexArrays(1, &m_compositeVao);
     m_gpuResourcesInitialized = true;
 }
 
-void VectorTileRenderer::setupFillVertexArray()
+void VectorTileRenderer::releaseMesh(const std::shared_ptr<TileMesh>& mesh)
 {
-    QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
-    f->glBindVertexArray(m_fillVao);
-    f->glBindBuffer(GL_ARRAY_BUFFER, m_fillBuffer.id());
-    f->glEnableVertexAttribArray(0);
-    f->glVertexAttribPointer(
-        0,
-        2,
-        GL_FLOAT,
-        GL_FALSE,
-        sizeof(LineBatchRenderer::LineVertex),
-        reinterpret_cast<void*>(offsetof(LineBatchRenderer::LineVertex, position)));
-    f->glEnableVertexAttribArray(1);
-    f->glVertexAttribPointer(
-        1,
-        4,
-        GL_FLOAT,
-        GL_FALSE,
-        sizeof(LineBatchRenderer::LineVertex),
-        reinterpret_cast<void*>(offsetof(LineBatchRenderer::LineVertex, color)));
-    f->glBindBuffer(GL_ARRAY_BUFFER, 0);
-    f->glBindVertexArray(0);
+    if (!mesh)
+        return;
+    for (GLuint buffer : { mesh->vbo, mesh->lineVbo }) {
+        if (buffer)
+            m_releasedBuffers.append(buffer);
+    }
+    for (GLuint vao : { mesh->vao, mesh->lineVao }) {
+        if (vao)
+            m_releasedVertexArrays.append(vao);
+    }
+    mesh->vbo = mesh->lineVbo = mesh->vao = mesh->lineVao = 0;
+    mesh->uploaded = false;
 }
 
-void VectorTileRenderer::setupBackgroundInstanceArray()
+void VectorTileRenderer::deleteReleasedMeshes()
 {
-    QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
-    static constexpr float quadVertices[] = {
-        0.0f, 0.0f,
-        1.0f, 0.0f,
-        1.0f, 1.0f,
-        0.0f, 0.0f,
-        1.0f, 1.0f,
-        0.0f, 1.0f
-    };
-
-    f->glBindVertexArray(m_backgroundVao);
-    f->glBindBuffer(GL_ARRAY_BUFFER, m_backgroundQuadVbo);
-    f->glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), quadVertices, GL_STATIC_DRAW);
-    f->glEnableVertexAttribArray(0);
-    f->glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), nullptr);
-
-    f->glBindBuffer(GL_ARRAY_BUFFER, m_backgroundInstanceBuffer.id());
-    f->glEnableVertexAttribArray(1);
-    f->glVertexAttribPointer(
-        1,
-        4,
-        GL_FLOAT,
-        GL_FALSE,
-        sizeof(BackgroundInstance),
-        reinterpret_cast<void*>(offsetof(BackgroundInstance, rect)));
-    f->glVertexAttribDivisor(1, 1);
-    f->glEnableVertexAttribArray(2);
-    f->glVertexAttribPointer(
-        2,
-        4,
-        GL_FLOAT,
-        GL_FALSE,
-        sizeof(BackgroundInstance),
-        reinterpret_cast<void*>(offsetof(BackgroundInstance, color)));
-    f->glVertexAttribDivisor(2, 1);
-
-    f->glBindBuffer(GL_ARRAY_BUFFER, 0);
-    f->glBindVertexArray(0);
+    if (m_releasedBuffers.isEmpty() && m_releasedVertexArrays.isEmpty())
+        return;
+    QOpenGLContext* context = QOpenGLContext::currentContext();
+    QOpenGLExtraFunctions* f = context ? context->extraFunctions() : nullptr;
+    if (!f)
+        return;
+    if (!m_releasedBuffers.isEmpty())
+        f->glDeleteBuffers(static_cast<GLsizei>(m_releasedBuffers.size()), m_releasedBuffers.constData());
+    if (!m_releasedVertexArrays.isEmpty())
+        f->glDeleteVertexArrays(static_cast<GLsizei>(m_releasedVertexArrays.size()), m_releasedVertexArrays.constData());
+    m_releasedBuffers.clear();
+    m_releasedVertexArrays.clear();
 }
 
 void VectorTileRenderer::clearCache()
 {
     ++m_requestGeneration;
+    ++m_themeGeneration;  // pending restyles are for tiles that are going
+    for (const CachedTile& tile : std::as_const(m_tileCache))
+        releaseMesh(tile.mesh);
     m_tileCache.clear();
     m_visibleKeys.clear();
     m_pendingTileReads.clear();
     m_retainedKeys.clear();
+    m_labelHits.clear();
     if (m_wantedTiles)
         m_wantedTiles->clear();
-    m_backgroundInstances.clear();
-    m_backgroundFillVertices.clear();
-    m_fillBatches.clear();
-    m_fillUploadVertices.clear();
-    m_fillDraws.clear();
-    m_lineVertices.clear();
-    m_backgroundFirst = 0;
-    m_backgroundCount = 0;
-    m_batchesDirty = true;
-    m_fillBufferDirty = true;
-    m_backgroundInstanceBufferDirty = true;
-    m_hasBatchCameraState = false;
 }
 
 QList<int> VectorTileRenderer::vectorLayerIndicesForZoom(int zoomLevel) const
@@ -813,15 +456,17 @@ QList<int> VectorTileRenderer::vectorLayerIndicesForZoom(int zoomLevel) const
         if (layer.sourceType != TmsLoader::TileSourceLayer::SourceType::VectorMbTiles)
             continue;
 
-        const bool displayZoomMatches = zoomLevel >= layer.minZoom && zoomLevel <= layer.maxZoom;
+        // A negative bound means "not given".
+        const int minZoom = layer.minZoom >= 0 ? layer.minZoom : 0;
+        const int maxZoom = layer.maxZoom >= 0 ? layer.maxZoom : GIS::MAX_TILE_ZOOM;
+        const bool displayZoomMatches = zoomLevel >= minZoom && zoomLevel <= maxZoom;
         const bool canUseAsLowerResolutionUnderlay =
-            zoomLevel > layer.maxZoom
+            zoomLevel > maxZoom
             && zoomLevel > layer.maxTileZoom
             && layer.maxTileZoom >= layer.minTileZoom;
 
-        if (displayZoomMatches || canUseAsLowerResolutionUnderlay) {
+        if (displayZoomMatches || canUseAsLowerResolutionUnderlay)
             indices.append(i);
-        }
     }
 
     std::sort(indices.begin(), indices.end(), [this, zoomLevel](int a, int b) {
@@ -829,7 +474,6 @@ QList<int> VectorTileRenderer::vectorLayerIndicesForZoom(int zoomLevel) const
         const int zoomB = tileZoomForLayer(zoomLevel, b);
         if (zoomA != zoomB)
             return zoomA < zoomB;
-
         return a < b;
     });
 
@@ -844,10 +488,8 @@ int VectorTileRenderer::tileZoomForLayer(int zoomLevel, int layerIndex) const
     const TmsLoader::TileSourceLayer& layer = m_layers.at(layerIndex);
     int minTileZoom = qBound(0, layer.minTileZoom, GIS::MAX_TILE_ZOOM);
     int maxTileZoom = qBound(0, layer.maxTileZoom, GIS::MAX_TILE_ZOOM);
-    if (minTileZoom > maxTileZoom) {
+    if (minTileZoom > maxTileZoom)
         std::swap(minTileZoom, maxTileZoom);
-    }
-
     return qBound(minTileZoom, zoomLevel, maxTileZoom);
 }
 
@@ -858,9 +500,8 @@ QString VectorTileRenderer::tileKey(int layerIndex, int z, int x, int y) const
 
 void VectorTileRenderer::updateVisibleTiles()
 {
-    if (!m_enabled || !m_camera) {
+    if (!m_enabled || !m_camera)
         return;
-    }
 
     const int cameraZoomLevel = qMax(0, m_camera->getTileZoomLevel() - kVectorTileZoomOffset);
     const QList<int> layerIndices = vectorLayerIndicesForZoom(cameraZoomLevel);
@@ -868,16 +509,12 @@ void VectorTileRenderer::updateVisibleTiles()
 
     constexpr qint64 maxTilesPerLayer = 2048;
     for (int layerIndex : layerIndices) {
-        const TmsLoader::TileSourceLayer& layer = m_layers.at(layerIndex);
         const int tileZoomLevel = tileZoomForLayer(cameraZoomLevel, layerIndex);
         const QRect tileRange = m_camera->getTileRange(tileZoomLevel);
         const qint64 requestedTileCount = static_cast<qint64>(tileRange.width()) * tileRange.height();
         if (tileRange.width() <= 0 || tileRange.height() <= 0 || requestedTileCount > maxTilesPerLayer) {
-            qWarning() << "Skipping vector tile update with excessive tile range"
-                       << tileRange
-                       << "at zoom" << tileZoomLevel
-                       << "for layer" << layerIndex
-                       << "count" << requestedTileCount;
+            qWarning() << "Skipping vector tile update with excessive tile range" << tileRange
+                       << "at zoom" << tileZoomLevel << "for layer" << layerIndex << "count" << requestedTileCount;
             continue;
         }
 
@@ -887,12 +524,12 @@ void VectorTileRenderer::updateVisibleTiles()
                 newVisibleKeys.insert(key);
                 if (m_tileCache.contains(key) || m_pendingTileReads.contains(key))
                     continue;
-
                 fetchVectorTile(layerIndex, tileZoomLevel, x, y);
             }
         }
     }
 
+    bool changed = false;
     if (newVisibleKeys != m_visibleKeys) {
         // Keep what was on screen until the new view's tiles are in.
         for (const QString& key : std::as_const(m_visibleKeys)) {
@@ -904,7 +541,7 @@ void VectorTileRenderer::updateVisibleTiles()
         if (m_retainedKeys.size() > kMaxRetainedTiles)
             m_retainedKeys.clear();
         m_visibleKeys = newVisibleKeys;
-        m_batchesDirty = true;
+        changed = true;
     }
 
     // Reads for tiles no longer in view are dropped before they reach the file.
@@ -920,21 +557,22 @@ void VectorTileRenderer::updateVisibleTiles()
     }
     if (m_pendingTileReads.isEmpty() && !m_retainedKeys.isEmpty()) {
         m_retainedKeys.clear();
-        m_batchesDirty = true;
+        changed = true;
     }
 
     QList<QString> keysToRemove;
     for (auto it = m_tileCache.cbegin(); it != m_tileCache.cend(); ++it) {
-        if (!m_visibleKeys.contains(it.key()) && !m_retainedKeys.contains(it.key())) {
+        if (!m_visibleKeys.contains(it.key()) && !m_retainedKeys.contains(it.key()))
             keysToRemove.append(it.key());
-        }
     }
-    if (!keysToRemove.isEmpty()) {
-        for (const QString& key : keysToRemove) {
-            m_tileCache.remove(key);
-        }
-        m_batchesDirty = true;
+    for (const QString& key : keysToRemove) {
+        releaseMesh(m_tileCache.value(key).mesh);
+        m_tileCache.remove(key);
+        changed = true;
     }
+
+    if (changed)
+        emit contentChanged();
 }
 
 void VectorTileRenderer::fetchVectorTile(int layerIndex, int z, int x, int y)
@@ -958,44 +596,195 @@ void VectorTileRenderer::fetchVectorTile(int layerIndex, int z, int x, int y)
 
     const int wrappedX = MercatorProjection::wrapTileX(x, z);
     const quint64 generation = m_requestGeneration;
+    const quint64 themeGeneration = m_themeGeneration;
+    const Mode mode = m_mode;
+    const QString themeId = m_theme;
     QPointer<VectorTileRenderer> renderer(this);
 
-    // Newest first; jobs for tiles that left the view return without reading.
-    MbTilesReader::threadPool()->start([renderer, wanted, key, layer, layerIndex, z, x, wrappedX, y, generation]() {
+    // Newest first; jobs for tiles that left the view return without reading. Decoding and the
+    // tile's geometry are done here too, off the UI thread.
+    MbTilesReader::threadPool()->start([renderer, wanted, key, layer, layerIndex, z, x, wrappedX, y, generation,
+                                        themeGeneration, mode, themeId]() {
         if (!wanted->contains(key))
             return;
         QString errorMessage;
-        const MbTilesVectorTile vectorTile = MbTilesReader::readVectorTile(
-            layer.mbTilesPath,
-            z,
-            wrappedX,
-            y,
-            layer.tmsYOrigin,
-            &errorMessage);
+        CachedTile cachedTile;
+        cachedTile.layerIndex = layerIndex;
+        cachedTile.z = z;
+        cachedTile.x = x;
+        cachedTile.y = y;
+        cachedTile.mercatorBounds = MercatorProjection::tileToMercatorBounds(z, x, y);
+        cachedTile.tile = layer.mbTilesPath.isEmpty()
+            ? MbTilesReader::readVectorTileFromUrl(layer.urlTemplate, z, wrappedX, y, layer.tmsYOrigin, &errorMessage)
+            : MbTilesReader::readVectorTile(layer.mbTilesPath, z, wrappedX, y, layer.tmsYOrigin, &errorMessage);
+        buildTileContent(&cachedTile, mode, themeId);
 
         if (!renderer)
             return;
-
         QMetaObject::invokeMethod(
             renderer.data(),
-            [renderer, key, vectorTile, errorMessage, layerIndex, z, x, y, generation]() {
-                if (!renderer)
-                    return;
-                renderer->completeVectorTileRead(key, vectorTile, errorMessage, layerIndex, z, x, y, generation);
+            [renderer, key, cachedTile, errorMessage, generation, themeGeneration]() {
+                if (renderer)
+                    renderer->completeVectorTileRead(key, cachedTile, errorMessage, generation, themeGeneration);
             },
             Qt::QueuedConnection);
     }, ++m_readPriority);
 }
 
+void VectorTileRenderer::buildTileContent(CachedTile* cachedTile, Mode mode, const QString& themeId)
+{
+    const MapTheme& theme = MapTheme::theme(themeId);
+    const bool overlay = mode == Mode::Overlay;
+    const int zoomLevel = cachedTile->z + kVectorTileZoomOffset;
+    const QRectF& bounds = cachedTile->mercatorBounds;
+    QMap<QPair<quint64, QString>, QVector<LineVertex>> fills;   // (draw order | colour, layer)
+    QMap<QString, QVector<LineVertex>> hairlines;              // layer
+    QMap<QPair<int, QString>, QVector<LineInstance>> lines;    // (draw order, layer)
+    auto labels = std::make_shared<QVector<LabelCandidate>>();
+
+    auto mercatorRing = [&bounds](const QVector<QPointF>& path, int size) {
+        QVector<QPointF> ring;
+        ring.reserve(size + 4);
+        ring.append(tilePixelToMercator(path.at(0), bounds));
+        for (int i = 1; i <= size; ++i)
+            appendSubdivided(ring, ring.last(), tilePixelToMercator(path.at(i % size), bounds));
+        ring.removeLast();  // back at the first point
+        return ring;
+    };
+
+    if (!overlay) {
+        // The map's land under everything: the tile's square as an area, edges split for the globe.
+        const QVector<QPointF> square = { QPointF(0, 0), QPointF(GIS::TILE_SIZE, 0),
+                                          QPointF(GIS::TILE_SIZE, GIS::TILE_SIZE), QPointF(0, GIS::TILE_SIZE) };
+        appendWindingFan(fills[{ fillKey(0, theme.background()), QString() }], mercatorRing(square, 4),
+                         theme.background());
+    }
+
+    for (int layerIndex = 0; layerIndex < cachedTile->tile.layers.size(); ++layerIndex) {
+        const MbTilesVectorLayer& layer = cachedTile->tile.layers.at(layerIndex);
+        const bool labelled = MapTheme::isLabelLayer(layer.name);
+
+        for (int featureIndex = 0; featureIndex < layer.features.size(); ++featureIndex) {
+            const MbTilesVectorFeature& feature = layer.features.at(featureIndex);
+            if (feature.paths.isEmpty() || feature.paths.first().isEmpty())
+                continue;
+
+            if (labelled) {
+                const QString text = featureLabel(layer.name, feature);
+                if (!text.isEmpty()) {
+                    LabelCandidate candidate;
+                    candidate.text = text;
+                    candidate.layer = layer.name;
+                    candidate.klass = tagString(feature, "class");
+                    bool rankOk = false;
+                    candidate.rank = feature.tags.value(QStringLiteral("rank")).toInt(&rankOk);
+                    if (!rankOk)
+                        candidate.rank = -1;
+                    candidate.layerIndex = layerIndex;
+                    candidate.featureIndex = featureIndex;
+                    if (feature.type == 2) {
+                        // The longest straight piece inside the tile carries the name.
+                        double best = 0.0;
+                        for (const QVector<QPointF>& path : feature.paths) {
+                            for (int i = 1; i < path.size(); ++i) {
+                                const double length = std::hypot(path.at(i).x() - path.at(i - 1).x(),
+                                                                 path.at(i).y() - path.at(i - 1).y());
+                                if (length > best && !outsideTileEdge(path.at(i - 1), path.at(i))) {
+                                    best = length;
+                                    candidate.lineFrom = tilePixelToMercator(path.at(i - 1), bounds);
+                                    candidate.lineTo = tilePixelToMercator(path.at(i), bounds);
+                                }
+                            }
+                        }
+                        if (best <= 0.0)
+                            continue;
+                        candidate.hasLine = true;
+                        candidate.mercator = (candidate.lineFrom + candidate.lineTo) * 0.5;
+                    }
+                    else if (feature.type == 1) {
+                        const QPointF point = feature.paths.first().first();
+                        if (point.x() < 0 || point.y() < 0 || point.x() > GIS::TILE_SIZE || point.y() > GIS::TILE_SIZE)
+                            continue;  // in the buffer: the neighbouring tile has it
+                        candidate.mercator = tilePixelToMercator(point, bounds);
+                    }
+                    else {
+                        QPointF sum;
+                        const QVector<QPointF>& ring = feature.paths.first();
+                        for (const QPointF& point : ring)
+                            sum += point;
+                        candidate.mercator = tilePixelToMercator(sum / ring.size(), bounds);
+                    }
+                    labels->append(candidate);
+                }
+            }
+
+            const MapTheme::FeatureStyle style = theme.featureStyle(layer.name, feature.tags, feature.type, zoomLevel, overlay);
+            if (style.fill.alpha() > 0 && feature.type == 3) {
+                QVector<LineVertex>& vertices = fills[{ fillKey(style.fillOrder, style.fill), layer.name }];
+                for (const QVector<QPointF>& path : feature.paths) {
+                    const int pointCount = openRingSize(path);
+                    if (pointCount < 3 || std::abs(signedRingArea(path, pointCount)) <= 1.0e-6)
+                        continue;
+                    appendWindingFan(vertices, mercatorRing(path, pointCount), style.fill);
+                }
+            }
+            if (style.outline.alpha() > 0 && feature.type == 3) {
+                QVector<LineVertex>& vertices = hairlines[layer.name];
+                for (const QVector<QPointF>& path : feature.paths) {
+                    for (int i = 1; i < path.size(); ++i) {
+                        if (outsideTileEdge(path.at(i - 1), path.at(i)))
+                            continue;
+                        QVector<QPointF> pieces{ tilePixelToMercator(path.at(i - 1), bounds) };
+                        appendSubdivided(pieces, pieces.first(), tilePixelToMercator(path.at(i), bounds));
+                        for (int p = 1; p < pieces.size(); ++p) {
+                            vertices.append(coloredVertex(pieces.at(p - 1), style.outline));
+                            vertices.append(coloredVertex(pieces.at(p), style.outline));
+                        }
+                    }
+                }
+            }
+            if (feature.type == 2 || feature.type == 3) {
+                for (const MapTheme::Line* line : { &style.casing, &style.line, &style.overline }) {
+                    if (!line->isVisible())
+                        continue;
+                    QVector<LineInstance>& instances = lines[{ line->order, layer.name }];
+                    for (const QVector<QPointF>& path : feature.paths)
+                        appendLine(instances, path, bounds, *line);
+                }
+            }
+        }
+    }
+
+    auto mesh = std::make_shared<TileMesh>();
+    for (auto it = fills.cbegin(); it != fills.cend(); ++it) {
+        if (it.value().isEmpty())
+            continue;
+        mesh->fills.append({ it.key().first, it.key().second, int(mesh->vertices.size()), int(it.value().size()) });
+        mesh->vertices += it.value();
+    }
+    for (auto it = hairlines.cbegin(); it != hairlines.cend(); ++it) {
+        if (it.value().isEmpty())
+            continue;
+        mesh->hairlines.append({ 0, it.key(), int(mesh->vertices.size()), int(it.value().size()) });
+        mesh->vertices += it.value();
+    }
+    for (auto it = lines.cbegin(); it != lines.cend(); ++it) {
+        if (it.value().isEmpty())
+            continue;
+        mesh->lineRanges.append({ quint64(it.key().first), it.key().second, int(mesh->lines.size()), int(it.value().size()) });
+        mesh->lines += it.value();
+    }
+
+    cachedTile->mesh = mesh;
+    cachedTile->labels = labels;
+}
+
 void VectorTileRenderer::completeVectorTileRead(
     const QString& key,
-    const MbTilesVectorTile& tile,
+    const CachedTile& tile,
     const QString& errorMessage,
-    int layerIndex,
-    int z,
-    int x,
-    int y,
-    quint64 generation)
+    quint64 generation,
+    quint64 themeGeneration)
 {
     if (generation != m_requestGeneration || !m_pendingTileReads.contains(key))
         return;
@@ -1005,440 +794,412 @@ void VectorTileRenderer::completeVectorTileRead(
         m_wantedTiles->remove(key);
     if (m_pendingTileReads.isEmpty() && !m_retainedKeys.isEmpty()) {
         // The new view is complete: let go of the old one.
-        for (const QString& retainedKey : std::as_const(m_retainedKeys))
+        for (const QString& retainedKey : std::as_const(m_retainedKeys)) {
+            releaseMesh(m_tileCache.value(retainedKey).mesh);
             m_tileCache.remove(retainedKey);
+        }
         m_retainedKeys.clear();
-        m_batchesDirty = true;
     }
 
-    if (!errorMessage.isEmpty() && !tile.isEmpty()) {
+    if (!errorMessage.isEmpty() && !tile.tile.isEmpty())
         qDebug() << errorMessage;
-    }
-    else if (!errorMessage.isEmpty()) {
+    else if (!errorMessage.isEmpty())
         qWarning() << errorMessage;
-    }
 
     if (!m_visibleKeys.contains(key))
         return;
 
-    CachedTile cachedTile;
-    cachedTile.layerIndex = layerIndex;
-    cachedTile.z = z;
-    cachedTile.x = x;
-    cachedTile.y = y;
-    cachedTile.mercatorBounds = MercatorProjection::tileToMercatorBounds(z, x, y);
-    cachedTile.tile = tile;
-    m_tileCache.insert(key, cachedTile);
-    m_batchesDirty = true;
+    m_tileCache.insert(key, tile);
+    noteLayers(tile.tile);
+    if (themeGeneration != m_themeGeneration)
+        restyleTile(key);  // the theme changed while the tile was being read
+    emit contentChanged();
 }
 
-QPointF VectorTileRenderer::tilePixelToMercator(const QPointF& point, const QRectF& bounds) const
+void VectorTileRenderer::restyleTile(const QString& key)
 {
-    const double u = point.x() / static_cast<double>(GIS::TILE_SIZE);
-    const double v = point.y() / static_cast<double>(GIS::TILE_SIZE);
-    const double left = bounds.left();
-    const double right = bounds.right();
-    const double top = bounds.top();
-    const double bottom = bounds.bottom();
-    return QPointF(
-        left + (right - left) * u,
-        top + (bottom - top) * v);
-}
-
-void VectorTileRenderer::rebuildBatches()
-{
-    if (!m_batchesDirty)
+    const auto it = m_tileCache.constFind(key);
+    if (it == m_tileCache.cend())
         return;
+    CachedTile tile = it.value();
+    const quint64 themeGeneration = m_themeGeneration;
+    const Mode mode = m_mode;
+    const QString themeId = m_theme;
+    QPointer<VectorTileRenderer> renderer(this);
+    MbTilesReader::threadPool()->start([renderer, tile, key, mode, themeId, themeGeneration]() mutable {
+        buildTileContent(&tile, mode, themeId);
+        if (!renderer)
+            return;
+        QMetaObject::invokeMethod(renderer.data(), [renderer, key, tile, themeGeneration]() {
+            if (renderer)
+                renderer->completeRestyle(key, tile, themeGeneration);
+        }, Qt::QueuedConnection);
+    }, ++m_readPriority);
+}
 
-    FrameProfiler::Scope rebuildScope(QStringLiteral("rebuild.vectorTiles"));
-    FrameProfiler::recordCount(QStringLiteral("vectorTiles.visibleTiles"), m_visibleKeys.size());
-
-    m_backgroundInstances.clear();
-    m_backgroundFillVertices.clear();
-    m_fillBatches.clear();
-    m_fillUploadVertices.clear();
-    m_fillDraws.clear();
-    m_lineVertices.clear();
-    m_backgroundFirst = 0;
-    m_backgroundCount = 0;
-
-    if (m_camera && m_camera->isOrthographic()) {
-        m_coordinateMode = CoordinateMode::Screen;
-    }
-    else {
-        m_coordinateMode = CoordinateMode::Mercator;
-    }
-    m_fillViewportWidth = m_camera ? m_camera->getViewportWidth() : 0;
-    m_fillViewportHeight = m_camera ? m_camera->getViewportHeight() : 0;
-
+QList<QString> VectorTileRenderer::drawOrderKeys() const
+{
     // Retained tiles of the previous view first, so the new view's tiles draw over them.
     QList<QString> keys = m_retainedKeys.values();
     std::sort(keys.begin(), keys.end());
     QList<QString> visibleKeys = m_visibleKeys.values();
     std::sort(visibleKeys.begin(), visibleKeys.end());
     keys.append(visibleKeys);
-
-    auto appendFillToBatch = [this](int drawOrder, const QColor& color, const QVector<QPointF>& mercatorPath) {
-        qsizetype batchIndex = -1;
-        for (qsizetype i = 0; i < m_fillBatches.size(); ++i) {
-            if (m_fillBatches.at(i).drawOrder == drawOrder && m_fillBatches.at(i).color == color) {
-                batchIndex = i;
-                break;
-            }
-        }
-        if (batchIndex < 0) {
-            FillBatch batch;
-            batch.color = color;
-            batch.drawOrder = drawOrder;
-            m_fillBatches.append(batch);
-            batchIndex = m_fillBatches.size() - 1;
-        }
-
-        appendProjectedWindingPath(
-            m_fillBatches[batchIndex].windingVertices,
-            m_camera,
-            mercatorPath,
-            color,
-            m_coordinateMode);
-    };
-
-    for (const QString& key : keys) {
-        const auto tileIt = m_tileCache.constFind(key);
-        if (tileIt == m_tileCache.cend())
-            continue;
-
-        const CachedTile& cachedTile = tileIt.value();
-        const int zoomLevel = cachedTile.z + kVectorTileZoomOffset;
-        if (m_coordinateMode == CoordinateMode::Mercator) {
-            BackgroundInstance instance;
-            instance.rect[0] = static_cast<float>(cachedTile.mercatorBounds.left());
-            instance.rect[1] = static_cast<float>(cachedTile.mercatorBounds.top());
-            instance.rect[2] = static_cast<float>(cachedTile.mercatorBounds.right());
-            instance.rect[3] = static_cast<float>(cachedTile.mercatorBounds.bottom());
-            const QColor color = baseLandColor();
-            instance.color[0] = static_cast<float>(color.redF());
-            instance.color[1] = static_cast<float>(color.greenF());
-            instance.color[2] = static_cast<float>(color.blueF());
-            instance.color[3] = static_cast<float>(color.alphaF());
-            m_backgroundInstances.append(instance);
-        }
-        else {
-            appendProjectedTileBackground(
-                m_backgroundFillVertices,
-                m_camera,
-                cachedTile.mercatorBounds,
-                baseLandColor(),
-                m_coordinateMode);
-        }
-
-        if (cachedTile.tile.isEmpty())
-            continue;
-
-        for (const MbTilesVectorLayer& layer : cachedTile.tile.layers) {
-            for (const MbTilesVectorFeature& feature : layer.features) {
-                const QColor fillColor = fillColorForFeature(layer.name, feature, zoomLevel);
-                if (fillColor.alpha() > 0 && feature.type == 3) {
-                    for (const QVector<QPointF>& path : feature.paths) {
-                        if (path.size() < 3)
-                            continue;
-
-                        QVector<QPointF> mercatorPath;
-                        const int pointCount = openRingSize(path);
-                        if (pointCount < 3 || std::abs(signedRingArea(path, pointCount)) <= 1.0e-6)
-                            continue;
-
-                        mercatorPath.reserve(pointCount);
-                        for (int i = 0; i < pointCount; ++i) {
-                            mercatorPath.append(tilePixelToMercator(path.at(i), cachedTile.mercatorBounds));
-                        }
-
-                        appendFillToBatch(fillDrawOrderForLayer(layer.name), fillColor, mercatorPath);
-                    }
-                }
-
-                const QColor lineColor = lineColorForFeature(layer.name, feature, zoomLevel);
-                if (lineColor.alpha() <= 0)
-                    continue;
-
-                if (feature.type == 2 || feature.type == 3) {
-                    for (const QVector<QPointF>& path : feature.paths) {
-                        if (path.size() < 2)
-                            continue;
-
-                        for (int i = 1; i < path.size(); ++i) {
-                            const QPointF previous = tilePixelToMercator(path.at(i - 1), cachedTile.mercatorBounds);
-                            const QPointF current = tilePixelToMercator(path.at(i), cachedTile.mercatorBounds);
-                            appendProjectedSegment(
-                                m_lineVertices,
-                                m_camera,
-                                previous,
-                                current,
-                                lineColor,
-                                m_coordinateMode);
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    std::sort(m_fillBatches.begin(), m_fillBatches.end(), [](const FillBatch& a, const FillBatch& b) {
-        if (a.drawOrder != b.drawOrder)
-            return a.drawOrder < b.drawOrder;
-        return a.color.rgba() < b.color.rgba();
-    });
-
-    if (!m_backgroundFillVertices.isEmpty()) {
-        m_backgroundFirst = m_fillUploadVertices.size();
-        m_backgroundCount = m_backgroundFillVertices.size();
-        m_fillUploadVertices += m_backgroundFillVertices;
-    }
-
-    for (const FillBatch& batch : m_fillBatches) {
-        if (batch.windingVertices.isEmpty())
-            continue;
-
-        FillDraw draw;
-        draw.color = batch.color;
-        draw.windingFirst = m_fillUploadVertices.size();
-        draw.windingCount = batch.windingVertices.size();
-        m_fillUploadVertices += batch.windingVertices;
-
-        const QVector<LineBatchRenderer::LineVertex> coverVertices =
-            fillCoverVertices(m_fillViewportWidth, m_fillViewportHeight, batch.color);
-        draw.coverFirst = m_fillUploadVertices.size();
-        draw.coverCount = coverVertices.size();
-        m_fillUploadVertices += coverVertices;
-        m_fillDraws.append(draw);
-    }
-
-    m_lineRenderer->setVertices(m_lineVertices);
-    FrameProfiler::recordCount(QStringLiteral("vectorTiles.lineVertices"), m_lineVertices.size());
-    FrameProfiler::recordCount(QStringLiteral("vectorTiles.fillVertices"), m_fillUploadVertices.size());
-    FrameProfiler::recordCount(QStringLiteral("vectorTiles.fillDraws"), m_fillDraws.size());
-    FrameProfiler::recordCount(QStringLiteral("vectorTiles.backgroundInstances"), m_backgroundInstances.size());
-
-    m_fillBufferDirty = true;
-    m_backgroundInstanceBufferDirty = true;
-    if (m_camera) {
-        m_batchCenterMercator = m_camera->getCenterMercator();
-        m_batchResolution = m_camera->getResolution();
-        m_batchWasOrthographic = m_camera->isOrthographic();
-        m_hasBatchCameraState = true;
-    }
-    m_batchesDirty = false;
+    return keys;
 }
 
-void VectorTileRenderer::bindFillProgram(QOpenGLShaderProgram* program, LineBatchRenderer::CoordinateMode mode)
+void VectorTileRenderer::uploadMesh(TileMesh* mesh)
 {
-    if (!program || !program->isLinked())
-        return;
-
-    program->bind();
-    program->setUniformValue(
-        "u_viewportSize",
-        QVector2D(
-            static_cast<float>(m_camera->getViewportWidth()),
-            static_cast<float>(m_camera->getViewportHeight())));
-
-    if (mode == CoordinateMode::Mercator) {
-        program->setUniformValue(
-            "u_centerMercator",
-            QVector2D(
-                static_cast<float>(m_camera->getCenterMercator().x()),
-                static_cast<float>(m_camera->getCenterMercator().y())));
-        program->setUniformValue(
-            "u_pixelsPerMercator",
-            static_cast<float>(GIS::EARTH_RADIUS / m_camera->getResolution()));
-    }
-}
-
-void VectorTileRenderer::drawInstancedBackground()
-{
-    if (m_backgroundInstances.isEmpty()
-        || m_coordinateMode != CoordinateMode::Mercator
-        || !m_mercatorBackgroundProgram.isLinked()) {
-        return;
-    }
-
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
-    m_mercatorBackgroundProgram.bind();
-    m_mercatorBackgroundProgram.setUniformValue(
-        "u_viewportSize",
-        QVector2D(
-            static_cast<float>(m_camera->getViewportWidth()),
-            static_cast<float>(m_camera->getViewportHeight())));
-    m_mercatorBackgroundProgram.setUniformValue(
-        "u_centerMercator",
-        QVector2D(
-            static_cast<float>(m_camera->getCenterMercator().x()),
-            static_cast<float>(m_camera->getCenterMercator().y())));
-    m_mercatorBackgroundProgram.setUniformValue(
-        "u_pixelsPerMercator",
-        static_cast<float>(GIS::EARTH_RADIUS / m_camera->getResolution()));
+    FrameProfiler::Scope uploadScope(QStringLiteral("upload.vectorTileMesh"));
+    FrameProfiler::recordCount(QStringLiteral("upload.vectorTileMesh.vertices"), mesh->vertices.size());
+    FrameProfiler::recordCount(QStringLiteral("upload.vectorTileMesh.lines"), mesh->lines.size());
 
-    f->glBindVertexArray(m_backgroundVao);
-    if (m_backgroundInstanceBufferDirty) {
-        FrameProfiler::Scope uploadScope(QStringLiteral("upload.vectorBackgroundInstances"));
-        FrameProfiler::recordCount(QStringLiteral("upload.vectorBackgroundInstances.instances"), m_backgroundInstances.size());
-        FrameProfiler::recordCount(
-            QStringLiteral("upload.vectorBackgroundInstances.bytes"),
-            m_backgroundInstances.size() * static_cast<qsizetype>(sizeof(BackgroundInstance)));
-        const StreamingBuffer::UploadResult upload = m_backgroundInstanceBuffer.upload(
-            m_backgroundInstances.constData(),
-            m_backgroundInstances.size() * static_cast<qsizetype>(sizeof(BackgroundInstance)),
-            GL_DYNAMIC_DRAW);
-        if (!upload.ok) {
-            f->glBindVertexArray(0);
-            m_mercatorBackgroundProgram.release();
-            return;
-        }
-        if (upload.bufferRecreated) {
-            setupBackgroundInstanceArray();
-            f->glBindVertexArray(m_backgroundVao);
-        }
-        m_backgroundInstanceBufferDirty = false;
+    if (!mesh->vertices.isEmpty()) {
+        f->glGenVertexArrays(1, &mesh->vao);
+        f->glGenBuffers(1, &mesh->vbo);
+        f->glBindVertexArray(mesh->vao);
+        f->glBindBuffer(GL_ARRAY_BUFFER, mesh->vbo);
+        f->glBufferData(GL_ARRAY_BUFFER, mesh->vertices.size() * qsizetype(sizeof(LineVertex)),
+                        mesh->vertices.constData(), GL_STATIC_DRAW);
+        f->glEnableVertexAttribArray(0);
+        f->glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(LineVertex),
+                                 reinterpret_cast<void*>(offsetof(LineVertex, position)));
+        f->glEnableVertexAttribArray(1);
+        f->glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(LineVertex),
+                                 reinterpret_cast<void*>(offsetof(LineVertex, color)));
     }
-    f->glDrawArraysInstanced(
-        GL_TRIANGLES,
-        0,
-        6,
-        static_cast<GLsizei>(m_backgroundInstances.size()));
-    FrameProfiler::recordCount(QStringLiteral("draw.calls"));
-    FrameProfiler::recordCount(QStringLiteral("draw.vectorBackground.instances"), m_backgroundInstances.size());
+    if (!mesh->lines.isEmpty()) {
+        f->glGenVertexArrays(1, &mesh->lineVao);
+        f->glGenBuffers(1, &mesh->lineVbo);
+        f->glBindVertexArray(mesh->lineVao);
+        f->glBindBuffer(GL_ARRAY_BUFFER, m_quadVbo);
+        f->glEnableVertexAttribArray(0);
+        f->glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), nullptr);
+        f->glBindBuffer(GL_ARRAY_BUFFER, mesh->lineVbo);
+        f->glBufferData(GL_ARRAY_BUFFER, mesh->lines.size() * qsizetype(sizeof(LineInstance)),
+                        mesh->lines.constData(), GL_STATIC_DRAW);
+        for (GLuint location = 1; location <= 4; ++location) {
+            f->glEnableVertexAttribArray(location);
+            f->glVertexAttribDivisor(location, 1);
+        }
+    }
+    f->glBindBuffer(GL_ARRAY_BUFFER, 0);
     f->glBindVertexArray(0);
-    m_mercatorBackgroundProgram.release();
+    // The GPU has them now; picking reads the decoded tile.
+    mesh->vertices = QVector<LineVertex>();
+    mesh->lines = QVector<LineInstance>();
+    mesh->uploaded = true;
 }
 
-void VectorTileRenderer::drawFillBatch()
+void VectorTileRenderer::setProjectionUniforms(QOpenGLShaderProgram* program, const Projection& projection) const
 {
-    if (m_backgroundInstances.isEmpty() && m_fillUploadVertices.isEmpty())
-        return;
+    program->setUniformValue("u_viewportSize", projection.viewport);
+    program->setUniformValue("u_projection", projection.mode);
+    program->setUniformValue("u_centerMercator", projection.centerMercator);
+    program->setUniformValue("u_pixelsPerMercator", projection.pixelsPerMercator);
+    program->setUniformValue("u_centerLatLon", projection.centerLatLon);
+    program->setUniformValue("u_aeBounds", projection.aeBounds);
+}
 
+void VectorTileRenderer::drawGeometry(const Projection& projection)
+{
     QOpenGLContext* context = QOpenGLContext::currentContext();
-    if (!context)
-        return;
-
-    QOpenGLShaderProgram* windingProgram = &m_screenFillProgram;
-    if (m_coordinateMode == CoordinateMode::Mercator) {
-        windingProgram = &m_mercatorFillProgram;
-    }
-    if (!windingProgram->isLinked() || !m_screenFillProgram.isLinked())
-        return;
-
     QOpenGLExtraFunctions* f = context->extraFunctions();
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_CULL_FACE);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glDepthMask(GL_FALSE);
 
-    drawInstancedBackground();
-
-    if (m_fillUploadVertices.isEmpty()) {
-        glDepthMask(GL_TRUE);
-        return;
-    }
-
-    f->glBindVertexArray(m_fillVao);
-    if (m_fillBufferDirty) {
-        FrameProfiler::Scope uploadScope(QStringLiteral("upload.vectorFillBatch"));
-        FrameProfiler::recordCount(QStringLiteral("upload.vectorFillBatch.vertices"), m_fillUploadVertices.size());
-        FrameProfiler::recordCount(
-            QStringLiteral("upload.vectorFillBatch.bytes"),
-            m_fillUploadVertices.size() * static_cast<qsizetype>(sizeof(LineBatchRenderer::LineVertex)));
-        const StreamingBuffer::UploadResult upload = m_fillBuffer.upload(
-            m_fillUploadVertices.constData(),
-            m_fillUploadVertices.size() * static_cast<qsizetype>(sizeof(LineBatchRenderer::LineVertex)),
-            GL_DYNAMIC_DRAW);
-        if (!upload.ok) {
-            f->glBindVertexArray(0);
-            glDepthMask(GL_TRUE);
-            return;
+    struct TileDraw {
+        const TileMesh* mesh;
+        float zoomDelta;
+        float tilePixelScale;
+    };
+    QVector<TileDraw> draws;
+    const double cameraZoom = m_camera->getZoomLevel();
+    for (const QString& key : drawOrderKeys()) {
+        const auto it = m_tileCache.constFind(key);
+        if (it == m_tileCache.cend() || !it->mesh)
+            continue;
+        TileMesh* mesh = it->mesh.get();
+        if (!mesh->uploaded)
+            uploadMesh(mesh);
+        const QRectF& bounds = it->mercatorBounds;
+        double tileWidthPx = bounds.width() * projection.pixelsPerMercator;
+        if (projection.mode == 1) {
+            const double lat = std::atan(std::sinh(bounds.center().y()));
+            tileWidthPx = bounds.width() * std::cos(lat) * projection.aePixelsPerRadian;
         }
-        if (upload.bufferRecreated) {
-            setupFillVertexArray();
-            f->glBindVertexArray(m_fillVao);
+        draws.append({ mesh, float(cameraZoom - (it->z + kVectorTileZoomOffset)), float(tileWidthPx / GIS::TILE_SIZE) });
+    }
+
+    // Areas: one stencil pass per colour over every tile, then one cover (non-zero winding).
+    QMap<quint64, QVector<QPair<const TileMesh*, const DrawRange*>>> batches;
+    for (const TileDraw& draw : std::as_const(draws)) {
+        for (const DrawRange& range : draw.mesh->fills) {
+            if (isLayerDrawn(range.layer))
+                batches[range.key].append({ draw.mesh, &range });
         }
-        m_fillBufferDirty = false;
+    }
+    if (!batches.isEmpty() && context->format().stencilBufferSize() > 0) {
+        QVector<LineVertex> covers;
+        covers.reserve(batches.size() * 6);
+        for (auto it = batches.cbegin(); it != batches.cend(); ++it)
+            covers += coverVertices(projection.viewport.x(), projection.viewport.y(), colorOfKey(it.key()));
+        const StreamingBuffer::UploadResult upload = m_coverBuffer.upload(
+            covers.constData(), covers.size() * static_cast<qsizetype>(sizeof(LineVertex)), GL_STREAM_DRAW);
+        f->glBindVertexArray(m_coverVao);
+        f->glBindBuffer(GL_ARRAY_BUFFER, m_coverBuffer.id());
+        f->glEnableVertexAttribArray(0);
+        f->glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(LineVertex), reinterpret_cast<void*>(offsetof(LineVertex, position)));
+        f->glEnableVertexAttribArray(1);
+        f->glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(LineVertex), reinterpret_cast<void*>(offsetof(LineVertex, color)));
+        f->glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+        if (upload.ok) {
+            // The stencil starts at zero (the frame's clear) and each cover puts back zero
+            // where it drew, so no clear between colours.
+            glEnable(GL_STENCIL_TEST);
+            glStencilMask(0xff);
+            int coverIndex = 0;
+            for (auto it = batches.cbegin(); it != batches.cend(); ++it, ++coverIndex) {
+                glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+                glStencilFunc(GL_ALWAYS, 0, 0xff);
+                // Non-zero winding fill: front faces add, back faces subtract.
+                glStencilOpSeparate(GL_FRONT, GL_KEEP, GL_KEEP, GL_INCR_WRAP);
+                glStencilOpSeparate(GL_BACK, GL_KEEP, GL_KEEP, GL_DECR_WRAP);
+
+                m_geometryProgram.bind();
+                setProjectionUniforms(&m_geometryProgram, projection);
+                for (const auto& part : it.value()) {
+                    f->glBindVertexArray(part.first->vao);
+                    f->glDrawArrays(GL_TRIANGLES, part.second->first, part.second->count);
+                    FrameProfiler::recordCount(QStringLiteral("draw.calls"));
+                }
+
+                glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+                glStencilFunc(GL_NOTEQUAL, 0, 0xff);
+                glStencilOp(GL_ZERO, GL_ZERO, GL_ZERO);
+                m_screenProgram.bind();
+                m_screenProgram.setUniformValue("u_viewportSize", projection.viewport);
+                f->glBindVertexArray(m_coverVao);
+                f->glDrawArrays(GL_TRIANGLES, coverIndex * 6, 6);
+                FrameProfiler::recordCount(QStringLiteral("draw.calls"));
+            }
+            glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
+            glDisable(GL_STENCIL_TEST);
+            glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+            m_screenProgram.release();
+        }
+    }
+    else if (!batches.isEmpty()) {
+        static bool warnedAboutStencil = false;
+        if (!warnedAboutStencil) {
+            qWarning() << "Vector MBTiles polygon fills require an OpenGL stencil buffer.";
+            warnedAboutStencil = true;
+        }
     }
 
-    if (m_backgroundCount > 0) {
-        bindFillProgram(windingProgram, m_coordinateMode);
-        f->glDrawArrays(
-            GL_TRIANGLES,
-            static_cast<GLint>(m_backgroundFirst),
-            static_cast<GLsizei>(m_backgroundCount));
-        FrameProfiler::recordCount(QStringLiteral("draw.calls"));
-        FrameProfiler::recordCount(QStringLiteral("draw.vectorFill.vertices"), m_backgroundCount);
+    // Hairlines (building outlines, shores over imagery).
+    m_geometryProgram.bind();
+    setProjectionUniforms(&m_geometryProgram, projection);
+    glLineWidth(1.0f);
+    for (const TileDraw& draw : std::as_const(draws)) {
+        for (const DrawRange& range : draw.mesh->hairlines) {
+            if (!isLayerDrawn(range.layer))
+                continue;
+            f->glBindVertexArray(draw.mesh->vao);
+            f->glDrawArrays(GL_LINES, range.first, range.count);
+            FrameProfiler::recordCount(QStringLiteral("draw.calls"));
+        }
     }
+    m_geometryProgram.release();
 
-    bool stencilEnabled = false;
-    if (!m_fillDraws.isEmpty()) {
-        if (context->format().stencilBufferSize() <= 0) {
-            static bool warnedAboutStencil = false;
-            if (!warnedAboutStencil) {
-                qWarning() << "Vector MBTiles polygon fills require an OpenGL stencil buffer.";
-                warnedAboutStencil = true;
+    // Thick lines in draw order over all tiles: every casing under every road.
+    QMap<quint64, QVector<QPair<const TileDraw*, const DrawRange*>>> lineBatches;
+    for (const TileDraw& draw : std::as_const(draws)) {
+        for (const DrawRange& range : draw.mesh->lineRanges) {
+            if (isLayerDrawn(range.layer))
+                lineBatches[range.key].append({ &draw, &range });
+        }
+    }
+    if (!lineBatches.isEmpty()) {
+        m_lineProgram.bind();
+        setProjectionUniforms(&m_lineProgram, projection);
+        const int zoomDeltaLocation = m_lineProgram.uniformLocation("u_zoomDelta");
+        const int tileScaleLocation = m_lineProgram.uniformLocation("u_tilePixelScale");
+        for (auto it = lineBatches.cbegin(); it != lineBatches.cend(); ++it) {
+            for (const auto& part : it.value()) {
+                const TileMesh* mesh = part.first->mesh;
+                m_lineProgram.setUniformValue(zoomDeltaLocation, part.first->zoomDelta);
+                m_lineProgram.setUniformValue(tileScaleLocation, part.first->tilePixelScale);
+                f->glBindVertexArray(mesh->lineVao);
+                f->glBindBuffer(GL_ARRAY_BUFFER, mesh->lineVbo);
+                const qsizetype base = qsizetype(part.second->first) * qsizetype(sizeof(LineInstance));
+                f->glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(LineInstance),
+                                         reinterpret_cast<void*>(base + offsetof(LineInstance, segment)));
+                f->glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(LineInstance),
+                                         reinterpret_cast<void*>(base + offsetof(LineInstance, width)));
+                f->glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, sizeof(LineInstance),
+                                         reinterpret_cast<void*>(base + offsetof(LineInstance, dash)));
+                f->glVertexAttribPointer(4, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(LineInstance),
+                                         reinterpret_cast<void*>(base + offsetof(LineInstance, color)));
+                f->glDrawArraysInstanced(GL_TRIANGLES, 0, 6, part.second->count);
+                FrameProfiler::recordCount(QStringLiteral("draw.calls"));
+                FrameProfiler::recordCount(QStringLiteral("draw.vectorLines.instances"), part.second->count);
             }
         }
-        else {
-            glEnable(GL_STENCIL_TEST);
-            stencilEnabled = true;
-        }
+        f->glBindBuffer(GL_ARRAY_BUFFER, 0);
+        m_lineProgram.release();
     }
 
-    for (const FillDraw& draw : m_fillDraws) {
-        if (draw.windingCount <= 0 || draw.coverCount <= 0)
-            continue;
-        if (!stencilEnabled)
-            break;
-
-        glStencilMask(0xff);
-        glClearStencil(0);
-        glClear(GL_STENCIL_BUFFER_BIT);
-        glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-        glStencilFunc(GL_ALWAYS, 0, 0xff);
-        // Non-zero winding fill: front faces add, back faces subtract.
-        glStencilOpSeparate(GL_FRONT, GL_KEEP, GL_KEEP, GL_INCR_WRAP);
-        glStencilOpSeparate(GL_BACK, GL_KEEP, GL_KEEP, GL_DECR_WRAP);
-
-        bindFillProgram(windingProgram, m_coordinateMode);
-        f->glDrawArrays(
-            GL_TRIANGLES,
-            static_cast<GLint>(draw.windingFirst),
-            static_cast<GLsizei>(draw.windingCount));
-        FrameProfiler::recordCount(QStringLiteral("draw.calls"));
-        FrameProfiler::recordCount(QStringLiteral("draw.vectorFill.vertices"), draw.windingCount);
-
-        glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-        glStencilMask(0x00);
-        glStencilFunc(GL_NOTEQUAL, 0, 0xff);
-        glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
-
-        bindFillProgram(&m_screenFillProgram, CoordinateMode::Screen);
-        f->glDrawArrays(
-            GL_TRIANGLES,
-            static_cast<GLint>(draw.coverFirst),
-            static_cast<GLsizei>(draw.coverCount));
-        FrameProfiler::recordCount(QStringLiteral("draw.calls"));
-        FrameProfiler::recordCount(QStringLiteral("draw.vectorFill.vertices"), draw.coverCount);
-    }
-
-    glStencilMask(0xff);
-    if (stencilEnabled) {
-        glClear(GL_STENCIL_BUFFER_BIT);
-    }
-    glDisable(GL_STENCIL_TEST);
-    glDepthMask(GL_TRUE);
-    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
     f->glBindVertexArray(0);
-    windingProgram->release();
-    m_screenFillProgram.release();
+    glDepthMask(GL_TRUE);
+}
+
+void VectorTileRenderer::renderGlobe()
+{
+    QOpenGLContext* context = QOpenGLContext::currentContext();
+    QOpenGLExtraFunctions* f = context->extraFunctions();
+    const double radius = m_camera->getOrthographicRadius();
+    const double width = m_camera->getViewportWidth();
+    const double height = m_camera->getViewportHeight();
+    if (radius <= 0.0 || width <= 0.0 || height <= 0.0)
+        return;
+
+    // The part of the globe on screen, in orthographic unit coordinates, then the extent of
+    // that part in the azimuthal equidistant projection (the texture to draw).
+    const double u0 = qMax(-1.0, -width * 0.5 / radius);
+    const double u1 = qMin(1.0, width * 0.5 / radius);
+    const double v0 = qMax(-1.0, -height * 0.5 / radius);
+    const double v1 = qMin(1.0, height * 0.5 / radius);
+    double ax0 = std::numeric_limits<double>::max();
+    double ay0 = ax0;
+    double ax1 = -ax0;
+    double ay1 = -ax0;
+    auto include = [&](double u, double v) {
+        double rho = std::hypot(u, v);
+        if (rho > 1.0) {
+            u /= rho;
+            v /= rho;
+            rho = 1.0;
+        }
+        const double k = rho > 1e-12 ? std::asin(rho) / rho : 1.0;
+        ax0 = qMin(ax0, u * k);
+        ax1 = qMax(ax1, u * k);
+        ay0 = qMin(ay0, v * k);
+        ay1 = qMax(ay1, v * k);
+    };
+    constexpr int samples = 32;
+    for (int i = 0; i <= samples; ++i) {
+        const double t = double(i) / samples;
+        include(u0 + (u1 - u0) * t, v0);
+        include(u0 + (u1 - u0) * t, v1);
+        include(u0, v0 + (v1 - v0) * t);
+        include(u1, v0 + (v1 - v0) * t);
+    }
+    // The texture must hold the whole visible area: where the rim of the globe is on screen,
+    // the extremes lie on the rim between the samples.
+    const double padX = (ax1 - ax0) * 0.02;
+    const double padY = (ay1 - ay0) * 0.02;
+    ax0 -= padX;
+    ax1 += padX;
+    ay0 -= padY;
+    ay1 += padY;
+
+    // About one texture pixel per screen pixel at the centre.
+    const int limit = qMin<int>(kMaxGlobeTexture, m_maxTextureSize);
+    const int neededWidth = qBound(16, int(std::ceil((ax1 - ax0) * radius)), limit);
+    const int neededHeight = qBound(16, int(std::ceil((ay1 - ay0) * radius)), limit);
+    if (!m_globeTarget || m_globeTarget->width() < neededWidth || m_globeTarget->height() < neededHeight
+        || m_globeTarget->width() > 2 * neededWidth + 512 || m_globeTarget->height() > 2 * neededHeight + 512) {
+        delete m_globeTarget;
+        QOpenGLFramebufferObjectFormat format;
+        format.setAttachment(QOpenGLFramebufferObject::CombinedDepthStencil);
+        format.setInternalTextureFormat(GL_RGBA8);
+        const int allocWidth = qMin(limit, (neededWidth + 255) / 256 * 256);
+        const int allocHeight = qMin(limit, (neededHeight + 255) / 256 * 256);
+        m_globeTarget = new QOpenGLFramebufferObject(allocWidth, allocHeight, format);
+        f->glBindTexture(GL_TEXTURE_2D, m_globeTarget->texture());
+        f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        f->glBindTexture(GL_TEXTURE_2D, 0);
+    }
+    if (!m_globeTarget->isValid())
+        return;
+
+    const QPointF centerLatLon = MercatorProjection::mercatorToLatLon(
+        m_camera->getCenterMercator().x(), m_camera->getCenterMercator().y());
+    Projection projection;
+    projection.mode = 1;
+    projection.viewport = QVector2D(neededWidth, neededHeight);
+    projection.centerLatLon = QVector2D(float(qDegreesToRadians(centerLatLon.x())), float(qDegreesToRadians(centerLatLon.y())));
+    projection.aeBounds = QVector4D(float(ax0), float(ay0), float(ax1), float(ay1));
+    projection.aePixelsPerRadian = neededWidth / (ax1 - ax0);
+
+    // Draw the map into the texture: premultiplied colour, so it composites exactly. Cleared
+    // with glClearBuffer (no clear-colour state to save) and no glGet: on threaded drivers a
+    // glGet waits for the GPU queue to drain. The base map's texture starts as water: the
+    // Mercator data stops at 85 degrees, beyond is the polar sea.
+    m_globeTarget->bind();
+    glViewport(0, 0, neededWidth, neededHeight);
+    const QColor water = MapTheme::theme(m_theme).water();
+    const GLfloat clearColor[4] = { m_mode == Mode::BaseMap ? float(water.redF()) : 0.0f,
+                                    m_mode == Mode::BaseMap ? float(water.greenF()) : 0.0f,
+                                    m_mode == Mode::BaseMap ? float(water.blueF()) : 0.0f,
+                                    m_mode == Mode::BaseMap ? 1.0f : 0.0f };
+    glStencilMask(0xff);
+    f->glClearBufferfv(GL_COLOR, 0, clearColor);
+    f->glClearBufferfi(GL_DEPTH_STENCIL, 0, 1.0f, 0);
+    glEnable(GL_BLEND);
+    f->glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+    drawGeometry(projection);
+    f->glBindFramebuffer(GL_FRAMEBUFFER, context->defaultFramebufferObject());
+    glViewport(0, 0, m_targetSize.width(), m_targetSize.height());
+
+    // Onto the globe: a quad over the globe's square on screen.
+    const float cx = float(width * 0.5);
+    const float cy = float(height * 0.5);
+    const float r = float(radius);
+    const float left = qMax(0.0f, cx - r);
+    const float right = qMin(float(width), cx + r);
+    const float top = qMax(0.0f, cy - r);
+    const float bottom = qMin(float(height), cy + r);
+    const float quad[] = { left, top, right, top, right, bottom, left, top, right, bottom, left, bottom };
+    m_compositeBuffer.upload(quad, sizeof(quad), GL_STREAM_DRAW);
+    f->glBindVertexArray(m_compositeVao);
+    f->glBindBuffer(GL_ARRAY_BUFFER, m_compositeBuffer.id());
+    f->glEnableVertexAttribArray(0);
+    f->glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), nullptr);
+    f->glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    m_compositeProgram.bind();
+    m_compositeProgram.setUniformValue("u_viewportSize", QVector2D(float(width), float(height)));
+    m_compositeProgram.setUniformValue("u_globeCenter", QVector2D(cx, cy));
+    m_compositeProgram.setUniformValue("u_radius", r);
+    m_compositeProgram.setUniformValue("u_aeBounds", projection.aeBounds);
+    m_compositeProgram.setUniformValue("u_texScale",
+        QVector2D(float(neededWidth) / m_globeTarget->width(), float(neededHeight) / m_globeTarget->height()));
+    m_compositeProgram.setUniformValue("u_texture", 0);
+    f->glActiveTexture(GL_TEXTURE0);
+    f->glBindTexture(GL_TEXTURE_2D, m_globeTarget->texture());
+    glDisable(GL_DEPTH_TEST);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+    f->glDrawArrays(GL_TRIANGLES, 0, 6);
+    FrameProfiler::recordCount(QStringLiteral("draw.calls"));
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    f->glBindTexture(GL_TEXTURE_2D, 0);
+    f->glBindVertexArray(0);
+    m_compositeProgram.release();
 }
 
 void VectorTileRenderer::render()
 {
+    // Buffers of tiles dropped while disabled are freed here too (the context is current).
+    deleteReleasedMeshes();
     if (!m_enabled || !m_camera || !hasVectorLayers())
         return;
 
@@ -1447,113 +1208,321 @@ void VectorTileRenderer::render()
         return;
 
     updateVisibleTiles();
-    CoordinateMode currentMode = CoordinateMode::Mercator;
     if (m_camera->isOrthographic()) {
-        currentMode = CoordinateMode::Screen;
+        renderGlobe();
+        return;
     }
 
-    if (!m_hasBatchCameraState || currentMode != m_coordinateMode) {
-        m_batchesDirty = true;
-    }
-    else if (currentMode == CoordinateMode::Screen
-        && (m_camera->getCenterMercator() != m_batchCenterMercator
-            || m_camera->getResolution() != m_batchResolution)) {
-        m_batchesDirty = true;
-    }
-    if (m_camera->getViewportWidth() != m_fillViewportWidth
-        || m_camera->getViewportHeight() != m_fillViewportHeight) {
-        m_batchesDirty = true;
-    }
-    rebuildBatches();
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    Projection projection;
+    projection.mode = 0;
+    projection.viewport = QVector2D(float(m_camera->getViewportWidth()), float(m_camera->getViewportHeight()));
+    projection.centerMercator = QVector2D(float(m_camera->getCenterMercator().x()), float(m_camera->getCenterMercator().y()));
+    projection.pixelsPerMercator = float(GIS::EARTH_RADIUS / m_camera->getResolution());
+    drawGeometry(projection);
+}
 
-    drawFillBatch();
-    m_lineRenderer->render(m_coordinateMode, 1.35f);
+QFont VectorTileRenderer::labelFont(const MapTheme::LabelStyle& style)
+{
+    const quint64 key = quint64(qRound(style.size * 10.0f)) | (quint64(style.weight) << 16) | (quint64(style.italic) << 28)
+        | (quint64(qRound(style.letterSpacing * 10.0f)) << 32);
+    auto it = m_fonts.find(key);
+    if (it != m_fonts.end())
+        return it.value();
+    QFont font = QApplication::font();
+    font.setPixelSize(qMax(6, qRound(style.size)));
+    font.setWeight(QFont::Weight(style.weight));
+    font.setItalic(style.italic);
+    if (style.letterSpacing > 0.0f)
+        font.setLetterSpacing(QFont::AbsoluteSpacing, style.letterSpacing);
+    m_fonts.insert(key, font);
+    return font;
 }
 
 void VectorTileRenderer::appendLabels(QVector<TextRenderer::Label>& labels)
 {
+    m_labelHits.clear();
     if (!m_enabled || !m_camera || !hasVectorLayers())
         return;
 
-    updateVisibleTiles();
+    const MapTheme& theme = MapTheme::theme(m_theme);
+    const bool overlay = m_mode == Mode::Overlay;
+    const int zoomLevel = qBound(0, int(std::floor(m_camera->getZoomLevel() + 0.25)), 22);
+    const quint64 stamp = (m_themeGeneration << 8) | quint64(zoomLevel);
+    const int maxLabels = zoomLevel < 8 ? 150 : (zoomLevel < 12 ? 300 : (zoomLevel < 15 ? 450 : 700));
+    const int width = m_camera->getViewportWidth();
+    const int height = m_camera->getViewportHeight();
 
-    const int zoomLevel = m_camera->getTileZoomLevel();
-    const int maxLabels = maxVectorLabelsForZoom(zoomLevel);
-    int labelsDrawn = 0;
-
-    QFont font = QApplication::font();
-    font.setPointSize(zoomLevel >= 12 ? 8 : 9);
-    font.setBold(zoomLevel < 12);
-    QFontMetrics metrics(font);
-
-    QVector<QRect> occupiedRects;
-    occupiedRects.reserve(maxLabels);
-
+    struct Entry {
+        const LabelCandidate* candidate;
+        const QString* tileKey;
+    };
+    QVector<Entry> entries;
     QList<QString> keys = m_visibleKeys.values();
     std::sort(keys.begin(), keys.end());
-
     for (const QString& key : keys) {
-        if (labelsDrawn >= maxLabels)
-            break;
-
         const auto tileIt = m_tileCache.constFind(key);
-        if (tileIt == m_tileCache.cend() || tileIt.value().tile.isEmpty())
+        if (tileIt == m_tileCache.cend() || !tileIt->labels)
+            continue;
+        for (const LabelCandidate& candidate : *tileIt->labels) {
+            if (!isLayerDrawn(candidate.layer))
+                continue;
+            if (candidate.stamp != stamp) {
+                candidate.stamp = stamp;
+                candidate.style = theme.labelStyle(candidate.layer, candidate.klass, candidate.rank, zoomLevel, overlay);
+                if (candidate.style.visible) {
+                    candidate.shownText = candidate.style.uppercase ? candidate.text.toUpper() : candidate.text;
+                    const QFontMetricsF metrics(labelFont(candidate.style));
+                    candidate.textSize = QSizeF(metrics.horizontalAdvance(candidate.shownText), metrics.height());
+                }
+            }
+            if (candidate.style.visible)
+                entries.append({ &candidate, &tileIt.key() });
+        }
+    }
+    std::stable_sort(entries.begin(), entries.end(), [](const Entry& a, const Entry& b) {
+        return a.candidate->style.priority < b.candidate->style.priority;
+    });
+
+    // Collision test against a coarse grid of the labels already placed.
+    constexpr int kCell = 64;
+    const int columns = width / kCell + 4;
+    const int rows = height / kCell + 4;
+    QVector<QVector<QRectF>> grid(columns * rows);
+    auto cellRange = [&](const QRectF& rect, int* x0, int* y0, int* x1, int* y1) {
+        *x0 = qBound(0, int(rect.left() + 2 * kCell) / kCell, columns - 1);
+        *y0 = qBound(0, int(rect.top() + 2 * kCell) / kCell, rows - 1);
+        *x1 = qBound(0, int(rect.right() + 2 * kCell) / kCell, columns - 1);
+        *y1 = qBound(0, int(rect.bottom() + 2 * kCell) / kCell, rows - 1);
+    };
+
+    int placed = 0;
+    for (const Entry& entry : std::as_const(entries)) {
+        if (placed >= maxLabels)
+            break;
+        const LabelCandidate& candidate = *entry.candidate;
+        const MapTheme::LabelStyle& style = candidate.style;
+
+        QPointF screen;
+        if (!m_camera->projectMercatorToScreen(candidate.mercator, &screen))
+            continue;
+        if (screen.x() < -100.0 || screen.x() > width + 100.0 || screen.y() < -40.0 || screen.y() > height + 40.0)
             continue;
 
-        const CachedTile& cachedTile = tileIt.value();
-        for (const MbTilesVectorLayer& layer : cachedTile.tile.layers) {
-            if (!labelLayerVisible(layer.name, zoomLevel))
+        const qreal halo = style.halo.alpha() > 0 ? style.haloWidth : 0.0;
+        const qreal markerSize = style.marker != MapTheme::Marker::None ? qMax<qreal>(7.0, style.size * 0.75) : 0.0;
+        const qreal boxWidth = candidate.textSize.width() + 2.0 * halo + 2.0 + (markerSize > 0.0 ? markerSize + 4.0 : 0.0);
+        const qreal boxHeight = candidate.textSize.height() + 2.0 * halo;
+        qreal angle = 0.0;
+        if (style.alongLine && candidate.hasLine) {
+            QPointF from;
+            QPointF to;
+            if (!m_camera->projectMercatorToScreen(candidate.lineFrom, &from) || !m_camera->projectMercatorToScreen(candidate.lineTo, &to))
                 continue;
+            const QPointF along = to - from;
+            const double length = std::hypot(along.x(), along.y());
+            if (length < boxWidth + 6.0)
+                continue;  // the piece of road is shorter than its name here
+            angle = qRadiansToDegrees(std::atan2(along.y(), along.x()));
+            if (angle > 90.0)
+                angle -= 180.0;
+            else if (angle < -90.0)
+                angle += 180.0;
+            screen = (from + to) * 0.5;
+        }
 
-            for (const MbTilesVectorFeature& feature : layer.features) {
-                if (labelsDrawn >= maxLabels)
-                    break;
+        QRectF rect(0, 0, boxWidth, boxHeight);
+        if (markerSize > 0.0)
+            rect.moveTopLeft(QPointF(screen.x() - halo - markerSize * 0.5 - 0.5, screen.y() - boxHeight * 0.5));
+        else
+            rect.moveCenter(screen);
+        // Rotated names: collide with their bounding box.
+        QRectF collision = rect;
+        if (angle != 0.0) {
+            const double radians = qDegreesToRadians(angle);
+            const double w = std::abs(boxWidth * std::cos(radians)) + std::abs(boxHeight * std::sin(radians));
+            const double h = std::abs(boxWidth * std::sin(radians)) + std::abs(boxHeight * std::cos(radians));
+            collision = QRectF(0, 0, w, h);
+            collision.moveCenter(screen);
+        }
+        collision.adjust(-3, -2, 3, 2);
 
-                const QString text = featureLabel(feature);
-                if (text.isEmpty() || feature.paths.isEmpty() || feature.paths.first().isEmpty())
-                    continue;
-
-                QPointF anchorMercator;
-                const QVector<QPointF>& path = feature.paths.first();
-                for (const QPointF& point : path) {
-                    anchorMercator += tilePixelToMercator(point, cachedTile.mercatorBounds);
-                }
-                anchorMercator /= path.size();
-
-                QPointF screen;
-                if (!m_camera->projectMercatorToScreen(anchorMercator, &screen))
-                    continue;
-                if (screen.x() < -80.0 || screen.x() > m_camera->getViewportWidth() + 80.0
-                    || screen.y() < -30.0 || screen.y() > m_camera->getViewportHeight() + 30.0) {
-                    continue;
-                }
-
-                QRect textRect = metrics.boundingRect(text).adjusted(-5, -3, 5, 3);
-                textRect.moveCenter(screen.toPoint());
-                QRect collisionRect = textRect.adjusted(-8, -5, 8, 5);
-
-                bool collides = false;
-                for (const QRect& occupied : occupiedRects) {
-                    if (occupied.intersects(collisionRect)) {
+        int x0, y0, x1, y1;
+        cellRange(collision, &x0, &y0, &x1, &y1);
+        bool collides = false;
+        for (int y = y0; y <= y1 && !collides; ++y) {
+            for (int x = x0; x <= x1 && !collides; ++x) {
+                for (const QRectF& occupied : std::as_const(grid[y * columns + x])) {
+                    if (occupied.intersects(collision)) {
                         collides = true;
                         break;
                     }
                 }
-                if (collides)
+            }
+        }
+        if (collides)
+            continue;
+        for (int y = y0; y <= y1; ++y) {
+            for (int x = x0; x <= x1; ++x)
+                grid[y * columns + x].append(collision);
+        }
+
+        TextRenderer::Label label;
+        label.text = candidate.shownText;
+        label.rect = rect;
+        label.font = labelFont(style);
+        label.textColor = style.color;
+        label.backgroundColor = QColor(0, 0, 0, 0);
+        label.haloColor = style.halo;
+        label.haloWidth = halo;
+        label.angle = angle;
+        label.alignment = markerSize > 0.0 ? Qt::AlignLeft | Qt::AlignVCenter : Qt::AlignCenter;
+        if (markerSize > 0.0) {
+            label.marker = style.marker == MapTheme::Marker::Circle ? TextRenderer::Marker::Circle
+                : (style.marker == MapTheme::Marker::Triangle ? TextRenderer::Marker::Triangle : TextRenderer::Marker::Square);
+            label.markerColor = style.markerColor;
+            label.markerSize = markerSize;
+        }
+        labels.append(label);
+        m_labelHits.append({ collision, *entry.tileKey, candidate.layerIndex, candidate.featureIndex });
+        ++placed;
+    }
+}
+
+VectorTileRenderer::PickedFeature VectorTileRenderer::pick(const QPointF& screenPos) const
+{
+    PickedFeature picked;
+    if (!m_enabled || !m_camera || !hasVectorLayers())
+        return picked;
+
+    QString bestKey;
+    int bestLayer = -1;
+    int bestFeature = -1;
+
+    // Names first: what the user sees.
+    for (auto it = m_labelHits.crbegin(); it != m_labelHits.crend(); ++it) {
+        if (it->rect.contains(screenPos)) {
+            bestKey = it->tileKey;
+            bestLayer = it->layerIndex;
+            bestFeature = it->featureIndex;
+            break;
+        }
+    }
+
+    const QPointF mercator = m_camera->screenToMercator(screenPos);
+    QPointF check;
+    if (bestFeature < 0 && m_camera->projectMercatorToScreen(mercator, &check)
+        && (check - screenPos).manhattanLength() <= 2.0) {
+        double bestScore = std::numeric_limits<double>::max();
+        for (const QString& key : m_visibleKeys) {
+            const auto tileIt = m_tileCache.constFind(key);
+            if (tileIt == m_tileCache.cend())
+                continue;
+            const CachedTile& tile = tileIt.value();
+            if (!tile.mercatorBounds.normalized().contains(mercator))
+                continue;
+
+            // Screen pixels per tile pixel near the click.
+            QPointF a;
+            QPointF b;
+            m_camera->projectMercatorToScreen(mercator, &a);
+            m_camera->projectMercatorToScreen(mercator + QPointF(tile.mercatorBounds.width() / GIS::TILE_SIZE, 0.0), &b);
+            const double screenPerTilePixel = qMax(1e-6, std::hypot(b.x() - a.x(), b.y() - a.y()));
+            const QPointF local = mercatorToTilePixel(mercator, tile.mercatorBounds);
+
+            for (int layerIndex = 0; layerIndex < tile.tile.layers.size(); ++layerIndex) {
+                const MbTilesVectorLayer& layer = tile.tile.layers.at(layerIndex);
+                if (!isLayerDrawn(layer.name))
+                    continue;
+                const bool areaLayer = MapFeatures::isAreaLayer(layer.name) && layer.name != QLatin1String("building");
+                if (areaLayer && m_mode == Mode::Overlay)
                     continue;
 
-                TextRenderer::Label label;
-                label.text = text;
-                label.rect = QRectF(textRect);
-                label.font = font;
-                label.textColor = QColor(238, 242, 238);
-                label.backgroundColor = QColor(0, 0, 0, 100);
-                label.radius = 3;
-                labels.append(label);
+                for (int featureIndex = 0; featureIndex < layer.features.size(); ++featureIndex) {
+                    const MbTilesVectorFeature& feature = layer.features.at(featureIndex);
+                    // The land cover under everything is only worth a card when it has a name.
+                    if (areaLayer && featureLabel(layer.name, feature).isEmpty())
+                        continue;
 
-                occupiedRects.append(collisionRect);
-                ++labelsDrawn;
+                    double score = std::numeric_limits<double>::max();
+                    if (feature.type == 1) {
+                        for (const QVector<QPointF>& path : feature.paths) {
+                            for (const QPointF& point : path) {
+                                const double d = std::hypot(point.x() - local.x(), point.y() - local.y()) * screenPerTilePixel;
+                                if (d <= kPickPointRadius)
+                                    score = qMin(score, d);
+                            }
+                        }
+                    }
+                    else if (feature.type == 2) {
+                        for (const QVector<QPointF>& path : feature.paths) {
+                            for (int i = 1; i < path.size(); ++i) {
+                                const double d = distanceToSegment(local, path.at(i - 1), path.at(i)) * screenPerTilePixel;
+                                if (d <= kPickLineDistance)
+                                    score = qMin(score, 100.0 + d);
+                            }
+                        }
+                    }
+                    else if (feature.type == 3 && insidePolygon(local, feature.paths)) {
+                        double area = 0.0;
+                        for (const QVector<QPointF>& path : feature.paths)
+                            area += std::abs(signedRingArea(path, openRingSize(path)));
+                        // Smaller areas win (a building over the park it stands in).
+                        score = 1000.0 + area + (areaLayer ? 1.0e9 : 0.0);
+                    }
+                    if (score < bestScore) {
+                        bestScore = score;
+                        bestKey = key;
+                        bestLayer = layerIndex;
+                        bestFeature = featureIndex;
+                    }
+                }
             }
         }
     }
+
+    const auto tileIt = m_tileCache.constFind(bestKey);
+    if (bestFeature < 0 || tileIt == m_tileCache.cend() || bestLayer >= tileIt->tile.layers.size())
+        return picked;
+    const MbTilesVectorLayer& layer = tileIt->tile.layers.at(bestLayer);
+    if (bestFeature >= layer.features.size())
+        return picked;
+    const MbTilesVectorFeature& feature = layer.features.at(bestFeature);
+
+    picked.valid = true;
+    picked.layerName = layer.name;
+    picked.geometryType = feature.type;
+    picked.id = feature.id;
+    picked.tags = feature.tags;
+    picked.mercatorAnchor = mercator;
+
+    // Every visible piece of the same object (same layer and id), or just this one.
+    auto appendPaths = [&picked](const MbTilesVectorFeature& piece, const QRectF& bounds) {
+        for (const QVector<QPointF>& path : piece.paths) {
+            QVector<QPointF> mercatorPath;
+            mercatorPath.reserve(path.size());
+            for (const QPointF& point : path)
+                mercatorPath.append(tilePixelToMercator(point, bounds));
+            picked.mercatorPaths.append(mercatorPath);
+        }
+    };
+    if (feature.id == 0) {
+        appendPaths(feature, tileIt->mercatorBounds);
+        return picked;
+    }
+    for (const QString& key : m_visibleKeys) {
+        const auto other = m_tileCache.constFind(key);
+        if (other == m_tileCache.cend())
+            continue;
+        for (const MbTilesVectorLayer& otherLayer : other->tile.layers) {
+            if (otherLayer.name != layer.name)
+                continue;
+            for (const MbTilesVectorFeature& piece : otherLayer.features) {
+                if (piece.id == feature.id && piece.type == feature.type)
+                    appendPaths(piece, other->mercatorBounds);
+            }
+        }
+    }
+    return picked;
 }

@@ -4,8 +4,12 @@
 add_library(earthview_mapcontrols STATIC
     BaseMapSources.cpp
     BaseMapSources.h
+    FeatureDetails.cpp
+    FeatureDetails.h
     GeoMeasure.cpp
     GeoMeasure.h
+    LayerImages.cpp
+    LayerImages.h
     MapControlsModel.cpp
     MapControlsModel.h
     MapControlsOverlay.cpp
@@ -30,7 +34,8 @@ target_link_libraries(earthview_mapcontrols
         Qt6::Quick
         Qt6::QuickWidgets
     PRIVATE
-        # Not used from C++: linked so windeployqt ships the SVG image plugin the icons need.
+        # Tile pictures (qml/icons) are drawn with QSvgRenderer for the layer chooser; linking it
+        # also makes windeployqt ship the SVG image plugin.
         Qt6::Svg
 )
 
@@ -42,6 +47,7 @@ qt_add_resources(earthview_mapcontrols "earthview_mapcontrols_qml"
         qml/MapSideBar.qml
         qml/LayersButton.qml
         qml/LayerTile.qml
+        qml/FeatureCard.qml
         qml/icons/compass.svg
         qml/icons/globe3d.svg
         qml/icons/ruler.svg
@@ -53,8 +59,6 @@ qt_add_resources(earthview_mapcontrols "earthview_mapcontrols_qml"
         qml/icons/thumb_hillshade.svg
         qml/icons/thumb_topo.svg
         qml/icons/thumb_map.svg
-        qml/icons/overlay_cities.svg
-        qml/icons/overlay_borders.svg
         qml/icons/overlay_grid.svg
 )
 

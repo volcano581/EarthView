@@ -7,11 +7,14 @@ uniform float u_opacity;
 
 in float v_heightMix;
 in float v_heightMeters;
+in float v_facing;
 
 out vec4 fragColor;
 
 void main()
 {
+    if (v_facing < 0.0)
+        discard;  // far side of the globe
     vec3 lowColor = vec3(0.12, 0.34, 0.17);
     vec3 midColor = vec3(0.55, 0.48, 0.30);
     vec3 highColor = vec3(0.88, 0.86, 0.78);
