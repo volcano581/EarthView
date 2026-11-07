@@ -7,6 +7,12 @@ machine** by following this document. Agents keep this document and the
 
 Everything Doctrine-specific described here is a **contract**, not code from Doctrine.
 
+> For a step-by-step wiring walkthrough with a drift-reconciliation checklist (the Doctrine
+> interface may have changed on the offline machine), plus class/call hierarchies and the
+> end-to-end 2D and 3D render pipelines, see
+> **[INTEGRATION_AND_ARCHITECTURE.md](INTEGRATION_AND_ARCHITECTURE.md)**. This file stays the
+> authoritative source for the `EntityState3D` field-mapping table.
+
 ---
 
 ## 1. What lives where
@@ -220,3 +226,20 @@ Prerequisites: Conquer's `msvc` preset builds; osgEarth available (vcpkg tree or
 
 If the adapter needed a change this document does not describe, the contract moved: update §2,
 `tests/tst_hostcontract.cpp` and the adapter together, so the next person inherits one story.
+
+## 5. Optional: 2D on-map controls (D-034)
+
+Independent of `earthview3d`. A host that embeds the 2D `MapWidget` can add the on-map side
+bar (compass, disabled 3D button, measure, settings with Mercator/Orthographic):
+
+```cmake
+target_link_libraries(doctrine PRIVATE earthview::mapcontrols)   # needs Qt Qml, Quick, QuickWidgets, Svg
+```
+```cpp
+#include "MapControlsOverlay.h"
+auto* overlay = new MapControlsOverlay(mapWidget);   // owned by mapWidget
+overlay->model()->setGlobe3DAvailable(false);         // default; true once a 3D view exists
+```
+
+`earthview_core` itself does not depend on Qt Quick. Deployment: run `windeployqt` with
+`--qmldir EarthView/mapcontrols/qml` so the QtQuick QML modules and the SVG image plugin ship.

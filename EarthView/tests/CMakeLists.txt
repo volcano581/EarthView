@@ -39,6 +39,17 @@ target_include_directories(tst_mercatorprojection PRIVATE "${CMAKE_CURRENT_SOURC
 target_link_libraries(tst_mercatorprojection PRIVATE Qt6::Core Qt6::Test)
 add_test(NAME tst_mercatorprojection COMMAND tst_mercatorprojection)
 
+# On-map controls state (no Qt Quick needed): the model plus the 2D Camera it syncs with.
+add_executable(tst_mapcontrolsmodel
+    tst_mapcontrolsmodel.cpp
+    ../mapcontrols/MapControlsModel.cpp
+    ../mapcontrols/MapControlsModel.h
+)
+target_include_directories(tst_mapcontrolsmodel PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/.." "${CMAKE_CURRENT_SOURCE_DIR}/../mapcontrols")
+target_link_libraries(tst_mapcontrolsmodel PRIVATE earthview::core Qt6::Test)
+add_test(NAME tst_mapcontrolsmodel COMMAND tst_mapcontrolsmodel)
+
 foreach(test_name tst_geodesy tst_camera3d)
     add_executable(${test_name} ${test_name}.cpp)
     target_link_libraries(${test_name} PRIVATE earthview_scene3d Qt6::Core Qt6::Test)
