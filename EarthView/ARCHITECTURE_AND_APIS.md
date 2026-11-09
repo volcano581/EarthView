@@ -243,7 +243,7 @@ API drift through that document.
 
 ### 6.3 Embedded-OpenGL-widget rules (do not undo)
 
-`earthview3d/README.md` "Rules baked into the widget" lists the hard-won constraints
+`earthview3d/README.md` "Rules baked into the widget" lists eleven hard-won constraints
 (compat-profile surface format, `setDefaultFboId` every frame, no logarithmic depth buffer,
 heap-allocated `osg::ref_ptr` nodes, explicit label alignment boxes, etc.). Any change to
 `GlobeView3D.cpp` that touches OSG/osgEarth state should be checked against that list first —

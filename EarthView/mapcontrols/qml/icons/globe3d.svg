@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#3c4043" stroke-width="1.5" stroke-linejoin="round">
+  <circle cx="12" cy="12" r="9"/>
+  <ellipse cx="12" cy="12" rx="4" ry="9"/>
+  <path d="M3.5 9 H20.5 M3.5 15 H20.5"/>
+  <text x="12" y="13.8" font-family="Arial, sans-serif" font-size="5.5" font-weight="bold" fill="#3c4043" stroke="none" text-anchor="middle">3D</text>
+</svg>

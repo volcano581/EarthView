@@ -3,9 +3,13 @@
 EarthView is a Qt 6 / OpenGL map rendering engine (C++17) in `EarthView/`. Its 2D modes
 (Mercator, Orthographic) are integrated into the Doctrine project and must not regress.
 
-Active work: the **`earthview3d`** library — a host-independent osgEarth 3D / stealth view
-built with **MSVC** (D-007, D-008). It is finished and polished **in this repo only**; the
-host application (Doctrine, Conquer superbuild) is **not on GitHub** and is wired locally
+Active work: the **`earthview3d`** library — a host-independent osgEarth 3D / stealth view.
+It is meant to be **cross-platform (Windows, Linux, macOS)**: osgEarth and its dependencies
+are cross-platform and come from the same pinned vcpkg manifest on every OS, and the library
+code stays portable (Qt/STL types, no compiler- or OS-specific code). It is built with
+**MSVC** for the current host (Doctrine on Windows — D-007, D-008, D-031); that is the host
+ABI, not a portability limit. It is finished and polished **in this repo only**; the host
+application (Doctrine, Conquer superbuild) is **not on GitHub** and is wired locally
 (roadmap task L1). Read before any 3D task:
 - `EarthView/ROADMAP_3D.md` — tasks E1–E10; implement only the task you were given.
 - `EarthView/OSGEARTH_INTEGRATION.md` — design (embedded-widget rules in §3.3).
@@ -36,16 +40,23 @@ cmake -S EarthView -B build-msvc -G "Visual Studio 18 2026" -A x64 -DCMAKE_PREFI
 cmake --build build-msvc --config Release
 ```
 
-Linux (cloud agents, no GPU): Qt 6 + Ninja; 2D + unit tests. After E1 also `earthview3d`
-via vcpkg osgEarth (slow first build — use the binary cache).
+Linux / macOS (cloud agents are Linux, no GPU): Qt 6 + Ninja. The commands below install Qt
+from the system packages only — **not** osgEarth — so `find_package(osgEarth)` fails,
+`EARTHVIEW_BUILD_3D` stays OFF, and this builds the 2D app, the GL-free `earthview3d_core`
+and the unit tests. The osgEarth widget (`GlobeView3D`) is **not** compiled here; a Linux
+cloud agent can only `g++ -fsyntax-only` it against the headers.
 ```
 sudo apt-get install -y cmake ninja-build qt6-base-dev libqt6opengl6-dev libgl1-mesa-dev
 cmake -S EarthView -B out -G Ninja -DEARTHVIEW_DEPLOY_QT=OFF
 cmake --build out
 ctest --test-dir out --output-on-failure
 ```
+To build the **3D widget** on Linux or macOS, use the vcpkg toolchain exactly as on Windows
+(`-DCMAKE_TOOLCHAIN_FILE=<vcpkg>/scripts/buildsystems/vcpkg.cmake -DEARTHVIEW_BUILD_3D=ON`):
+osgEarth is cross-platform and builds from the same pinned manifest. This is supported but
+**not yet exercised by CI** — the osgEarth code is compiled and tested on the **Windows CI
+job only** for now (added in E1; see I-017), with visual checks by a human (no GPU on CI).
 Software GL for 2D smoke runs: `QT_QPA_PLATFORM=offscreen EARTHVIEW_FORCE_SOFTWARE_OPENGL=1`.
-MSVC/osgEarth code is verified by the Windows CI job (added in E1) and by a human.
 
 ## Rules
 
