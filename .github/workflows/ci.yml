@@ -27,7 +27,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y cmake ninja-build qt6-base-dev libqt6opengl6-dev libgl1-mesa-dev zlib1g-dev xvfb gdal-bin
       - name: Configure
-        run: cmake -S EarthView -B out -G Ninja -DEARTHVIEW_DEPLOY_QT=OFF
+        run: cmake -S . -B out -G Ninja -DEARTHVIEW_DEPLOY_QT=OFF
       - name: Build
         run: cmake --build out
       - name: Test
@@ -37,7 +37,7 @@ jobs:
       - name: Install earthview3d and build an external consumer (E7)
         run: |
           cmake --install out --prefix out/stage
-          cmake -S EarthView/tests/consumer -B out/consumer -G Ninja "-DCMAKE_PREFIX_PATH=$PWD/out/stage"
+          cmake -S tests/consumer -B out/consumer -G Ninja "-DCMAKE_PREFIX_PATH=$PWD/out/stage"
           cmake --build out/consumer
           out/consumer/consumer_core
       - name: Snapshot smoke render
@@ -149,7 +149,7 @@ jobs:
         env:
           VCPKG_ROOT: C:\ev-vcpkg
         run: >
-          cmake -S EarthView -B build-msvc -G Ninja
+          cmake -S . -B build-msvc -G Ninja
           -DCMAKE_BUILD_TYPE=Release
           "-DCMAKE_PREFIX_PATH=$env:QT_ROOT_DIR"
           "-DCMAKE_TOOLCHAIN_FILE=$env:EV_VCPKG_ROOT\scripts\buildsystems\vcpkg.cmake"
@@ -204,7 +204,7 @@ jobs:
           VCPKG_ROOT: C:\ev-vcpkg
         run: |
           cmake --install build-msvc --prefix "${{ github.workspace }}\stage"
-          cmake -S EarthView/tests/consumer -B consumer -G Ninja `
+          cmake -S tests/consumer -B consumer -G Ninja `
             -DCMAKE_BUILD_TYPE=Release `
             "-DCMAKE_PREFIX_PATH=${{ github.workspace }}\stage;$env:QT_ROOT_DIR" `
             "-DCMAKE_TOOLCHAIN_FILE=$env:EV_VCPKG_ROOT\scripts\buildsystems\vcpkg.cmake" `
@@ -280,7 +280,7 @@ jobs:
           }
 
           # 5. Earth files, models and the committed world base imagery.
-          Copy-Item (Join-Path $env:GITHUB_WORKSPACE 'EarthView\Data') $stage -Recurse -Force
+          Copy-Item (Join-Path $env:GITHUB_WORKSPACE 'Data') $stage -Recurse -Force
 
           # 6. Launchers. E7's RuntimePaths::defaults() finds the deployed layout next to the
           #    executable, so OSG_LIBRARY_PATH, GDAL_DATA and PROJ_DATA are no longer needed,
@@ -334,7 +334,7 @@ jobs:
           ----------------
           Only the committed world base imagery (Data\imagery\world_base.tif) ships here, so the
           default map is land/sea at low resolution. For the full offline map - AOI base map,
-          hillshade and place names - run EarthView\tools\offline_data\build_offline_data.py from
+          hillshade and place names - run tools\offline_data\build_offline_data.py from
           a checkout; it needs the GDAL command-line tools and is not run by CI.
 
           TMS maps from your own tile server
