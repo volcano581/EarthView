@@ -145,6 +145,7 @@ manager's own network thread is left running into the process exit.
 | `EarthView/shaders/textured_globe.vert`, `textured_globe.frag` | Raster tiles projected onto the globe |
 | `EarthView/tests/tst_featuredetails.cpp` | Layer catalog (names, panel order, areas) and card text |
 | `EarthView/tests/tst_maptheme.cpp` | Styles: casings and widths, road classes by zoom, tunnels and bridges, areas, the overlay look, boundaries, labels, markers |
+| `EarthView/OSM_MBTILES_QML_GUIDE.md` | Developer guide for PRs 1–5: architecture and class diagrams, step-by-step build of the MBTiles loading, OSM styling, rendering and the QML controls, with the QML files |
 
 ### Files changed
 

@@ -244,11 +244,13 @@ bool TestMbTilesReader::makeLayout(const QString& path, const QString& layout)
                 ok = q.exec() && ok;
             }
         };
+        // One loop per level, not two nested ones bounded by 1 << z: MSVC /O2 (14.4x, 14.5x)
+        // initialised the outer bound from a stale stack slot, so at random the fixture skipped
+        // rows or ran on for billions of them (GBs written, the test timed out).
         for (int z = 0; z <= 5; ++z) {
-            for (int x = 0; x < (1 << z); ++x) {
-                for (int row = 0; row < (1 << z); ++row)
-                    insert(z, x, row);
-            }
+            const int side = 1 << z;
+            for (int i = 0; i < side * side; ++i)
+                insert(z, i / side, i % side);
         }
         for (int x = 2800; x < 2840; ++x) {
             for (int row = 2500; row < 2540; ++row)
