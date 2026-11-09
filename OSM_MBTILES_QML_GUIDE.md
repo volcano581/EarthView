@@ -966,13 +966,17 @@ sequenceDiagram
 
 Runs once per tile and style, never on the UI thread:
 
-1. In **BaseMap** mode, the tile's square is filled with the theme's background (the land).
+1. In **BaseMap** mode, the tile's square is filled with the theme's background (the land): its
+   first `TileMesh::backgroundCount` vertices, drawn directly (not through the stencil) on the flat
+   map and skipped on the globe, whose bands are cleared with the land colour instead.
 2. For each layer and feature:
    - **Labels:** layers that carry names (`MapTheme::isLabelLayer()`) add a `LabelCandidate`
      (text, layer, `class`, `rank`, anchor). For lines, the longest straight piece inside the tile
      carries the name, so road names can be drawn along the road.
    - **Areas** (`type == 3`): rings become triangle-fan "winding" vertices grouped by
-     (draw order, colour, layer). Long edges are subdivided so they bend correctly on the globe.
+     (draw order, colour, layer). Each group's `DrawRange` keeps the Mercator bounds of its fans.
+     Edges are not subdivided: the globe texture is Mercator too (Step 7.6), so straight tile
+     edges stay straight.
    - **Outlines:** 1-px hairlines around areas when the style has an outline colour.
    - **Lines** (`type == 2`): one `LineInstance` per segment for the casing, the line and the
      overline (e.g. railway dashes), each with its draw order.
@@ -987,8 +991,9 @@ All tiles' draw ranges are merged into one global order, so a casing in one tile
 over a road fill in the next:
 
 - **Areas** use the stencil buffer: each fan is drawn into the stencil (front faces increment,
-  back faces decrement), then a cover quad fills where the stencil is non-zero. This fills any
-  polygon (holes, concave rings) without triangulation.
+  back faces decrement), then a cover quad over the fans' bounds (`DrawRange::bounds`, not the
+  whole target) fills where the stencil is non-zero. This fills any polygon (holes, concave rings)
+  without triangulation.
 - **Hairlines** (area outlines) are drawn as plain lines.
 - **Thick lines** are instanced quads: a 6-vertex quad per segment, expanded in the vertex shader to
   the line's width in **screen pixels**, with round ends (smooth joins), antialiasing and dashes in
@@ -1114,15 +1119,32 @@ Both get the same hidden-layer list and theme. Hidden layers are not drawn, not 
 
 Raster tiles (`textured_globe.vert`) and the hillshade (`terrain_flat.vert`, `u_projection == 1`)
 are projected onto the sphere in their vertex shaders; the far side is discarded. The vector map
-is drawn once into an offscreen texture of the visible part of the world, which
-`globe_composite.frag` maps onto the sphere per screen pixel, so nothing is re-projected on the CPU
-while the globe turns and areas crossing the horizon fill correctly.
+is drawn each frame into an offscreen **Mercator** texture of the part of the world on screen
+(`renderGlobe()`), which `globe_composite.frag` maps onto the sphere per screen pixel. Nothing is
+re-projected on the CPU while the globe turns, and areas crossing the horizon fill correctly.
 
-> **Known issue (PR 5 as pushed):** the C++ side of the vector globe (`renderGlobe()`) computes an
-> *azimuthal equidistant* texture extent and sets `u_aeBounds`, while `vector_geometry.vert`,
-> `vector_line.vert` and `globe_composite.frag` were last changed to a *Mercator* texture and read
-> `u_textureExtent`, which the C++ never sets. The flat (Mercator) map is unaffected; the OSM map
-> on the globe is likely drawn wrong. One side must be finished to match the other before release.
+**Latitude bands.** A single Mercator image at the equator's scale wastes fill: Mercator stretches
+the world by 1 / cos(lat), and once a pole is in view the image must hold every longitude (4.2
+megapixels at world scale for a 0.5-megapixel globe on screen). The texture is therefore cut into
+bands, with edges at 40°, 58°, 70°, 77° and 82° north and south, stacked in one texture:
+
+1. **What is on screen:** a grid of samples every 16 px over the screen (samples beyond the globe
+   are moved onto its rim) gives each band's visible longitudes, with a margin of one and a half
+   sample steps. A pole on screen gives its band every longitude.
+2. **Each band** gets the resolution its lowest visible latitude needs, spans only its visible
+   longitudes, and is cleared with the land colour.
+3. **Drawing a band** uses the flat map's buffers and shaders unchanged: the band is just another
+   Mercator `Projection` (its own centre, scale and `bounds`), and tiles outside `bounds` are
+   skipped. `Projection::globeRadius` (`u_globeRadius` in `vector_line.vert`) scales line widths
+   and dashes by the latitude, so they come out in screen pixels on the globe.
+4. **Compositing:** `globe_composite.frag` finds the band of each pixel's latitude
+   (`u_bandTop`, `u_bandExtent`, `u_bandRect`) and samples inside it. Beyond 85° (no Mercator data)
+   and outside the bands it shows the sea colour (`u_outsideColor`).
+
+At world scale the texture drops to about 1.8 megapixels with the same sharpness. Near a pole
+(above about 80°) the polar band covers every longitude and can reach the 4096-pixel texture limit,
+which lowers its sharpness there. `MAP_CONTROLS_CHANGELOG.md` ("Fix: globe speed") has the frame
+times.
 
 ---
 
@@ -2128,7 +2150,7 @@ miscompile (see §19); run it with a time limit (`--timeout`) anyway.
 6. **Click** a road, a town name, a river, a building: outline + card; ✕ closes it.
 7. **Zoom** quickly in and out over imagery and over the OSM map: steady, no blank flashes, the FPS
    counter does not dip at each notch. Zoom out fully: it stops when the map fills the window's height.
-8. **Globe:** Orthographic, turn the globe with the OSM map and with Terrain (see Known issues).
+8. **Globe:** Orthographic, turn the globe with the OSM map and with Terrain; no seams between the latitude bands (Step 7.6).
 
 ---
 
@@ -2176,9 +2198,9 @@ NOTIFY signal, plus a test), wire it to the map in `MapControlsOverlay`'s constr
 
 ## 20. Known issues and open work
 
-- **Vector map on the globe:** the C++ (`renderGlobe()`, azimuthal-equidistant extent, `u_aeBounds`)
-  and the shaders (`vector_geometry.vert`, `vector_line.vert`, `globe_composite.frag`: Mercator
-  texture, `u_textureExtent`) do not match; finish one approach before release (Step 7.6).
+- **Vector map on the globe:** close to a pole the polar band can hit the 4096-pixel texture limit
+  and lose sharpness; where nothing has loaded yet the globe shows the land colour (Step 7.6).
+  Fixed in `21bc04d`: the C++ and the shaders of the globe texture no longer disagree.
 - The chosen style and hidden details are **not saved**: each start is Standard with every layer on.
   Each window keeps its own; the map type is shared, as before.
 - A map type whose server does not answer keeps its drawn picture in the panel.
